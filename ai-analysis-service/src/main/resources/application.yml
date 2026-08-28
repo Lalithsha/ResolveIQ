@@ -1,0 +1,42 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: ai-analysis-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/resolveiq}
+    username: ${SPRING_DATASOURCE_USERNAME:resolveiq_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:local_dev_password_change_in_prod}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: analysis_schema
+  flyway:
+    enabled: true
+    schemas: analysis_schema
+    default-schema: analysis_schema
+    create-schemas: true
+    locations: classpath:db/migration
+
+resolveiq:
+  ai:
+    chat-provider: ${RESOLVEIQ_AI_CHAT_PROVIDER:mock}
+    chat-model: ${RESOLVEIQ_AI_CHAT_MODEL:mock-model-v1}
+    api-key: ${RESOLVEIQ_AI_API_KEY:mock-api-key}
+    ollama-base-url: ${RESOLVEIQ_OLLAMA_BASE_URL:http://localhost:11434}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

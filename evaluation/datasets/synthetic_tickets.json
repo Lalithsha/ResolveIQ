@@ -1,0 +1,52 @@
+[
+  {
+    "id": "riq-syn-001",
+    "subject": "Double charged for enterprise subscription",
+    "category": "BILLING",
+    "priority": "HIGH",
+    "customer": "Alex Rivera",
+    "description": "Our corporate credit card was charged twice on August 25th for invoice INV-2026-881. Please refund the duplicate transaction.",
+    "expected_intent": "billing_duplicate_charge",
+    "expected_kb_id": "KB-104"
+  },
+  {
+    "id": "riq-syn-002",
+    "subject": "Okta SSO SAML assertion failure on login",
+    "category": "TECHNICAL",
+    "priority": "CRITICAL",
+    "customer": "Jordan Lee",
+    "description": "When our team logs in through Okta SSO, they receive a 401 Invalid SAML response signature error.",
+    "expected_intent": "auth_sso_failure",
+    "expected_kb_id": "KB-105"
+  },
+  {
+    "id": "riq-syn-003",
+    "subject": "Need to update company billing address and tax ID",
+    "category": "ACCOUNT",
+    "priority": "MEDIUM",
+    "customer": "Samantha Reed",
+    "description": "We relocated our European office and need our VAT ID and company address updated on all upcoming invoices.",
+    "expected_intent": "account_address_update",
+    "expected_kb_id": "KB-108"
+  },
+  {
+    "id": "riq-syn-004",
+    "subject": "Package delivery marked delivered but not received",
+    "category": "DELIVERY",
+    "priority": "HIGH",
+    "customer": "David Kim",
+    "description": "Tracking number TRK-99218 shows delivered yesterday at 3 PM, but our front desk confirmed no package arrived.",
+    "expected_intent": "delivery_missing_package",
+    "expected_kb_id": "KB-112"
+  },
+  {
+    "id": "riq-syn-005",
+    "subject": "Webhook delivery failing with 429 Too Many Requests",
+    "category": "TECHNICAL",
+    "priority": "HIGH",
+    "customer": "Elena Rostova",
+    "description": "Our developer endpoint is getting flooded with retry webhooks after a minor 500 error, resulting in continuous rate limiting.",
+    "expected_intent": "technical_webhook_rate_limit",
+    "expected_kb_id": "KB-119"
+  }
+]

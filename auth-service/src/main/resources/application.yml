@@ -1,0 +1,41 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/resolveiq}
+    username: ${SPRING_DATASOURCE_USERNAME:resolveiq_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:local_dev_password_change_in_prod}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: auth_schema
+  flyway:
+    enabled: true
+    schemas: auth_schema
+    default-schema: auth_schema
+    create-schemas: true
+    locations: classpath:db/migration
+
+resolveiq:
+  jwt:
+    secret: ${RESOLVEIQ_JWT_SECRET:fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
+    expiration-ms: ${RESOLVEIQ_JWT_EXPIRATION_MS:900000}
+    refresh-expiration-ms: ${RESOLVEIQ_JWT_REFRESH_EXPIRATION_MS:604800000}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

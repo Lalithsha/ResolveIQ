@@ -1,0 +1,27 @@
+[
+  {
+    "query": "Duplicate payment charge on credit card for invoice",
+    "relevant_article_ids": ["KB-104"],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Okta SSO SAML 401 signature validation error",
+    "relevant_article_ids": ["KB-105"],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Change VAT tax ID number on company invoice",
+    "relevant_article_ids": ["KB-108"],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Delivery status says delivered but package is missing",
+    "relevant_article_ids": ["KB-112"],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Webhook receiver getting 429 rate limit errors",
+    "relevant_article_ids": ["KB-119"],
+    "min_expected_recall_at_5": 1.0
+  }
+]

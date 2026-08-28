@@ -1,0 +1,49 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service-route
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/v1/auth/**
+
+        - id: ticket-service-route
+          uri: lb://ticket-service
+          predicates:
+            - Path=/api/v1/tickets/**, /api/v1/customer/tickets/**, /api/v1/agent/**
+
+        - id: rag-service-route
+          uri: lb://rag-service
+          predicates:
+            - Path=/api/v1/knowledge/**, /api/v1/retrieval/**
+
+        - id: routing-service-route
+          uri: lb://routing-service
+          predicates:
+            - Path=/api/v1/routing/**
+
+        - id: orchestration-service-route
+          uri: lb://ai-orchestration-service
+          predicates:
+            - Path=/api/v1/workflows/**, /api/v1/admin/workflows/**
+
+        - id: analysis-service-route
+          uri: lb://ai-analysis-service
+          predicates:
+            - Path=/api/v1/analysis/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway

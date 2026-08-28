@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light theme - Exact tokens from Section 13.3 */
+  --color-bg: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F1F5F9;
+  --color-text: #0F172A;
+  --color-text-muted: #475569;
+  --color-border: #CBD5E1;
+  --color-border-subtle: #E2E8F0;
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-primary-soft: #DBEAFE;
+  --color-ai: #7C3AED;
+  --color-ai-soft: #EDE9FE;
+  --color-success: #15803D;
+  --color-warning: #B45309;
+  --color-danger: #B91C1C;
+  --color-info: #0369A1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark theme */
+    --color-bg: #0B1220;
+    --color-surface: #111827;
+    --color-surface-muted: #1E293B;
+    --color-text: #F8FAFC;
+    --color-text-muted: #CBD5E1;
+    --color-border: #334155;
+    --color-border-subtle: #1E293B;
+    --color-primary: #60A5FA;
+    --color-primary-hover: #93C5FD;
+    --color-primary-soft: #1E3A8A;
+    --color-ai: #A78BFA;
+    --color-ai-soft: #2E1065;
+    --color-success: #22C55E;
+    --color-warning: #F59E0B;
+    --color-danger: #EF4444;
+    --color-info: #38BDF8;
+  }
+}
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  line-height: 1.5;
+}
+
+code, kbd, samp, pre {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}

@@ -1,0 +1,42 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: rag-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/resolveiq}
+    username: ${SPRING_DATASOURCE_USERNAME:resolveiq_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:local_dev_password_change_in_prod}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: rag_schema
+  flyway:
+    enabled: true
+    schemas: rag_schema
+    default-schema: rag_schema
+    create-schemas: true
+    locations: classpath:db/migration
+
+resolveiq:
+  ai:
+    embedding-provider: ${RESOLVEIQ_AI_EMBEDDING_PROVIDER:mock}
+    embedding-model: ${RESOLVEIQ_AI_EMBEDDING_MODEL:mock-embedding-v1}
+    embedding-dimension: 1536
+    api-key: ${RESOLVEIQ_AI_API_KEY:mock-api-key}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

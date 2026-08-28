@@ -1,0 +1,42 @@
+[
+  {
+    "id": "KB-104",
+    "title": "Payment Reconciliation and Duplicate Charge Guidelines",
+    "category": "BILLING",
+    "version": "2.1",
+    "content": "When a customer reports duplicate charges on credit cards, support agents must verify the payment processor transaction IDs in the billing dashboard. If dual authorizations occurred due to a gateway timeout, initiate a void on the pending transaction and reconcile the invoice state. Always notify the customer with the reversal reference number.",
+    "tags": ["billing", "duplicate-charge", "credit-card", "reconciliation"]
+  },
+  {
+    "id": "KB-105",
+    "title": "Enterprise SSO and SAML 2.0 Identity Troubleshooting",
+    "category": "TECHNICAL",
+    "version": "1.0",
+    "content": "SAML response signature failures in Okta, Azure AD, or PingFederate typically result from an expired X.509 signing certificate or mismatched Entity ID. Verify that the IdP metadata matches the SP metadata in the tenant security settings. Regenerate signing certificates if the expiry date has passed.",
+    "tags": ["sso", "saml", "okta", "authentication", "security"]
+  },
+  {
+    "id": "KB-108",
+    "title": "Updating Billing Information, Tax IDs, and Invoicing Entities",
+    "category": "ACCOUNT",
+    "version": "1.2",
+    "content": "Tax identification numbers (such as EU VAT, UK VAT, or US EIN) and legal entity addresses can be updated by tenant administrators under Settings > Billing > Legal Information. Invoices already finalized cannot have their entity changed; subsequent invoices will reflect the updated tax profile.",
+    "tags": ["account", "vat", "tax-id", "invoicing", "address"]
+  },
+  {
+    "id": "KB-112",
+    "title": "Missing Shipment and Carrier Delivery Investigation",
+    "category": "DELIVERY",
+    "version": "1.1",
+    "content": "If a carrier marks a package as delivered but the customer cannot locate it, verify the carrier proof-of-delivery signature and GPS coordinate scan. For missing shipments, file a carrier trace claim within 48 hours and issue a priority replacement if the trace is unresolved.",
+    "tags": ["delivery", "shipping", "carrier", "replacement"]
+  },
+  {
+    "id": "KB-119",
+    "title": "Developer Webhooks, Exponential Backoff, and Rate Limits",
+    "category": "TECHNICAL",
+    "version": "2.0",
+    "content": "Webhook dispatchers employ exponential backoff with jitter on non-2xx responses. If an endpoint responds with HTTP 429, the dispatcher pauses delivery for the duration specified in the Retry-After header. Developers should ensure endpoints return 200 OK before executing heavy asynchronous downstream jobs.",
+    "tags": ["webhooks", "rate-limiting", "api", "developer", "backoff"]
+  }
+]

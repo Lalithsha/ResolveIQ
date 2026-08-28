@@ -1,0 +1,80 @@
+# Build & Target
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+build/
+dist/
+out/
+.gradle/
+
+# Node & Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+frontend/dist/
+frontend/node_modules/
+.turbo/
+
+# Environment and Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.jks
+credentials.json
+secrets/
+
+# IDE & OS
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Database & Storage
+data/
+minio-data/
+pgdata/
+kafka-data/
+
+# Coverage and Reports
+.nyc_output/
+coverage/
+jacoco.exec
+*.jacoco
+target/site/jacoco/
+target/site/jacoco-it/
+
+# Temporary / Scratch
+tmp/
+temp/
+scratch/
