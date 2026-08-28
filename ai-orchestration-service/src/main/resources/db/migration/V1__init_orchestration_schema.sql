@@ -8,12 +8,11 @@ CREATE TABLE IF NOT EXISTS orchestration_schema.workflow_instances (
     ticket_id UUID NOT NULL,
     tenant_id UUID NOT NULL,
     workflow_type VARCHAR(100) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'PENDING', -- PENDING, IN_PROGRESS, COMPLETED, FAILED, TIMED_OUT
+    status VARCHAR(50) NOT NULL DEFAULT 'RUNNING',
     current_step VARCHAR(100),
-    started_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    completed_at TIMESTAMPTZ,
-    error_message TEXT,
-    version BIGINT NOT NULL DEFAULT 0
+    deadline_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_workflow_instances_ticket ON orchestration_schema.workflow_instances(ticket_id);
@@ -25,12 +24,10 @@ CREATE TABLE IF NOT EXISTS orchestration_schema.workflow_steps (
     step_name VARCHAR(100) NOT NULL,
     step_order INT NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
-    inputs JSONB,
-    outputs JSONB,
+    input_payload JSONB,
+    output_payload JSONB,
     started_at TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ,
-    duration_ms BIGINT,
-    error_message TEXT
+    completed_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS orchestration_schema.workflow_attempts (

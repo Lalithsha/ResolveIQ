@@ -41,6 +41,12 @@ CREATE TABLE IF NOT EXISTS auth_schema.user_roles (
     PRIMARY KEY (user_id, role_id)
 );
 
+CREATE TABLE IF NOT EXISTS auth_schema.user_roles_map (
+    user_id UUID NOT NULL REFERENCES auth_schema.users(id) ON DELETE CASCADE,
+    role_name VARCHAR(50) NOT NULL,
+    PRIMARY KEY (user_id, role_name)
+);
+
 CREATE TABLE IF NOT EXISTS auth_schema.refresh_tokens (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES auth_schema.users(id) ON DELETE CASCADE,

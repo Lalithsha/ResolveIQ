@@ -1,6 +1,6 @@
 # ResolveIQ AI Evaluation Report
 
-**Generated At:** 2026-08-28T20:07:23.724741Z  
+**Generated At:** 2026-08-28T20:09:22.307183Z  
 **Dataset:** `evaluation/datasets/eval_ground_truth.json` (5 benchmark queries)  
 **Status:** ✅ ALL GATES PASSED
 
