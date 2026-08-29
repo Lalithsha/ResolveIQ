@@ -5,13 +5,19 @@ import { CustomerPortal } from './pages/CustomerPortal';
 import { AgentWorkspace } from './pages/AgentWorkspace';
 import { KnowledgeConsole } from './pages/KnowledgeConsole';
 import { AdminGovernance } from './pages/AdminGovernance';
+import { AuthPage } from './pages/AuthPage';
+import { useAuth } from './context/AuthContext';
+import { Role } from './types';
 
 export const App: React.FC = () => {
-  const [currentRole, setCurrentRole] = useState<string>('AGENT');
+  const { user, activeRole, setActiveRole, isAuthenticated, isLoading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('my-queue');
 
+  if (isLoading) return <div className="min-h-screen bg-background grid place-items-center text-primary font-semibold">Loading secure workspace…</div>;
+  if (!isAuthenticated || !user) return <AuthPage />;
+
   const handleRoleChange = (newRole: string) => {
-    setCurrentRole(newRole);
+    setActiveRole(newRole as Role);
     if (newRole === 'CUSTOMER') setActiveTab('create');
     else if (newRole === 'AGENT') setActiveTab('my-queue');
     else if (newRole === 'KNOWLEDGE_MANAGER') setActiveTab('articles');
@@ -19,13 +25,13 @@ export const App: React.FC = () => {
   };
 
   const renderContent = () => {
-    if (currentRole === 'CUSTOMER') {
+    if (activeRole === 'CUSTOMER') {
       return <CustomerPortal />;
     }
-    if (currentRole === 'KNOWLEDGE_MANAGER' || activeTab === 'knowledge-search' || activeTab === 'knowledge') {
+    if (activeRole === 'KNOWLEDGE_MANAGER' || activeTab === 'knowledge-search' || activeTab === 'knowledge') {
       return <KnowledgeConsole />;
     }
-    if (currentRole === 'ADMIN' && (activeTab === 'governance' || activeTab === 'overview')) {
+    if (activeRole === 'ADMIN' && (activeTab === 'governance' || activeTab === 'overview')) {
       return <AdminGovernance />;
     }
     return <AgentWorkspace />;
@@ -33,9 +39,9 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Navbar currentRole={currentRole} onRoleChange={handleRoleChange} />
+      <Navbar currentRole={activeRole} availableRoles={user.roles} userName={user.fullName} onRoleChange={handleRoleChange} onLogout={logout} />
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar currentRole={currentRole} activeTab={activeTab} onSelectTab={setActiveTab} />
+        <Sidebar currentRole={activeRole} activeTab={activeTab} onSelectTab={setActiveTab} />
         <div className="flex-1 overflow-y-auto">
           {renderContent()}
         </div>

@@ -18,7 +18,11 @@ public class AnalysisController {
     }
 
     @PostMapping("/classify")
-    public ResponseEntity<TicketAnalysisResponse> classifyTicket(@Valid @RequestBody TicketAnalysisRequest request) {
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('SYSTEM','ADMIN')")
+    public ResponseEntity<TicketAnalysisResponse> classifyTicket(
+        @RequestHeader("X-Tenant-Id") java.util.UUID tenantId,
+        @Valid @RequestBody TicketAnalysisRequest request) {
+        if (!tenantId.equals(request.tenantId())) throw new SecurityException("Request tenant does not match authenticated tenant");
         TicketAnalysisResponse response = analysisService.analyzeTicket(request);
         return ResponseEntity.ok(response);
     }

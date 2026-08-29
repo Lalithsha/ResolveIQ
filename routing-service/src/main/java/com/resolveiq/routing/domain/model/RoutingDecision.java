@@ -1,6 +1,8 @@
 package com.resolveiq.routing.domain.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -32,6 +34,7 @@ public class RoutingDecision {
     @Column(columnDefinition = "TEXT")
     private String reason;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "input_facts", columnDefinition = "JSONB")
     private String inputFacts;
 

@@ -68,7 +68,7 @@ class HybridRetrievalServiceTest {
         UUID caseId = UUID.randomUUID();
 
         KnowledgeDocument doc = new KnowledgeDocument(docId, tenantId, "Payment Reconciliation", "BILLING", "Core", "en");
-        when(documentRepository.findById(docId)).thenReturn(Optional.of(doc));
+        when(documentRepository.findByIdAndTenantId(docId, tenantId)).thenReturn(Optional.of(doc));
 
         KnowledgeChunk chunk1 = new KnowledgeChunk(
             tenantId,
@@ -90,7 +90,7 @@ class HybridRetrievalServiceTest {
             "BILLING",
             UUID.randomUUID()
         );
-        when(resolvedCaseRepository.findById(caseId)).thenReturn(Optional.of(resolvedCase));
+        when(resolvedCaseRepository.findByIdAndTenantId(caseId, tenantId)).thenReturn(Optional.of(resolvedCase));
 
         ResolvedCaseChunk caseChunk = new ResolvedCaseChunk(
             tenantId,
@@ -101,8 +101,10 @@ class HybridRetrievalServiceTest {
             "mock-embedding-v1"
         );
 
-        when(knowledgeChunkRepository.findByTenantId(tenantId)).thenReturn(List.of(chunk1));
-        when(resolvedCaseChunkRepository.findByTenantId(tenantId)).thenReturn(List.of(caseChunk));
+        when(knowledgeChunkRepository.searchLexical(tenantId, "duplicate charge on card", 50)).thenReturn(List.of(chunk1));
+        when(knowledgeChunkRepository.searchVector(eq(tenantId), anyString(), eq(50))).thenReturn(List.of(chunk1));
+        when(resolvedCaseChunkRepository.searchLexical(tenantId, "duplicate charge on card", 30)).thenReturn(List.of(caseChunk));
+        when(resolvedCaseChunkRepository.searchVector(eq(tenantId), anyString(), eq(30))).thenReturn(List.of(caseChunk));
 
         RetrievalResultDto result = retrievalService.searchHybrid(
             tenantId,

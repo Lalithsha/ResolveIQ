@@ -8,11 +8,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -26,18 +23,21 @@ public class OutboxPublisherService {
 
     private final OutboxEventRepository outboxRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
+    private final OutboxTransactionManager transactionManager;
 
     public OutboxPublisherService(
         OutboxEventRepository outboxRepository,
-        KafkaTemplate<String, String> kafkaTemplate
+        KafkaTemplate<String, String> kafkaTemplate,
+        OutboxTransactionManager transactionManager
     ) {
         this.outboxRepository = outboxRepository;
         this.kafkaTemplate = kafkaTemplate;
+        this.transactionManager = transactionManager;
     }
 
     @Scheduled(fixedDelay = 1000)
     public void processOutboxEvents() {
-        List<OutboxEvent> claimedEvents = claimBatch();
+        List<OutboxEvent> claimedEvents = transactionManager.claimDue(workerId, 20, Duration.ofMinutes(2));
         if (claimedEvents.isEmpty()) {
             return;
         }
@@ -47,30 +47,12 @@ public class OutboxPublisherService {
         }
     }
 
-    @Transactional
-    public List<OutboxEvent> claimBatch() {
-        Instant leaseExpiredAt = Instant.now().minus(Duration.ofMinutes(2));
-        List<OutboxEvent> events;
-        try {
-            events = outboxRepository.claimDueEvents(leaseExpiredAt, 20);
-        } catch (Exception e) {
-            // Fallback for H2 or environments without native SKIP LOCKED
-            events = new ArrayList<>();
-        }
-
-        for (OutboxEvent event : events) {
-            event.markClaimed(workerId);
-            outboxRepository.save(event);
-        }
-        return events;
-    }
-
     private void publishAndRecord(OutboxEvent event) {
         String topic = event.getEventType();
         String partitionKey = event.getAggregateId().toString();
 
         boolean success = false;
-        String errorMessage = null;
+        String errorCode = null;
 
         try {
             // Publish outside database transaction with bounded 5-second wait
@@ -78,22 +60,19 @@ public class OutboxPublisherService {
             success = true;
             log.debug("Successfully published outbox event [{}] to topic [{}]", event.getId(), topic);
         } catch (Exception e) {
-            errorMessage = e.getMessage();
+            errorCode = classifyError(e);
             log.warn("Failed to publish outbox event [{}] to topic [{}]: {}", event.getId(), topic, e.getMessage());
         }
 
-        recordResult(event.getId(), success, errorMessage);
+        transactionManager.recordResult(event.getId(), success, errorCode);
     }
 
-    @Transactional
-    public void recordResult(UUID eventId, boolean success, String errorMessage) {
-        outboxRepository.findById(eventId).ifPresent(event -> {
-            if (success) {
-                event.markPublished();
-            } else {
-                event.markFailed(errorMessage != null ? errorMessage : "DELIVERY_TIMEOUT");
-            }
-            outboxRepository.save(event);
-        });
+    private String classifyError(Exception error) {
+        if (error instanceof java.util.concurrent.TimeoutException) return "KAFKA_TIMEOUT";
+        if (error instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+            return "PUBLISH_INTERRUPTED";
+        }
+        return "KAFKA_PUBLISH_FAILED";
     }
 }

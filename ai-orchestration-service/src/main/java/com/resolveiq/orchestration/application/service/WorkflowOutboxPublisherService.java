@@ -1,5 +1,6 @@
 package com.resolveiq.orchestration.application.service;
 
+import com.resolveiq.contracts.event.TicketEvents;
 import com.resolveiq.orchestration.domain.model.WorkflowOutboxEvent;
 import com.resolveiq.orchestration.domain.repository.WorkflowOutboxRepository;
 import org.slf4j.Logger;
@@ -7,11 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -24,18 +22,21 @@ public class WorkflowOutboxPublisherService {
 
     private final WorkflowOutboxRepository outboxRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final WorkflowOutboxTransactionManager transactionManager;
 
     public WorkflowOutboxPublisherService(
         WorkflowOutboxRepository outboxRepository,
-        KafkaTemplate<String, Object> kafkaTemplate
+        KafkaTemplate<String, Object> kafkaTemplate,
+        WorkflowOutboxTransactionManager transactionManager
     ) {
         this.outboxRepository = outboxRepository;
         this.kafkaTemplate = kafkaTemplate;
+        this.transactionManager = transactionManager;
     }
 
     @Scheduled(fixedDelayString = "${resolveiq.outbox.poll-interval-ms:1000}")
     public void processOutboxEvents() {
-        List<WorkflowOutboxEvent> claimedEvents = claimBatch();
+        List<WorkflowOutboxEvent> claimedEvents = transactionManager.claimDue(workerId, 20, Duration.ofMinutes(2));
         if (claimedEvents.isEmpty()) {
             return;
         }
@@ -45,29 +46,12 @@ public class WorkflowOutboxPublisherService {
         }
     }
 
-    @Transactional
-    public List<WorkflowOutboxEvent> claimBatch() {
-        Instant leaseExpiredAt = Instant.now().minus(Duration.ofMinutes(2));
-        List<WorkflowOutboxEvent> events;
-        try {
-            events = outboxRepository.claimDueEvents(leaseExpiredAt, 20);
-        } catch (Exception e) {
-            events = new ArrayList<>();
-        }
-
-        for (WorkflowOutboxEvent event : events) {
-            event.markClaimed(workerId);
-            outboxRepository.save(event);
-        }
-        return events;
-    }
-
     private void publishAndRecord(WorkflowOutboxEvent event) {
         String topic = resolveTopicForEventType(event.getEventType());
         String key = event.getAggregateId().toString();
 
         boolean success = false;
-        String errorMessage = null;
+        String errorCode = null;
 
         try {
             if (kafkaTemplate != null) {
@@ -76,29 +60,26 @@ public class WorkflowOutboxPublisherService {
             success = true;
             log.debug("Successfully published workflow event [{}] ID [{}] to topic [{}]", event.getEventType(), event.getId(), topic);
         } catch (Exception e) {
-            errorMessage = e.getMessage();
+            errorCode = classifyError(e);
             log.warn("Failed to publish workflow outbox event [{}] ID [{}]: {}", event.getEventType(), event.getId(), e.getMessage());
         }
 
-        recordResult(event.getId(), success, errorMessage);
+        transactionManager.recordResult(event.getId(), success, errorCode);
     }
 
-    @Transactional
-    public void recordResult(UUID eventId, boolean success, String errorMessage) {
-        outboxRepository.findById(eventId).ifPresent(event -> {
-            if (success) {
-                event.markPublished();
-            } else {
-                event.markFailed(errorMessage != null ? errorMessage : "DELIVERY_TIMEOUT");
-            }
-            outboxRepository.save(event);
-        });
+    private String classifyError(Exception error) {
+        if (error instanceof java.util.concurrent.TimeoutException) return "KAFKA_TIMEOUT";
+        if (error instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+            return "PUBLISH_INTERRUPTED";
+        }
+        return "KAFKA_PUBLISH_FAILED";
     }
 
     private String resolveTopicForEventType(String eventType) {
         return switch (eventType) {
-            case "TicketTriageCompleted.v1" -> "resolveiq.ticket.triage_completed";
-            case "TicketTriageFailed.v1" -> "resolveiq.ticket.triage_failed";
+            case TicketEvents.TICKET_TRIAGE_COMPLETED -> TicketEvents.TICKET_TRIAGE_COMPLETED;
+            case TicketEvents.TICKET_TRIAGE_FAILED -> TicketEvents.TICKET_TRIAGE_FAILED;
             default -> "resolveiq.workflow.events";
         };
     }

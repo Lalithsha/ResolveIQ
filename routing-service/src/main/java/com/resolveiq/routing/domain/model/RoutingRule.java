@@ -1,6 +1,8 @@
 package com.resolveiq.routing.domain.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -20,6 +22,7 @@ public class RoutingRule {
     @Column(nullable = false, length = 50)
     private String version;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "JSONB")
     private String conditions;
 

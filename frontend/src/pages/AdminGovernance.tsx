@@ -14,9 +14,8 @@ export const AdminGovernance: React.FC = () => {
       await api.retryWorkflow(workflowId, "Operator manual retry via Governance Console");
       setReplayedWorkflows(prev => ({ ...prev, [workflowId]: true }));
       setReplayMessage(`Workflow ${workflowId.substring(0, 8)} successfully requeued for execution.`);
-    } catch {
-      setReplayedWorkflows(prev => ({ ...prev, [workflowId]: true }));
-      setReplayMessage(`Workflow ${workflowId.substring(0, 8)} requeued (simulated offline mode).`);
+    } catch (failure) {
+      setReplayMessage(failure instanceof Error ? failure.message : 'Workflow retry failed');
     } finally {
       setRetryingId(null);
     }
@@ -28,6 +27,7 @@ export const AdminGovernance: React.FC = () => {
         <h1 className="text-2xl font-bold text-DEFAULT">AI Governance & Operations</h1>
         <p className="text-sm text-muted mt-1">Audit model invocations, retrieval accuracy, SLA risk rules, and event pipeline metrics.</p>
       </div>
+      <div className="p-3 border border-warning/30 bg-warning/10 text-warning rounded-card text-xs">Operational metric cards below are demonstration targets until the live metrics endpoint is connected.</div>
 
       {replayMessage && (
         <div className="p-3 bg-success/10 border border-success/20 rounded-card text-success text-xs flex items-center justify-between">
@@ -153,7 +153,7 @@ export const AdminGovernance: React.FC = () => {
             <tbody className="divide-y divide-border-subtle">
               <tr>
                 <td className="py-3 font-mono text-DEFAULT">RIQ-2026-000412</td>
-                <td className="text-muted">mock-chat-v1</td>
+                <td className="text-muted">demo-provider</td>
                 <td className="font-mono text-muted">triage-v1.0</td>
                 <td>342</td>
                 <td>124ms</td>
@@ -167,7 +167,7 @@ export const AdminGovernance: React.FC = () => {
               </tr>
               <tr>
                 <td className="py-3 font-mono text-DEFAULT">RIQ-2026-000413</td>
-                <td className="text-muted">mock-chat-v1</td>
+                <td className="text-muted">demo-provider</td>
                 <td className="font-mono text-muted">triage-v1.0</td>
                 <td>289</td>
                 <td>110ms</td>

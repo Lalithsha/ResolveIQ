@@ -26,7 +26,7 @@ public class WorkflowAttempt {
     @Column(name = "started_at", nullable = false)
     private Instant startedAt;
 
-    @Column(name = "ended_at")
+    @Column(name = "completed_at")
     private Instant endedAt;
 
     public WorkflowAttempt() {}

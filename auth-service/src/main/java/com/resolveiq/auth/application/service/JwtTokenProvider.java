@@ -16,13 +16,19 @@ public class JwtTokenProvider {
 
     private final SecretKey key;
     private final long expirationMs;
+    private final String issuer;
+    private final String audience;
 
     public JwtTokenProvider(
         @Value("${resolveiq.jwt.secret:fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}") String secret,
-        @Value("${resolveiq.jwt.expiration-ms:900000}") long expirationMs
+        @Value("${resolveiq.jwt.expiration-ms:900000}") long expirationMs,
+        @Value("${resolveiq.jwt.issuer:resolveiq-auth}") String issuer,
+        @Value("${resolveiq.jwt.audience:resolveiq-api}") String audience
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
+        this.issuer = issuer;
+        this.audience = audience;
     }
 
     public String generateAccessToken(UUID userId, UUID tenantId, String email, Set<Role> roles) {
@@ -32,11 +38,15 @@ public class JwtTokenProvider {
         List<String> roleNames = roles.stream().map(Enum::name).collect(Collectors.toList());
 
         return Jwts.builder()
+            .issuer(issuer)
+            .audience().add(audience).and()
             .subject(userId.toString())
             .claim("tenantId", tenantId.toString())
             .claim("email", email)
             .claim("roles", roleNames)
+            .claim("token_type", "access")
             .issuedAt(now)
+            .notBefore(new Date(now.getTime() - 5000))
             .expiration(expiryDate)
             .signWith(key)
             .compact();
@@ -45,6 +55,7 @@ public class JwtTokenProvider {
     public Claims getClaimsFromToken(String token) {
         return Jwts.parser()
             .verifyWith(key)
+            .requireIssuer(issuer)
             .build()
             .parseSignedClaims(token)
             .getPayload();
@@ -52,8 +63,9 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
-            return true;
+            Claims claims = getClaimsFromToken(token);
+            return claims.getAudience() != null && claims.getAudience().contains(audience)
+                && "access".equals(claims.get("token_type", String.class));
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }

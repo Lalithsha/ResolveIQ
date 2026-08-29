@@ -20,6 +20,15 @@ public class WorkflowInstance {
     @Column(name = "workflow_type", nullable = false, length = 100)
     private String workflowType;
 
+    @Column(nullable = false, length = 500)
+    private String subject;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String description;
+    @Column(nullable = false, length = 20)
+    private String priority;
+    @Column(nullable = false, length = 30)
+    private String channel;
+
     @Column(nullable = false, length = 50)
     private String status; // RUNNING, COMPLETED, FAILED, TIMED_OUT
 
@@ -38,10 +47,18 @@ public class WorkflowInstance {
     public WorkflowInstance() {}
 
     public WorkflowInstance(UUID ticketId, UUID tenantId, String workflowType) {
+        this(ticketId, tenantId, workflowType, "Unavailable", "Unavailable", "MEDIUM", "WEB");
+    }
+
+    public WorkflowInstance(UUID ticketId, UUID tenantId, String workflowType, String subject, String description, String priority, String channel) {
         this.id = UUID.randomUUID();
         this.ticketId = ticketId;
         this.tenantId = tenantId;
         this.workflowType = workflowType;
+        this.subject = subject;
+        this.description = description;
+        this.priority = priority;
+        this.channel = channel;
         this.status = "RUNNING";
         this.currentStep = "START";
         this.deadlineAt = Instant.now().plusSeconds(60); // 60-second execution deadline
@@ -53,6 +70,10 @@ public class WorkflowInstance {
     public UUID getTicketId() { return ticketId; }
     public UUID getTenantId() { return tenantId; }
     public String getWorkflowType() { return workflowType; }
+    public String getSubject() { return subject; }
+    public String getDescription() { return description; }
+    public String getPriority() { return priority; }
+    public String getChannel() { return channel; }
     public String getStatus() { return status; }
     public String getCurrentStep() { return currentStep; }
     public Instant getDeadlineAt() { return deadlineAt; }

@@ -21,10 +21,9 @@ public class RetrievalController {
 
     @PostMapping("/search")
     public ResponseEntity<RetrievalResultDto> search(
-        @RequestHeader(value = "X-Tenant-Id", required = false) String tenantHeader,
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
         @Valid @RequestBody RetrievalQueryRequest request
     ) {
-        UUID tenantId = tenantHeader != null ? UUID.fromString(tenantHeader) : UUID.fromString("00000000-0000-0000-0000-000000000001");
         int topK = request.topK() != null ? request.topK() : 5;
 
         RetrievalResultDto result = retrievalService.searchHybrid(

@@ -8,9 +8,10 @@ interface AuthContextType {
   activeRole: Role;
   token: string | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, fullName: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   setActiveRole: (role: Role) => void;
 }
 
@@ -21,25 +22,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = typeof window !== 'undefined' && typeof localStorage !== 'undefined' && localStorage.getItem
       ? localStorage.getItem('resolveiq_user')
       : null;
-    return saved ? JSON.parse(saved) : {
-      id: '22222222-2222-2222-2222-222222222222',
-      tenantId: '00000000-0000-0000-0000-000000000001',
-      email: 'sarah.chen@resolveiq.local',
-      fullName: 'Sarah Chen (Agent)',
-      roles: ['AGENT']
-    };
+    return saved ? JSON.parse(saved) : null;
   });
 
   const [activeRole, setActiveRole] = useState<Role>(() => {
     const saved = typeof window !== 'undefined' && typeof localStorage !== 'undefined' && localStorage.getItem
       ? (localStorage.getItem('resolveiq_active_role') as Role)
       : null;
-    return saved || 'AGENT';
+    return saved || 'CUSTOMER';
   });
 
   const [token, setToken] = useState<string | null>(() => {
     return api.getToken();
   });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    api.refresh()
+      .then(handleAuthSuccess)
+      .catch(() => {
+        setUser(null);
+        setToken(null);
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && typeof localStorage !== 'undefined' && localStorage.setItem) {
@@ -82,12 +88,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     handleAuthSuccess(res);
   };
 
-  const logout = () => {
-    api.setToken(null);
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('resolveiq_user');
-    localStorage.removeItem('resolveiq_token');
+  const logout = async () => {
+    try {
+      await api.logout();
+    } finally {
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem('resolveiq_user');
+    }
   };
 
   return (
@@ -97,6 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activeRole,
         token,
         isAuthenticated: !!token || !!user,
+        isLoading,
         login,
         register,
         logout,

@@ -25,10 +25,11 @@ spring:
 
 resolveiq:
   ai:
-    embedding-provider: ${RESOLVEIQ_AI_EMBEDDING_PROVIDER:mock}
-    embedding-model: ${RESOLVEIQ_AI_EMBEDDING_MODEL:mock-embedding-v1}
+    embedding-provider: ${RESOLVEIQ_AI_EMBEDDING_PROVIDER:deterministic}
+    embedding-model: ${RESOLVEIQ_AI_EMBEDDING_MODEL:resolveiq-deterministic-embedding-v1}
     embedding-dimension: 1536
-    api-key: ${RESOLVEIQ_AI_API_KEY:mock-api-key}
+    base-url: ${RESOLVEIQ_AI_BASE_URL:https://api.openai.com/v1}
+    api-key: ${RESOLVEIQ_AI_API_KEY:}
 
 eureka:
   client:

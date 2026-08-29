@@ -7,28 +7,19 @@ export const KnowledgeConsole: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<Citation[] | null>(null);
+  const [error, setError] = useState('');
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     setIsSearching(true);
+    setError('');
     try {
       const res = await api.searchKnowledge(searchQuery.trim(), 5);
       setSearchResults(res.citations);
-    } catch {
-      // Fallback demo search
-      setSearchResults([
-        {
-          sourceType: 'KNOWLEDGE_ARTICLE',
-          sourceId: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
-          versionId: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
-          chunkId: '11111111-2222-3333-4444-555555555555',
-          title: 'KB-104: Payment Reconciliation Guidelines (v2.1)',
-          citationText: 'When a gateway timeout causes duplicate pending records, support agents must verify authorization status in payment processor and initiate refund within 3-5 business days.',
-          snippet: 'When a gateway timeout causes duplicate pending records, support agents must verify authorization status in payment processor and initiate refund within 3-5 business days.',
-          confidenceScore: 0.94
-        }
-      ]);
+    } catch (failure) {
+      setSearchResults(null);
+      setError(failure instanceof Error ? failure.message : 'Knowledge search failed');
     } finally {
       setIsSearching(false);
     }
@@ -68,6 +59,8 @@ export const KnowledgeConsole: React.FC = () => {
           <span>{isSearching ? 'Searching...' : 'Search Index'}</span>
         </button>
       </form>
+
+      {error && <div role="alert" className="p-3 bg-danger/10 text-danger border border-danger/20 rounded-card text-sm">{error}</div>}
 
       {searchResults && (
         <div className="bg-surface border border-primary/20 rounded-card p-5 space-y-4">

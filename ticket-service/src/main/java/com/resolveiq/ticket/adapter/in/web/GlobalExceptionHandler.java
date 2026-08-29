@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -71,5 +72,17 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ProblemDetailResponse> handleUnreadableRequest(HttpMessageNotReadableException ex) {
+        ProblemDetailResponse response = ProblemDetailResponse.of(
+            "Malformed Request",
+            HttpStatus.BAD_REQUEST.value(),
+            "The request body contains invalid JSON or an unsupported value",
+            "MALFORMED_REQUEST",
+            CorrelationContext.getCorrelationId()
+        );
+        return ResponseEntity.badRequest().body(response);
     }
 }

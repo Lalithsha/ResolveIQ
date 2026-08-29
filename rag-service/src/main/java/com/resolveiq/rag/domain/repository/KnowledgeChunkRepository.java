@@ -2,9 +2,11 @@ package com.resolveiq.rag.domain.repository;
 
 import com.resolveiq.rag.domain.model.KnowledgeChunk;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +23,7 @@ public interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunk, 
           AND kd.status = 'PUBLISHED'
           AND kc.version_id = kd.active_version_id
           AND kc.tsv_content @@ plainto_tsquery('english', :query)
+        ORDER BY ts_rank_cd(kc.tsv_content, plainto_tsquery('english', :query)) DESC, kc.id
         LIMIT :limit
         """, nativeQuery = true)
     List<KnowledgeChunk> searchLexical(
@@ -43,5 +46,19 @@ public interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunk, 
         @Param("tenantId") UUID tenantId,
         @Param("embedding") String embeddingString,
         @Param("limit") int limit
+    );
+
+    @Modifying(flushAutomatically = true)
+    @Transactional
+    @Query(value = """
+        UPDATE rag_schema.knowledge_chunks
+        SET embedding = cast(:embedding AS vector), embedding_model = :model
+        WHERE id = :chunkId AND tenant_id = :tenantId
+        """, nativeQuery = true)
+    int storeEmbedding(
+        @Param("chunkId") UUID chunkId,
+        @Param("tenantId") UUID tenantId,
+        @Param("embedding") String embedding,
+        @Param("model") String model
     );
 }

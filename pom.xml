@@ -13,6 +13,7 @@
 
     <modules>
         <module>common-contracts</module>
+        <module>common-security</module>
         <module>discovery-service</module>
         <module>api-gateway</module>
         <module>auth-service</module>
@@ -172,6 +173,13 @@
                             </exclude>
                         </excludes>
                     </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>repackage</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

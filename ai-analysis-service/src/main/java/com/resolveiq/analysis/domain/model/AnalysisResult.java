@@ -1,6 +1,8 @@
 package com.resolveiq.analysis.domain.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -38,9 +40,11 @@ public class AnalysisResult {
     @Column(nullable = false, length = 10)
     private String language;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "redacted_entities", columnDefinition = "JSONB")
     private String redactedEntities;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "policy_flags", columnDefinition = "JSONB")
     private String policyFlags;
 

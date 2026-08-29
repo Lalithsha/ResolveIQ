@@ -7,13 +7,13 @@ import com.resolveiq.contracts.event.TicketEvents;
 import com.resolveiq.contracts.tracing.CorrelationContext;
 import com.resolveiq.orchestration.domain.model.*;
 import com.resolveiq.orchestration.domain.repository.*;
+import com.resolveiq.security.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
@@ -30,15 +30,17 @@ public class TriageWorkflowOrchestrator {
     private final WorkflowOutboxRepository outboxRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final WorkflowPersistenceService persistence;
+    private final JwtService jwtService;
 
     @Value("${resolveiq.services.analysis-url:http://localhost:8084}")
-    private String analysisUrl;
+    private String analysisUrl = "http://localhost:8084";
 
     @Value("${resolveiq.services.routing-url:http://localhost:8085}")
-    private String routingUrl;
+    private String routingUrl = "http://localhost:8085";
 
     @Value("${resolveiq.services.rag-url:http://localhost:8086}")
-    private String ragUrl;
+    private String ragUrl = "http://localhost:8086";
 
     public TriageWorkflowOrchestrator(
         WorkflowInstanceRepository instanceRepository,
@@ -46,7 +48,9 @@ public class TriageWorkflowOrchestrator {
         WorkflowAttemptRepository attemptRepository,
         WorkflowOutboxRepository outboxRepository,
         RestTemplateBuilder restTemplateBuilder,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        WorkflowPersistenceService persistence,
+        JwtService jwtService
     ) {
         this.instanceRepository = instanceRepository;
         this.stepRepository = stepRepository;
@@ -57,9 +61,10 @@ public class TriageWorkflowOrchestrator {
             .setReadTimeout(Duration.ofSeconds(5))
             .build();
         this.objectMapper = objectMapper;
+        this.persistence = persistence;
+        this.jwtService = jwtService;
     }
 
-    @Transactional
     public void executeTriageWorkflow(
         UUID ticketId,
         UUID tenantId,
@@ -70,23 +75,31 @@ public class TriageWorkflowOrchestrator {
     ) {
         log.info("Starting Triage Workflow for ticket {} in tenant {}", ticketId, tenantId);
 
-        WorkflowInstance instance = new WorkflowInstance(ticketId, tenantId, "TICKET_TRIAGE");
-        instanceRepository.save(instance);
+        WorkflowInstance instance = persistence.start(ticketId, tenantId, subject, description, priority, channel);
+        runWorkflow(instance, subject, description, priority, channel);
+    }
+
+    public void retryTriageWorkflow(UUID workflowId) {
+        WorkflowInstance instance = persistence.restart(workflowId);
+        runWorkflow(instance, instance.getSubject(), instance.getDescription(), instance.getPriority(), instance.getChannel());
+    }
+
+    private void runWorkflow(WorkflowInstance instance, String subject, String description, String priority, String channel) {
+        UUID ticketId = instance.getTicketId();
+        UUID tenantId = instance.getTenantId();
+        WorkflowPersistenceService.StepHandle activeStep = null;
 
         try {
             // STEP 1: AI Analysis
-            instance.updateProgress("AI_ANALYSIS");
-            WorkflowStep step1 = new WorkflowStep(instance.getId(), "AI_ANALYSIS", 1, "{\"subject\":\"" + subject + "\"}");
-            stepRepository.save(step1);
+            activeStep = persistence.startStep(instance.getId(), "AI_ANALYSIS", 1,
+                objectMapper.writeValueAsString(Map.of("subject", subject)));
 
             AnalysisResultDto analysisResult = callAnalysisService(ticketId, tenantId, subject, description, channel);
-            step1.complete(objectMapper.writeValueAsString(analysisResult));
-            stepRepository.save(step1);
+            persistence.completeStep(activeStep, objectMapper.writeValueAsString(analysisResult));
+            activeStep = null;
 
             // STEP 2: Routing & SLA Decision
-            instance.updateProgress("ROUTING_AND_SLA");
-            WorkflowStep step2 = new WorkflowStep(instance.getId(), "ROUTING_AND_SLA", 2, "{}");
-            stepRepository.save(step2);
+            activeStep = persistence.startStep(instance.getId(), "ROUTING_AND_SLA", 2, "{}");
 
             RoutingResultDto routingResult = callRoutingService(
                 ticketId,
@@ -96,30 +109,22 @@ public class TriageWorkflowOrchestrator {
                 analysisResult.urgency(),
                 priority
             );
-            step2.complete(objectMapper.writeValueAsString(routingResult));
-            stepRepository.save(step2);
+            persistence.completeStep(activeStep, objectMapper.writeValueAsString(routingResult));
+            activeStep = null;
 
             // STEP 3: RAG Retrieval (Knowledge + Similar Cases)
-            instance.updateProgress("RAG_RETRIEVAL");
-            WorkflowStep step3 = new WorkflowStep(instance.getId(), "RAG_RETRIEVAL", 3, "{}");
-            stepRepository.save(step3);
+            activeStep = persistence.startStep(instance.getId(), "RAG_RETRIEVAL", 3, "{}");
 
             RetrievalResultDto retrievalResult = callRagService(tenantId, ticketId, subject + " " + description);
-            step3.complete(objectMapper.writeValueAsString(retrievalResult));
-            stepRepository.save(step3);
+            persistence.completeStep(activeStep, objectMapper.writeValueAsString(retrievalResult));
+            activeStep = null;
 
             // STEP 4: Formulate Grounded Draft Response
-            instance.updateProgress("DRAFT_GENERATION");
-            WorkflowStep step4 = new WorkflowStep(instance.getId(), "DRAFT_GENERATION", 4, "{}");
-            stepRepository.save(step4);
+            activeStep = persistence.startStep(instance.getId(), "DRAFT_GENERATION", 4, "{}");
 
             DraftResponseDto draft = formulateDraft(subject, description, retrievalResult);
-            step4.complete(objectMapper.writeValueAsString(draft));
-            stepRepository.save(step4);
-
-            // Mark Workflow Completed
-            instance.complete();
-            instanceRepository.save(instance);
+            persistence.completeStep(activeStep, objectMapper.writeValueAsString(draft));
+            activeStep = null;
 
             // Emit TicketTriageCompleted.v1
             TicketEvents.TicketTriageCompletedPayload payload = new TicketEvents.TicketTriageCompletedPayload(
@@ -130,7 +135,15 @@ public class TriageWorkflowOrchestrator {
                 analysisResult.urgency(),
                 draft.confidence(),
                 routingResult.targetTeamId(),
-                UUID.randomUUID(), // Generated suggestion ID
+                routingResult.assignedAgentId(),
+                routingResult.slaPolicyId(),
+                routingResult.firstResponseDueAt(),
+                routingResult.resolutionDueAt(),
+                UUID.randomUUID(),
+                draft.suggestedText(),
+                "resolveiq-grounded-draft",
+                "triage-draft-v1",
+                draft.citationsJson(),
                 java.time.Instant.now()
             );
 
@@ -153,21 +166,22 @@ public class TriageWorkflowOrchestrator {
                 TicketEvents.TICKET_TRIAGE_COMPLETED,
                 objectMapper.writeValueAsString(envelope)
             );
-            outboxRepository.save(outboxEvent);
+            persistence.complete(instance.getId(), outboxEvent);
 
             log.info("Triage workflow successfully completed for ticket {}", ticketId);
 
         } catch (Exception e) {
             log.error("Triage workflow failed for ticket {}: {}", ticketId, e.getMessage(), e);
-            instance.fail(e.getMessage());
-            instanceRepository.save(instance);
-
-            // Emit TicketTriageFailed.v1
-            emitFailureEvent(ticketId, tenantId, e.getMessage());
+            if (activeStep != null) {
+                try { persistence.failStep(activeStep, safeError(e)); } catch (Exception persistenceError) {
+                    log.error("Could not persist failed workflow step {}", activeStep.stepId(), persistenceError);
+                }
+            }
+            persistence.fail(instance.getId(), failureEvent(ticketId, tenantId, safeError(e)), safeError(e));
         }
     }
 
-    private AnalysisResultDto callAnalysisService(UUID ticketId, UUID tenantId, String subject, String description, String channel) {
+    protected AnalysisResultDto callAnalysisService(UUID ticketId, UUID tenantId, String subject, String description, String channel) {
         try {
             Map<String, Object> body = Map.of(
                 "ticketId", ticketId,
@@ -178,6 +192,7 @@ public class TriageWorkflowOrchestrator {
             );
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(jwtService.serviceToken("ai-orchestration-service", tenantId));
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
             ResponseEntity<JsonNode> resp = restTemplate.postForEntity(analysisUrl + "/api/v1/analysis/classify", entity, JsonNode.class);
@@ -190,13 +205,13 @@ public class TriageWorkflowOrchestrator {
                     b.get("urgency").asText()
                 );
             }
+            throw new IllegalStateException("Analysis service returned an empty response");
         } catch (Exception e) {
-            log.warn("Analysis service call fallback: {}", e.getMessage());
+            throw new IllegalStateException("Analysis dependency failed", e);
         }
-        return new AnalysisResultDto("TECHNICAL", "general_inquiry", "NEUTRAL", "MEDIUM");
     }
 
-    private RoutingResultDto callRoutingService(UUID ticketId, UUID tenantId, String category, String intent, String urgency, String priority) {
+    protected RoutingResultDto callRoutingService(UUID ticketId, UUID tenantId, String category, String intent, String urgency, String priority) {
         try {
             Map<String, Object> body = Map.of(
                 "ticketId", ticketId,
@@ -208,6 +223,7 @@ public class TriageWorkflowOrchestrator {
             );
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(jwtService.serviceToken("ai-orchestration-service", tenantId));
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
             ResponseEntity<JsonNode> resp = restTemplate.postForEntity(routingUrl + "/api/v1/routing/decide", entity, JsonNode.class);
@@ -215,15 +231,18 @@ public class TriageWorkflowOrchestrator {
                 JsonNode b = resp.getBody();
                 UUID teamId = b.has("targetTeamId") && !b.get("targetTeamId").isNull() ? UUID.fromString(b.get("targetTeamId").asText()) : null;
                 UUID agentId = b.has("assignedAgentId") && !b.get("assignedAgentId").isNull() ? UUID.fromString(b.get("assignedAgentId").asText()) : null;
-                return new RoutingResultDto(teamId, agentId);
+                UUID slaPolicyId = b.hasNonNull("slaPolicyId") ? UUID.fromString(b.get("slaPolicyId").asText()) : null;
+                java.time.Instant firstDue = b.hasNonNull("firstResponseDueAt") ? java.time.Instant.parse(b.get("firstResponseDueAt").asText()) : null;
+                java.time.Instant resolutionDue = b.hasNonNull("resolutionDueAt") ? java.time.Instant.parse(b.get("resolutionDueAt").asText()) : null;
+                return new RoutingResultDto(teamId, agentId, slaPolicyId, firstDue, resolutionDue);
             }
+            throw new IllegalStateException("Routing service returned an empty response");
         } catch (Exception e) {
-            log.warn("Routing service call fallback: {}", e.getMessage());
+            throw new IllegalStateException("Routing dependency failed", e);
         }
-        return new RoutingResultDto(null, null);
     }
 
-    private RetrievalResultDto callRagService(UUID tenantId, UUID ticketId, String query) {
+    protected RetrievalResultDto callRagService(UUID tenantId, UUID ticketId, String query) {
         try {
             Map<String, Object> body = Map.of(
                 "ticketId", ticketId,
@@ -234,6 +253,7 @@ public class TriageWorkflowOrchestrator {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("X-Tenant-Id", tenantId.toString());
+            headers.setBearerAuth(jwtService.serviceToken("ai-orchestration-service", tenantId));
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
             ResponseEntity<JsonNode> resp = restTemplate.postForEntity(ragUrl + "/api/v1/retrieval/search", entity, JsonNode.class);
@@ -247,10 +267,10 @@ public class TriageWorkflowOrchestrator {
                 }
                 return new RetrievalResultDto(citationTexts, 0.85);
             }
+            throw new IllegalStateException("RAG service returned an empty response");
         } catch (Exception e) {
-            log.warn("RAG service call fallback: {}", e.getMessage());
+            throw new IllegalStateException("RAG dependency failed", e);
         }
-        return new RetrievalResultDto(List.of(), 0.0);
     }
 
     private DraftResponseDto formulateDraft(String subject, String description, RetrievalResultDto retrieval) {
@@ -274,7 +294,7 @@ public class TriageWorkflowOrchestrator {
         return new DraftResponseDto(draftText, 0.90, citationsJson);
     }
 
-    private void emitFailureEvent(UUID ticketId, UUID tenantId, String error) {
+    private WorkflowOutboxEvent failureEvent(UUID ticketId, UUID tenantId, String error) {
         try {
             TicketEvents.TicketTriageFailedPayload payload = new TicketEvents.TicketTriageFailedPayload(
                 ticketId,
@@ -297,18 +317,25 @@ public class TriageWorkflowOrchestrator {
                 payload
             );
 
-            WorkflowOutboxEvent outboxEvent = new WorkflowOutboxEvent(
+            return new WorkflowOutboxEvent(
                 "ticket",
                 ticketId,
                 TicketEvents.TICKET_TRIAGE_FAILED,
                 objectMapper.writeValueAsString(envelope)
             );
-            outboxRepository.save(outboxEvent);
-        } catch (Exception ignored) {}
+        } catch (Exception serializationError) {
+            throw new IllegalStateException("Unable to serialize workflow failure event", serializationError);
+        }
     }
 
-    private record AnalysisResultDto(String category, String intent, String sentiment, String urgency) {}
-    private record RoutingResultDto(UUID targetTeamId, UUID assignedAgentId) {}
-    private record RetrievalResultDto(List<String> citations, double confidence) {}
-    private record DraftResponseDto(String suggestedText, double confidence, String citationsJson) {}
+    private String safeError(Exception error) {
+        String message = error.getMessage();
+        return message == null || message.isBlank() ? error.getClass().getSimpleName() : message.substring(0, Math.min(message.length(), 70));
+    }
+
+    protected record AnalysisResultDto(String category, String intent, String sentiment, String urgency) {}
+    protected record RoutingResultDto(UUID targetTeamId, UUID assignedAgentId, UUID slaPolicyId,
+                                      java.time.Instant firstResponseDueAt, java.time.Instant resolutionDueAt) {}
+    protected record RetrievalResultDto(List<String> citations, double confidence) {}
+    protected record DraftResponseDto(String suggestedText, double confidence, String citationsJson) {}
 }

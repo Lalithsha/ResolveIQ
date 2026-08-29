@@ -14,9 +14,7 @@ import { Ticket, AiSuggestion } from '../types';
 export const AgentWorkspace: React.FC = () => {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
-  const [activeDraft, setActiveDraft] = useState(
-    "Hello Alex, thank you for contacting support. I have verified your account and identified that the payment retry mechanism encountered a temporary gateway timeout. I have manually triggered a balance reconciliation and your invoice status has now updated to Paid. Please let us know if you need any additional assistance."
-  );
+  const [activeDraft, setActiveDraft] = useState('');
   const [feedbackGiven, setFeedbackGiven] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -28,8 +26,8 @@ export const AgentWorkspace: React.FC = () => {
       if (sugs.length > 0) {
         setActiveDraft(sugs[0].suggestedResponse);
       }
-    } catch {
-      // Keep default
+    } catch (failure) {
+      setStatusMessage(failure instanceof Error ? failure.message : 'Unable to load AI suggestions');
     }
   }, []);
 
@@ -40,24 +38,8 @@ export const AgentWorkspace: React.FC = () => {
         setSelectedTicket(data[0]);
         loadSuggestions(data[0].id);
       }
-    } catch {
-      const defaultTicket: Ticket = {
-        id: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
-        ticketNumber: 'RIQ-2026-000412',
-        tenantId: '00000000-0000-0000-0000-000000000001',
-        customerId: '11111111-1111-1111-1111-111111111111',
-        subject: 'Payment Failed Double Charge',
-        description: 'I noticed my credit card was charged twice for invoice #INV-9812. The dashboard shows "payment pending" and my account is locked out of premium features. Please fix this immediately.',
-        language: 'en',
-        status: 'READY_FOR_AGENT',
-        priority: 'HIGH',
-        category: 'BILLING',
-        channel: 'WEB',
-        aiTriageStatus: 'SUCCESS',
-        createdAt: '2026-08-29T01:00:00Z',
-        updatedAt: '2026-08-29T01:15:00Z',
-      };
-      setSelectedTicket(defaultTicket);
+    } catch (failure) {
+      setStatusMessage(failure instanceof Error ? failure.message : 'Unable to load agent queue');
     }
   }, [loadSuggestions]);
 
@@ -66,17 +48,20 @@ export const AgentWorkspace: React.FC = () => {
   }, [loadTickets]);
 
   const handleFeedback = async (action: 'ACCEPTED' | 'EDITED' | 'REJECTED') => {
-    setFeedbackGiven(action);
-    if (!selectedTicket) return;
+    if (!selectedTicket || suggestions.length === 0) return;
+    const rejectionReason = action === 'REJECTED' ? window.prompt('Why is this suggestion unsafe or unhelpful?') : undefined;
+    if (action === 'REJECTED' && !rejectionReason?.trim()) return;
     try {
       await api.recordFeedback(selectedTicket.id, {
-        suggestionId: suggestions.length > 0 ? suggestions[0].id : 'ffffffff-ffff-ffff-ffff-ffffffffffff',
+        suggestionId: suggestions[0].id,
         action,
+        rejectionReason: rejectionReason || undefined,
         editedContent: action === 'EDITED' ? activeDraft : undefined,
       });
+      setFeedbackGiven(action);
       setStatusMessage(`Feedback recorded: ${action}`);
-    } catch {
-      setStatusMessage(`Feedback recorded (local): ${action}`);
+    } catch (failure) {
+      setStatusMessage(failure instanceof Error ? failure.message : 'Unable to record feedback');
     }
   };
 
@@ -85,11 +70,20 @@ export const AgentWorkspace: React.FC = () => {
     setIsSending(true);
     setStatusMessage(null);
     try {
+      if (suggestions.length > 0 && !feedbackGiven) {
+        const action = activeDraft === suggestions[0].suggestedResponse ? 'ACCEPTED' : 'EDITED';
+        await api.recordFeedback(selectedTicket.id, {
+          suggestionId: suggestions[0].id,
+          action,
+          editedContent: action === 'EDITED' ? activeDraft : undefined,
+        });
+        setFeedbackGiven(action);
+      }
       await api.addAgentMessage(selectedTicket.id, activeDraft, false);
       await api.updateTicketStatus(selectedTicket.id, 'WAITING_ON_CUSTOMER', 'Agent response sent with grounded citations.');
       setStatusMessage('Message approved and sent to customer! Ticket moved to WAITING_ON_CUSTOMER.');
-    } catch {
-      setStatusMessage('Message approved and dispatched (simulated offline).');
+    } catch (failure) {
+      setStatusMessage(failure instanceof Error ? failure.message : 'Unable to send message');
     } finally {
       setIsSending(false);
     }

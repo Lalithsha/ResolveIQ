@@ -23,12 +23,16 @@ public class AgentTicketController {
     @GetMapping
     public ResponseEntity<List<TicketResponse>> listAllTickets(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
+        @RequestHeader(value = "X-User-Id") String userHeader,
+        @RequestHeader(value = "X-Roles") String rolesHeader,
         @RequestParam(value = "teamId", required = false) UUID teamId
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
-        List<TicketResponse> tickets = teamId != null
-            ? ticketService.listTeamTickets(tenantId, teamId)
-            : ticketService.listAllTickets(tenantId);
+        UUID agentId = parseRequiredUuid(userHeader, "X-User-Id");
+        boolean admin = java.util.Arrays.asList(rolesHeader.split(",")).contains("ADMIN");
+        List<TicketResponse> tickets = admin
+            ? (teamId != null ? ticketService.listTeamTickets(tenantId, teamId) : ticketService.listAllTickets(tenantId))
+            : ticketService.listAssignedTickets(tenantId, agentId);
         return ResponseEntity.ok(tickets);
     }
 

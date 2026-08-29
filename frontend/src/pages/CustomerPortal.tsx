@@ -22,26 +22,9 @@ export const CustomerPortal: React.FC = () => {
     try {
       const data = await api.listCustomerTickets();
       setTickets(data);
-    } catch {
-      // Fallback demo tickets
-      setTickets([
-        {
-          id: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
-          ticketNumber: 'RIQ-2026-000412',
-          tenantId: '00000000-0000-0000-0000-000000000001',
-          customerId: '11111111-1111-1111-1111-111111111111',
-          subject: 'Payment Failed Double Charge',
-          description: 'I noticed my credit card was charged twice for invoice #INV-9812.',
-          language: 'en',
-          status: 'READY_FOR_AGENT',
-          priority: 'HIGH',
-          category: 'BILLING',
-          channel: 'WEB',
-          aiTriageStatus: 'SUCCESS',
-          createdAt: '2026-08-29T01:00:00Z',
-          updatedAt: '2026-08-29T01:15:00Z',
-        }
-      ]);
+    } catch (failure) {
+      setTickets([]);
+      setError(failure instanceof Error ? failure.message : 'Unable to load tickets');
     } finally {
       setIsLoading(false);
     }
@@ -69,24 +52,8 @@ export const CustomerPortal: React.FC = () => {
         priority: 'HIGH'
       }, idempotencyKey);
       setSubmittedTicket(ticket);
-    } catch {
-      const fakeTicket: Ticket = {
-        id: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
-        ticketNumber: `RIQ-2026-${Math.floor(100000 + Math.random() * 900000)}`,
-        tenantId: '00000000-0000-0000-0000-000000000001',
-        customerId: '11111111-1111-1111-1111-111111111111',
-        subject,
-        description,
-        language: 'en',
-        status: 'NEW',
-        priority: 'HIGH',
-        category,
-        channel: 'WEB',
-        aiTriageStatus: 'PENDING',
-        createdAt: '2026-08-29T01:00:00Z',
-        updatedAt: '2026-08-29T01:15:00Z',
-      };
-      setSubmittedTicket(fakeTicket);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Unable to create ticket');
     } finally {
       setIsSubmitting(false);
     }
@@ -98,9 +65,8 @@ export const CustomerPortal: React.FC = () => {
       await api.addCustomerMessage(selectedTicket.id, replyText);
       setReplyText('');
       alert('Reply sent successfully!');
-    } catch {
-      setReplyText('');
-      alert('Reply sent to support agent.');
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Unable to send reply');
     }
   };
 

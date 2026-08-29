@@ -1,6 +1,8 @@
 package com.resolveiq.ticket.domain.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -29,6 +31,7 @@ public class AiSuggestion {
     @Column(name = "prompt_version", nullable = false)
     private String promptVersion;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "JSONB")
     private String citations;
 
@@ -83,8 +86,15 @@ public class AiSuggestion {
     public UUID getReviewedByAgentId() { return reviewedByAgentId; }
 
     public void review(SuggestionStatus newStatus, UUID agentId) {
+        if (this.status != SuggestionStatus.PENDING_REVIEW) {
+            throw new IllegalStateException("Suggestion has already been reviewed");
+        }
         this.status = newStatus;
         this.reviewedByAgentId = agentId;
         this.reviewedAt = Instant.now();
+    }
+
+    public void invalidate() {
+        if (this.status == SuggestionStatus.PENDING_REVIEW) this.status = SuggestionStatus.INVALIDATED;
     }
 }

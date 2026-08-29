@@ -33,35 +33,40 @@ public class RoutingController {
     }
 
     @PostMapping("/decide")
-    public ResponseEntity<RoutingDecisionResponse> decide(@Valid @RequestBody RoutingDecisionRequest request) {
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('SYSTEM','ADMIN')")
+    public ResponseEntity<RoutingDecisionResponse> decide(
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @Valid @RequestBody RoutingDecisionRequest request) {
+        if (request.tenantId() == null || !tenantId.equals(request.tenantId())) {
+            throw new SecurityException("Request tenant does not match authenticated tenant");
+        }
         RoutingDecisionResponse response = routingEngineService.decideRouting(request);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/teams")
-    public ResponseEntity<List<Team>> listTeams(@RequestHeader(value = "X-Tenant-Id", required = false) String tenantHeader) {
-        UUID tenantId = tenantHeader != null ? UUID.fromString(tenantHeader) : UUID.fromString("00000000-0000-0000-0000-000000000001");
+    public ResponseEntity<List<Team>> listTeams(@RequestHeader("X-Tenant-Id") UUID tenantId) {
         List<Team> teams = teamRepository.findByTenantId(tenantId);
         return ResponseEntity.ok(teams);
     }
 
     @PostMapping("/teams")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Team> createTeam(
-        @RequestHeader(value = "X-Tenant-Id", required = false) String tenantHeader,
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
         @Valid @RequestBody CreateTeamRequest request
     ) {
-        UUID tenantId = tenantHeader != null ? UUID.fromString(tenantHeader) : UUID.fromString("00000000-0000-0000-0000-000000000001");
         Team team = new Team(UUID.randomUUID(), tenantId, request.name(), request.description(), request.maxActiveTickets());
         teamRepository.save(team);
         return ResponseEntity.status(HttpStatus.CREATED).body(team);
     }
 
     @PostMapping("/rules")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RoutingRule> createRule(
-        @RequestHeader(value = "X-Tenant-Id", required = false) String tenantHeader,
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
         @Valid @RequestBody CreateRoutingRuleRequest request
     ) {
-        UUID tenantId = tenantHeader != null ? UUID.fromString(tenantHeader) : UUID.fromString("00000000-0000-0000-0000-000000000001");
         RoutingRule rule = new RoutingRule(
             UUID.randomUUID(),
             tenantId,

@@ -14,7 +14,7 @@ public enum TicketStatus {
     public boolean canTransitionTo(TicketStatus target) {
         if (this == target) return true;
         return switch (this) {
-            case NEW -> target == TRIAGE_PENDING || target == READY_FOR_AGENT;
+            case NEW -> target == TRIAGE_PENDING || target == READY_FOR_AGENT || target == TRIAGE_FAILED;
             case TRIAGE_PENDING -> target == TRIAGE_IN_PROGRESS || target == READY_FOR_AGENT || target == TRIAGE_FAILED;
             case TRIAGE_IN_PROGRESS -> target == READY_FOR_AGENT || target == TRIAGE_FAILED;
             case TRIAGE_FAILED -> target == READY_FOR_AGENT || target == TRIAGE_PENDING;

@@ -32,11 +32,17 @@ public class SecurityHeaderAndJwtFilter implements GlobalFilter, Ordered {
     private static final Logger log = LoggerFactory.getLogger(SecurityHeaderAndJwtFilter.class);
 
     private final SecretKey key;
+    private final String issuer;
+    private final String audience;
 
     public SecurityHeaderAndJwtFilter(
-        @Value("${resolveiq.jwt.secret:fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}") String secret
+        @Value("${resolveiq.jwt.secret:fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}") String secret,
+        @Value("${resolveiq.jwt.issuer:resolveiq-auth}") String issuer,
+        @Value("${resolveiq.jwt.audience:resolveiq-api}") String audience
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.issuer = issuer;
+        this.audience = audience;
     }
 
     @Override
@@ -46,7 +52,7 @@ public class SecurityHeaderAndJwtFilter implements GlobalFilter, Ordered {
 
         // 1. Ensure Correlation ID exists
         String correlationId = request.getHeaders().getFirst("X-Correlation-Id");
-        if (!StringUtils.hasText(correlationId)) {
+        if (!StringUtils.hasText(correlationId) || correlationId.length() > 64 || !correlationId.matches("[A-Za-z0-9._-]+")) {
             correlationId = UUID.randomUUID().toString();
         }
 
@@ -75,12 +81,17 @@ public class SecurityHeaderAndJwtFilter implements GlobalFilter, Ordered {
         try {
             Claims claims = Jwts.parser()
                 .verifyWith(key)
+                .requireIssuer(issuer)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
 
             String userId = claims.getSubject();
             String tenantId = claims.get("tenantId", String.class);
+            if (claims.getAudience() == null || !claims.getAudience().contains(audience)
+                || !"access".equals(claims.get("token_type", String.class))) {
+                return returnUnauthorized(exchange, "Invalid JWT audience or token type", correlationId);
+            }
             
             @SuppressWarnings("unchecked")
             List<String> roles = claims.get("roles", List.class);

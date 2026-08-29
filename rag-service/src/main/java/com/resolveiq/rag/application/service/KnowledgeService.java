@@ -73,7 +73,8 @@ public class KnowledgeService {
                 hash,
                 embeddingPort.getModelName()
             );
-            chunkRepository.save(chunk);
+            chunkRepository.saveAndFlush(chunk);
+            storeKnowledgeEmbedding(chunk, tenantId, chunkContent);
         }
 
         document.publishVersion(version.getId());
@@ -111,7 +112,8 @@ public class KnowledgeService {
                 hash,
                 embeddingPort.getModelName()
             );
-            chunkRepository.save(chunk);
+            chunkRepository.saveAndFlush(chunk);
+            storeKnowledgeEmbedding(chunk, tenantId, chunkContent);
         }
 
         document.publishVersion(version.getId());
@@ -145,7 +147,8 @@ public class KnowledgeService {
                 hash,
                 embeddingPort.getModelName()
             );
-            resolvedCaseChunkRepository.save(chunk);
+            resolvedCaseChunkRepository.saveAndFlush(chunk);
+            storeResolvedCaseEmbedding(chunk, tenantId, chunkContent);
         }
 
         return resolvedCase;
@@ -189,5 +192,38 @@ public class KnowledgeService {
         } catch (NoSuchAlgorithmException e) {
             return String.valueOf(content.hashCode());
         }
+    }
+
+    private void storeKnowledgeEmbedding(KnowledgeChunk chunk, UUID tenantId, String content) {
+        float[] embedding = requireValidEmbedding(embeddingPort.embed(content));
+        int updated = chunkRepository.storeEmbedding(
+            chunk.getId(), tenantId, formatVector(embedding), embeddingPort.getModelName());
+        if (updated != 1) throw new IllegalStateException("Knowledge embedding was not stored");
+    }
+
+    private void storeResolvedCaseEmbedding(ResolvedCaseChunk chunk, UUID tenantId, String content) {
+        float[] embedding = requireValidEmbedding(embeddingPort.embed(content));
+        int updated = resolvedCaseChunkRepository.storeEmbedding(
+            chunk.getId(), tenantId, formatVector(embedding), embeddingPort.getModelName());
+        if (updated != 1) throw new IllegalStateException("Resolved-case embedding was not stored");
+    }
+
+    private float[] requireValidEmbedding(float[] embedding) {
+        if (embedding == null || embedding.length != embeddingPort.getDimension()) {
+            throw new IllegalStateException("Embedding dimension does not match configured provider dimension");
+        }
+        for (float value : embedding) {
+            if (!Float.isFinite(value)) throw new IllegalStateException("Embedding contains non-finite values");
+        }
+        return embedding;
+    }
+
+    private String formatVector(float[] vector) {
+        StringBuilder result = new StringBuilder("[");
+        for (int i = 0; i < vector.length; i++) {
+            if (i > 0) result.append(',');
+            result.append(vector[i]);
+        }
+        return result.append(']').toString();
     }
 }

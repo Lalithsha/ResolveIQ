@@ -40,7 +40,7 @@ public class RoutingEngineService {
 
     @Transactional
     public RoutingDecisionResponse decideRouting(RoutingDecisionRequest request) {
-        UUID tenantId = request.tenantId() != null ? request.tenantId() : UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID tenantId = java.util.Objects.requireNonNull(request.tenantId(), "Tenant ID is required");
 
         // 1. Evaluate routing rules in priority order
         List<RoutingRule> activeRules = ruleRepository.findByTenantIdAndActiveTrueOrderByPriorityOrderAsc(tenantId);

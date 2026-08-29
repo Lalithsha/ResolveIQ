@@ -24,6 +24,8 @@ spring:
     locations: classpath:db/migration
 
 resolveiq:
+  cookies:
+    secure: ${RESOLVEIQ_COOKIES_SECURE:false}
   jwt:
     secret: ${RESOLVEIQ_JWT_SECRET:fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
     expiration-ms: ${RESOLVEIQ_JWT_EXPIRATION_MS:900000}

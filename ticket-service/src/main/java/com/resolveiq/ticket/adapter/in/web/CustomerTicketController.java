@@ -24,7 +24,7 @@ public class CustomerTicketController {
     public ResponseEntity<TicketResponse> createTicket(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
         @RequestHeader(value = "X-User-Id") String userHeader,
-        @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+        @RequestHeader("Idempotency-Key") String idempotencyKey,
         @Valid @RequestBody CreateTicketRequest request
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
@@ -37,12 +37,14 @@ public class CustomerTicketController {
     @GetMapping
     public ResponseEntity<List<TicketResponse>> getCustomerTickets(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
-        @RequestHeader(value = "X-User-Id") String userHeader
+        @RequestHeader(value = "X-User-Id") String userHeader,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "50") int size
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
         UUID customerId = parseRequiredUuid(userHeader, "X-User-Id");
 
-        List<TicketResponse> tickets = ticketService.listCustomerTickets(tenantId, customerId);
+        List<TicketResponse> tickets = ticketService.listCustomerTickets(tenantId, customerId, page, size);
         return ResponseEntity.ok(tickets);
     }
 

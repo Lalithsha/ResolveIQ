@@ -15,7 +15,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class TicketService {
@@ -29,7 +28,7 @@ public class TicketService {
     private final IdempotencyKeyRepository idempotencyRepository;
     private final ObjectMapper objectMapper;
 
-    private static final AtomicLong TICKET_SEQUENCE = new AtomicLong(1000);
+    private static final String CREATE_TICKET_OPERATION = "CREATE_TICKET";
 
     public TicketService(
         TicketRepository ticketRepository,
@@ -77,12 +76,9 @@ public class TicketService {
 
     private String generateTicketNumber() {
         int currentYear = java.time.Year.now(java.time.ZoneId.of("UTC")).getValue();
-        long seq;
-        try {
-            Long val = ticketRepository.getNextTicketSequenceVal();
-            seq = val != null ? val : System.currentTimeMillis() % 1000000;
-        } catch (Exception e) {
-            seq = Math.abs(UUID.randomUUID().getMostSignificantBits() % 900000) + 100000;
+        Long seq = ticketRepository.getNextTicketSequenceVal();
+        if (seq == null || seq < 1) {
+            throw new IllegalStateException("Ticket number sequence is unavailable");
         }
         return String.format("RIQ-%d-%06d", currentYear, seq);
     }
@@ -91,21 +87,35 @@ public class TicketService {
     public TicketResponse createTicket(UUID tenantId, UUID customerId, CreateTicketRequest request, String idempotencyKey) {
         String reqHash = computeRequestHash(request);
 
-        // 1. Idempotency Check
-        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            Optional<IdempotencyKey> existingKey = idempotencyRepository.findById(idempotencyKey.trim());
-            if (existingKey.isPresent()) {
-                IdempotencyKey record = existingKey.get();
-                if (record.getRequestHash() != null && !record.getRequestHash().equals(reqHash)) {
-                    throw new com.resolveiq.ticket.domain.exception.IdempotencyConflictException("Idempotency key reused with differing request payload");
-                }
-                if (record.getResponseBody() != null) {
-                    try {
-                        return objectMapper.readValue(record.getResponseBody(), TicketResponse.class);
-                    } catch (JsonProcessingException ignored) {
-                    }
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new IllegalArgumentException("Idempotency-Key header is required");
+        }
+        String normalizedKey = idempotencyKey.trim();
+        if (normalizedKey.length() > 255) {
+            throw new IllegalArgumentException("Idempotency-Key must not exceed 255 characters");
+        }
+
+        UUID commandId = UUID.randomUUID();
+        Instant now = Instant.now();
+        int claimed = idempotencyRepository.claim(
+            commandId, tenantId, customerId, CREATE_TICKET_OPERATION, normalizedKey,
+            reqHash, now, now.plusSeconds(86400)
+        );
+        IdempotencyKey command = idempotencyRepository
+            .findByTenantIdAndActorIdAndOperationAndKey(tenantId, customerId, CREATE_TICKET_OPERATION, normalizedKey)
+            .orElseThrow(() -> new IllegalStateException("Unable to claim idempotent command"));
+        if (claimed == 0) {
+            if (!command.getRequestHash().equals(reqHash)) {
+                throw new com.resolveiq.ticket.domain.exception.IdempotencyConflictException("Idempotency key reused with differing request payload");
+            }
+            if (command.isCompleted() && command.getResponseBody() != null) {
+                try {
+                    return objectMapper.readValue(command.getResponseBody(), TicketResponse.class);
+                } catch (JsonProcessingException e) {
+                    throw new IllegalStateException("Stored idempotency response is invalid", e);
                 }
             }
+            throw new com.resolveiq.ticket.domain.exception.IdempotencyConflictException("A request with this idempotency key is already in progress");
         }
 
         String ticketNumber = generateTicketNumber();
@@ -164,21 +174,11 @@ public class TicketService {
 
         TicketResponse response = TicketResponse.fromEntity(ticket);
 
-        // Persist Idempotency Key
-        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            try {
-                String responseJson = objectMapper.writeValueAsString(response);
-                IdempotencyKey record = new IdempotencyKey(
-                    idempotencyKey.trim(),
-                    tenantId,
-                    reqHash,
-                    responseJson,
-                    201,
-                    Instant.now().plusSeconds(86400) // 24hr retention
-                );
-                idempotencyRepository.save(record);
-            } catch (JsonProcessingException ignored) {
-            }
+        try {
+            command.complete(201, objectMapper.writeValueAsString(response));
+            idempotencyRepository.save(command);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Unable to serialize idempotent response", e);
         }
 
         return response;
@@ -186,7 +186,7 @@ public class TicketService {
 
     @Transactional
     public TicketResponse createTicket(UUID tenantId, UUID customerId, CreateTicketRequest request) {
-        return createTicket(tenantId, customerId, request, null);
+        return createTicket(tenantId, customerId, request, UUID.randomUUID().toString());
     }
 
     @Transactional
@@ -215,10 +215,16 @@ public class TicketService {
             ticket.transitionTo(TicketStatus.IN_PROGRESS);
             ticketRepository.save(ticket);
         }
+        if ("CUSTOMER".equalsIgnoreCase(senderRole)) {
+            suggestionRepository.findByTicketIdAndTenantIdOrderByCreatedAtDesc(ticketId, tenantId).forEach(suggestion -> {
+                suggestion.invalidate();
+                suggestionRepository.save(suggestion);
+            });
+        }
 
         TicketEvents.TicketMessageAddedPayload payload = new TicketEvents.TicketMessageAddedPayload(
-            message.getId(),
             ticket.getId(),
+            message.getId(),
             senderId,
             senderRole,
             message.getContent(),
@@ -327,21 +333,26 @@ public class TicketService {
         Ticket ticket = ticketRepository.findByIdAndTenantId(ticketId, tenantId)
             .orElseThrow(() -> new IllegalArgumentException("Ticket not found with id: " + ticketId));
 
-        if (request.suggestionId() != null) {
-            suggestionRepository.findByIdAndTenantId(request.suggestionId(), tenantId).ifPresent(sug -> {
-                SuggestionStatus newStatus = switch (request.action().toUpperCase()) {
-                    case "ACCEPTED" -> SuggestionStatus.ACCEPTED;
-                    case "EDITED" -> SuggestionStatus.EDITED;
-                    case "REJECTED" -> SuggestionStatus.REJECTED;
-                    default -> SuggestionStatus.INVALIDATED;
-                };
-                sug.review(newStatus, agentId);
-                suggestionRepository.save(sug);
-            });
+        AiSuggestion suggestion = suggestionRepository.findByIdAndTenantId(request.suggestionId(), tenantId)
+            .filter(value -> value.getTicketId().equals(ticketId))
+            .orElseThrow(() -> new IllegalArgumentException("Suggestion not found for ticket"));
+        SuggestionStatus newStatus = switch (request.action().toUpperCase()) {
+            case "ACCEPTED" -> SuggestionStatus.ACCEPTED;
+            case "EDITED" -> SuggestionStatus.EDITED;
+            case "REJECTED" -> SuggestionStatus.REJECTED;
+            default -> throw new IllegalArgumentException("Unsupported feedback action");
+        };
+        if (newStatus == SuggestionStatus.EDITED && (request.editedContent() == null || request.editedContent().isBlank())) {
+            throw new IllegalArgumentException("Edited content is required for EDITED feedback");
         }
+        if (newStatus == SuggestionStatus.REJECTED && (request.rejectionReason() == null || request.rejectionReason().isBlank())) {
+            throw new IllegalArgumentException("Rejection reason is required for REJECTED feedback");
+        }
+        suggestion.review(newStatus, agentId);
+        suggestionRepository.save(suggestion);
 
         SuggestionFeedback feedback = new SuggestionFeedback(
-            request.suggestionId() != null ? request.suggestionId() : UUID.randomUUID(),
+            request.suggestionId(),
             ticket.getId(),
             agentId,
             request.action(),
@@ -393,19 +404,30 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public List<TicketResponse> listCustomerTickets(UUID tenantId, UUID customerId) {
-        return ticketRepository.findByTenantIdAndCustomerIdOrderByCreatedAtDesc(tenantId, customerId)
+        return listCustomerTickets(tenantId, customerId, 0, 50);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketResponse> listCustomerTickets(UUID tenantId, UUID customerId, int page, int size) {
+        return ticketRepository.findByTenantIdAndCustomerIdOrderByCreatedAtDesc(tenantId, customerId, page(page, size))
             .stream().map(TicketResponse::fromEntity).toList();
     }
 
     @Transactional(readOnly = true)
     public List<TicketResponse> listTeamTickets(UUID tenantId, UUID teamId) {
-        return ticketRepository.findByTenantIdAndTeamIdOrderByCreatedAtDesc(tenantId, teamId)
+        return ticketRepository.findByTenantIdAndTeamIdOrderByCreatedAtDesc(tenantId, teamId, page(0, 100))
             .stream().map(TicketResponse::fromEntity).toList();
     }
 
     @Transactional(readOnly = true)
     public List<TicketResponse> listAllTickets(UUID tenantId) {
-        return ticketRepository.findByTenantIdOrderByCreatedAtDesc(tenantId)
+        return ticketRepository.findByTenantIdOrderByCreatedAtDesc(tenantId, page(0, 100))
+            .stream().map(TicketResponse::fromEntity).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketResponse> listAssignedTickets(UUID tenantId, UUID agentId) {
+        return ticketRepository.findByTenantIdAndAssignedAgentIdOrderByCreatedAtDesc(tenantId, agentId, page(0, 100))
             .stream().map(TicketResponse::fromEntity).toList();
     }
 
@@ -439,5 +461,10 @@ public class TicketService {
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to serialize outbox event payload", e);
         }
+    }
+
+    private org.springframework.data.domain.Pageable page(int page, int size) {
+        if (page < 0) throw new IllegalArgumentException("Page must be non-negative");
+        return org.springframework.data.domain.PageRequest.of(page, Math.max(1, Math.min(size, 100)));
     }
 }

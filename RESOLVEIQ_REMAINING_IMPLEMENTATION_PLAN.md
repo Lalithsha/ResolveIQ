@@ -8,6 +8,32 @@
 
 ---
 
+## Implementation execution update — 2026-08-30
+
+The core customer-to-agent vertical slice described below has now been implemented in code: JWT defense-in-depth, HttpOnly refresh sessions, scoped command idempotency, sequence-backed ticket numbers, reliable outbox publishers, idempotent consumers, short workflow transactions, persisted workflow attempts/replay inputs, strict dependency failure handling, real suggestion persistence, routing/assignee/SLA propagation, deterministic and OpenAI-compatible provider adapters, stored pgvector embeddings, PostgreSQL lexical/vector RRF retrieval, authenticated React flows, and removal of silent UI simulation for primary commands.
+
+Repository verification completed after implementation:
+
+- `./mvnw clean verify` — passes (local Java 26 produces JaCoCo warnings for JDK classes; CI is pinned to Java 21).
+- `npm run lint && npm run test && npm run build` in `frontend` — passes.
+- `docker compose config --quiet` — passes.
+- `./scripts/scan-secrets.sh` — passes.
+
+Docker-backed runtime verification is now complete for the primary automated triage slice. The stack was run with PostgreSQL/pgvector, Kafka, Eureka, gateway, all application services, and the React container. A fictional customer authenticated through the gateway and created ticket `RIQ-2026-100004` (`6041034a-51c7-4c8b-a57c-e385acf3e74d`). Runtime and database evidence confirmed:
+
+- the ticket-created outbox event was durably published;
+- orchestration consumed it and persisted a `COMPLETED` workflow;
+- deterministic analysis, routing, RAG, and grounded-draft steps ran across real HTTP service boundaries;
+- the orchestration completion outbox event reached `PUBLISHED`;
+- the ticket consumer projected `READY_FOR_AGENT`, `ai_triage_status=SUCCESS`, a team assignment, and both SLA deadlines;
+- the corresponding AI suggestion was persisted as `PENDING_REVIEW`, with model/prompt metadata, confidence `0.6`, and an empty citation set because the test tenant had no approved knowledge chunks.
+
+Runtime verification found and fixed four defects that unit tests had not exposed: executable Spring Boot Docker jars, pgvector extension schema placement, missing orchestration scheduling, and obsolete completion-event topic routing. It also verified that malformed enum/JSON requests return a structured `400` path rather than being misreported as authentication failures.
+
+The unchecked acceptance items later in this document remain the authoritative production-hardening backlog. The verified primary slice does **not** complete object-storage attachments, password reset, exhaustive cross-tenant HTTP tests, Kafka outage/redelivery tests, Testcontainers coverage, load tests, browser E2E coverage, or AI evaluation datasets. Do not claim the full production gate until those checks pass.
+
+---
+
 ## 1. Purpose
 
 This document tells an implementation agent exactly what remains, the order in which it must be built, how each part must behave, and how completion must be proven. It supplements the full product blueprint; it does not replace its product, UX, security, architecture, or production requirements.
@@ -78,7 +104,7 @@ When this document and the blueprint appear to conflict:
 | Frontend unit test command | Failed because no test files exist |
 | Frontend lint command | Failed because ESLint is not installed/configured |
 | Compose configuration parse | Passed |
-| Full Compose runtime | Not verified because Docker daemon was unavailable |
+| Full Compose runtime | Primary automated-triage slice verified on 2026-08-30; broader failure/load/browser gates remain |
 | Evaluation runner | Runs but produces hardcoded, non-evidential metrics |
 | Git state | Clean and synchronized with configured upstream at audit time |
 

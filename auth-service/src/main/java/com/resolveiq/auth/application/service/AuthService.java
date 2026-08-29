@@ -72,7 +72,7 @@ public class AuthService {
         userRepository.save(user);
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getTenantId(), user.getEmail(), user.getRoles());
-        String rawRefreshToken = UUID.randomUUID().toString();
+        String rawRefreshToken = newRefreshToken();
         String tokenHash = hashToken(rawRefreshToken);
 
         RefreshToken refreshToken = new RefreshToken(
@@ -111,8 +111,9 @@ public class AuthService {
 
         String normalizedEmail = request.email().toLowerCase().trim();
         if (userRepository.existsByTenantIdAndNormalizedEmail(tenantId, normalizedEmail)) {
-            throw new IllegalArgumentException("User with email " + request.email() + " already exists in this tenant");
+            throw new IllegalArgumentException("Registration could not be completed");
         }
+        passwordService.validate(request.password());
 
         // Public registration assigns ONLY Role.CUSTOMER
         Set<Role> roles = Set.of(Role.CUSTOMER);
@@ -130,7 +131,7 @@ public class AuthService {
         recordAudit(tenantId, user.getId(), "USER_REGISTERED", "SUCCESS", ipAddress, userAgent);
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getTenantId(), user.getEmail(), user.getRoles());
-        String rawRefreshToken = UUID.randomUUID().toString();
+        String rawRefreshToken = newRefreshToken();
         String tokenHash = hashToken(rawRefreshToken);
 
         RefreshToken refreshToken = new RefreshToken(
@@ -167,6 +168,7 @@ public class AuthService {
         if (userRepository.existsByTenantIdAndNormalizedEmail(tenantId, normalizedEmail)) {
             throw new IllegalArgumentException("User with email " + request.email() + " already exists in this tenant");
         }
+        passwordService.validate(request.password());
 
         User user = new User(
             UUID.randomUUID(),
@@ -202,8 +204,10 @@ public class AuthService {
 
         // Token Reuse Detection: If already revoked, invalidate all user sessions
         if (currentToken.isRevoked()) {
+            UUID auditTenant = userRepository.findById(currentToken.getUserId()).map(User::getTenantId)
+                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000000"));
             refreshTokenRepository.deleteByUserId(currentToken.getUserId());
-            recordAudit(UUID.fromString("00000000-0000-0000-0000-000000000000"), currentToken.getUserId(), "REFRESH_REUSE_DETECTED", "ALL_SESSIONS_REVOKED", ipAddress, userAgent);
+            recordAudit(auditTenant, currentToken.getUserId(), "REFRESH_REUSE_DETECTED", "ALL_SESSIONS_REVOKED", ipAddress, userAgent);
             throw new SecurityException("Revoked refresh token presented. Security alert: All user sessions invalidated.");
         }
 
@@ -215,7 +219,7 @@ public class AuthService {
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         // Rotate token
-        String newRawRefreshToken = UUID.randomUUID().toString();
+        String newRawRefreshToken = newRefreshToken();
         String newTokenHash = hashToken(newRawRefreshToken);
 
         RefreshToken newRefreshToken = new RefreshToken(
@@ -257,6 +261,12 @@ public class AuthService {
     private void recordAudit(UUID tenantId, UUID userId, String eventType, String status, String ipAddress, String userAgent) {
         SecurityAuditEvent event = new SecurityAuditEvent(tenantId, userId, eventType, status, ipAddress, userAgent);
         auditEventRepository.save(event);
+    }
+
+    private String newRefreshToken() {
+        byte[] bytes = new byte[32];
+        new java.security.SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     private String hashToken(String rawToken) {

@@ -152,11 +152,17 @@ public class Ticket {
         this.updatedAt = Instant.now();
     }
 
-    public void updateTriageResult(String aiTriageStatus, String category, UUID suggestionId, UUID teamId) {
+    public void updateTriageResult(String aiTriageStatus, String category, UUID suggestionId, UUID teamId, UUID agentId) {
         this.aiTriageStatus = aiTriageStatus;
         if (category != null) this.category = category;
         if (suggestionId != null) this.latestSuggestionId = suggestionId;
         if (teamId != null) this.teamId = teamId;
+        if (agentId != null) this.assignedAgentId = agentId;
+        if ("SUCCESS".equals(aiTriageStatus) && (status == TicketStatus.NEW || status == TicketStatus.TRIAGE_PENDING || status == TicketStatus.TRIAGE_IN_PROGRESS)) {
+            transitionTo(TicketStatus.READY_FOR_AGENT);
+        } else if ("FAILED".equals(aiTriageStatus) && (status == TicketStatus.NEW || status == TicketStatus.TRIAGE_PENDING || status == TicketStatus.TRIAGE_IN_PROGRESS)) {
+            transitionTo(TicketStatus.TRIAGE_FAILED);
+        }
         this.updatedAt = Instant.now();
     }
 

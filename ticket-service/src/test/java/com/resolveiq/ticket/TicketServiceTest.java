@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 
 @ExtendWith(MockitoExtension.class)
 class TicketServiceTest {
@@ -58,6 +59,15 @@ class TicketServiceTest {
             idempotencyRepository,
             objectMapper
         );
+        lenient().when(ticketRepository.getNextTicketSequenceVal()).thenReturn(100001L);
+        lenient().when(idempotencyRepository.claim(any(), any(), any(), anyString(), anyString(), anyString(), any(), any()))
+            .thenReturn(1);
+        lenient().when(idempotencyRepository.findByTenantIdAndActorIdAndOperationAndKey(any(), any(), anyString(), anyString()))
+            .thenAnswer(invocation -> Optional.of(new IdempotencyKey(
+                UUID.randomUUID(), invocation.getArgument(0), invocation.getArgument(1),
+                invocation.getArgument(2), invocation.getArgument(3), "claimed-request-hash",
+                Instant.now().plusSeconds(3600)
+            )));
     }
 
     @Test
@@ -167,15 +177,14 @@ class TicketServiceTest {
 
         String cachedJson = objectMapper.writeValueAsString(mockCachedResponse);
         IdempotencyKey keyRecord = new IdempotencyKey(
-            idempotencyKey,
-            tenantId,
-            null, // null hash simulates legacy/matching key
-            cachedJson,
-            201,
-            java.time.Instant.now().plusSeconds(3600)
+            UUID.randomUUID(), tenantId, customerId, "CREATE_TICKET", idempotencyKey,
+            requestHash(request), Instant.now().plusSeconds(3600)
         );
-
-        when(idempotencyRepository.findById(idempotencyKey)).thenReturn(Optional.of(keyRecord));
+        keyRecord.complete(201, cachedJson);
+        when(idempotencyRepository.claim(any(), eq(tenantId), eq(customerId), anyString(), eq(idempotencyKey), anyString(), any(), any()))
+            .thenReturn(0);
+        when(idempotencyRepository.findByTenantIdAndActorIdAndOperationAndKey(tenantId, customerId, "CREATE_TICKET", idempotencyKey))
+            .thenReturn(Optional.of(keyRecord));
 
         TicketResponse response = ticketService.createTicket(tenantId, customerId, request, idempotencyKey);
 
@@ -201,15 +210,13 @@ class TicketServiceTest {
         );
 
         IdempotencyKey keyRecord = new IdempotencyKey(
-            idempotencyKey,
-            tenantId,
-            "different_precomputed_hash_value",
-            "{}",
-            201,
-            java.time.Instant.now().plusSeconds(3600)
+            UUID.randomUUID(), tenantId, customerId, "CREATE_TICKET", idempotencyKey,
+            "different_precomputed_hash_value", Instant.now().plusSeconds(3600)
         );
-
-        when(idempotencyRepository.findById(idempotencyKey)).thenReturn(Optional.of(keyRecord));
+        when(idempotencyRepository.claim(any(), eq(tenantId), eq(customerId), anyString(), eq(idempotencyKey), anyString(), any(), any()))
+            .thenReturn(0);
+        when(idempotencyRepository.findByTenantIdAndActorIdAndOperationAndKey(tenantId, customerId, "CREATE_TICKET", idempotencyKey))
+            .thenReturn(Optional.of(keyRecord));
 
         assertThatThrownBy(() -> ticketService.createTicket(tenantId, customerId, request, idempotencyKey))
             .isInstanceOf(com.resolveiq.ticket.domain.exception.IdempotencyConflictException.class)
@@ -251,5 +258,13 @@ class TicketServiceTest {
         assertThat(ticket.getStatus()).isEqualTo(TicketStatus.IN_PROGRESS);
         verify(messageRepository, times(1)).save(any(TicketMessage.class));
         verify(outboxRepository, times(1)).save(any(OutboxEvent.class));
+    }
+
+    private String requestHash(CreateTicketRequest request) throws Exception {
+        var digest = java.security.MessageDigest.getInstance("SHA-256");
+        String raw = String.format("%s|%s|%s|%s|%s|%s",
+            request.subject().trim(), request.description().trim(), request.category().trim(),
+            request.priority().name(), request.channel().trim(), request.language().trim());
+        return java.util.HexFormat.of().formatHex(digest.digest(raw.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
     }
 }

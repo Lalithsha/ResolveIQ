@@ -46,6 +46,12 @@ public class HybridRetrievalService {
 
         // 1. Generate query embedding ONCE
         float[] queryEmbedding = embeddingPort.embed(queryText);
+        if (queryEmbedding == null || queryEmbedding.length != embeddingPort.getDimension()) {
+            throw new IllegalStateException("Query embedding dimension does not match configured provider");
+        }
+        for (float value : queryEmbedding) {
+            if (!Float.isFinite(value)) throw new IllegalStateException("Query embedding contains non-finite values");
+        }
         String embeddingStr = formatVector(queryEmbedding);
 
         // 2. Fetch candidates using Lexical & Vector SQL queries
@@ -54,26 +60,10 @@ public class HybridRetrievalService {
         List<ResolvedCaseChunk> rcLexical = new ArrayList<>();
         List<ResolvedCaseChunk> rcVector = new ArrayList<>();
 
-        try {
-            kbLexical = knowledgeChunkRepository.searchLexical(tenantId, queryText, 20);
-            kbVector = knowledgeChunkRepository.searchVector(tenantId, embeddingStr, 20);
-            rcLexical = resolvedCaseChunkRepository.searchLexical(tenantId, queryText, 10);
-            rcVector = resolvedCaseChunkRepository.searchVector(tenantId, embeddingStr, 10);
-        } catch (Exception ignored) {
-            // Fallback to tenant chunks if native extensions aren't available in mock/test
-        }
-
-        // If native queries returned empty (e.g. In-memory H2 in unit tests), populate from tenant chunks
-        if (kbLexical.isEmpty() && kbVector.isEmpty()) {
-            List<KnowledgeChunk> allKb = knowledgeChunkRepository.findByTenantId(tenantId);
-            kbLexical.addAll(allKb);
-            kbVector.addAll(allKb);
-        }
-        if (rcLexical.isEmpty() && rcVector.isEmpty()) {
-            List<ResolvedCaseChunk> allRc = resolvedCaseChunkRepository.findByTenantId(tenantId);
-            rcLexical.addAll(allRc);
-            rcVector.addAll(allRc);
-        }
+        kbLexical = knowledgeChunkRepository.searchLexical(tenantId, queryText, 50);
+        kbVector = knowledgeChunkRepository.searchVector(tenantId, embeddingStr, 50);
+        rcLexical = resolvedCaseChunkRepository.searchLexical(tenantId, queryText, 30);
+        rcVector = resolvedCaseChunkRepository.searchVector(tenantId, embeddingStr, 30);
 
         // 3. Reciprocal Rank Fusion (RRF k=60)
         Map<UUID, CandidateScore> fusedCandidates = new HashMap<>();
@@ -113,7 +103,7 @@ public class HybridRetrievalService {
         }
 
         List<CandidateScore> sortedCandidates = fusedCandidates.values().stream()
-            .sorted(Comparator.comparingDouble(CandidateScore::score).reversed())
+            .sorted(Comparator.comparingDouble(CandidateScore::score).reversed().thenComparing(CandidateScore::chunkId))
             .limit(limit)
             .toList();
 
@@ -133,9 +123,9 @@ public class HybridRetrievalService {
         for (CandidateScore candidate : sortedCandidates) {
             String title = "Resource " + candidate.sourceId().toString().substring(0, 8);
             if ("KNOWLEDGE_ARTICLE".equals(candidate.sourceType())) {
-                title = documentRepository.findById(candidate.sourceId()).map(KnowledgeDocument::getTitle).orElse(title);
+                title = documentRepository.findByIdAndTenantId(candidate.sourceId(), tenantId).map(KnowledgeDocument::getTitle).orElse(title);
             } else if ("RESOLVED_CASE".equals(candidate.sourceType())) {
-                title = resolvedCaseRepository.findById(candidate.sourceId()).map(ResolvedCase::getSanitizedSubject).orElse(title);
+                title = resolvedCaseRepository.findByIdAndTenantId(candidate.sourceId(), tenantId).map(ResolvedCase::getSanitizedSubject).orElse(title);
             }
 
             String snippet = candidate.content().length() > 200 ? candidate.content().substring(0, 200) + "..." : candidate.content();

@@ -50,7 +50,15 @@ public final class TicketEvents {
         String urgency,
         Double confidence,
         UUID assignedTeamId,
+        UUID assignedAgentId,
+        UUID slaPolicyId,
+        Instant firstResponseDueAt,
+        Instant resolutionDueAt,
         UUID suggestionId,
+        String suggestedResponse,
+        String modelName,
+        String promptVersion,
+        String citationsJson,
         Instant triageCompletedAt
     ) {}
 

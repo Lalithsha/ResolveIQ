@@ -15,26 +15,17 @@ export interface AuthResponse {
 }
 
 class ApiClient {
-  private token: string | null = typeof window !== 'undefined' && typeof localStorage !== 'undefined' && localStorage.getItem
-    ? localStorage.getItem('resolveiq_token')
-    : null;
+  private token: string | null = null;
 
   setToken(token: string | null) {
     this.token = token;
-    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined' && localStorage.setItem) {
-      if (token) {
-        localStorage.setItem('resolveiq_token', token);
-      } else {
-        localStorage.removeItem('resolveiq_token');
-      }
-    }
   }
 
   getToken(): string | null {
     return this.token;
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit = {}, retryAuthentication = true): Promise<T> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
@@ -47,7 +38,13 @@ class ApiClient {
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers,
+      credentials: 'include',
     });
+
+    if (response.status === 401 && retryAuthentication && !endpoint.startsWith('/auth/')) {
+      await this.refresh();
+      return this.request<T>(endpoint, options, false);
+    }
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status} ${response.statusText}`;
@@ -86,6 +83,20 @@ class ApiClient {
     return res;
   }
 
+  async refresh(): Promise<AuthResponse> {
+    const response = await this.request<AuthResponse>('/auth/refresh', { method: 'POST' }, false);
+    this.setToken(response.accessToken);
+    return response;
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await this.request<void>('/auth/logout', { method: 'POST' }, false);
+    } finally {
+      this.setToken(null);
+    }
+  }
+
   // Customer Ticket APIs
   async listCustomerTickets(): Promise<Ticket[]> {
     return this.request<Ticket[]>('/customer/tickets');
@@ -100,10 +111,10 @@ class ApiClient {
     description: string;
     category?: string;
     priority?: string;
-  }, idempotencyKey?: string): Promise<Ticket> {
+  }, idempotencyKey: string = crypto.randomUUID()): Promise<Ticket> {
     return this.request<Ticket>('/customer/tickets', {
       method: 'POST',
-      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+      headers: { 'Idempotency-Key': idempotencyKey },
       body: JSON.stringify(data),
     });
   }

@@ -1,6 +1,8 @@
 package com.resolveiq.orchestration.domain.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -23,9 +25,11 @@ public class WorkflowStep {
     @Column(nullable = false, length = 50)
     private String status; // PENDING, RUNNING, COMPLETED, FAILED
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "input_payload", columnDefinition = "JSONB")
     private String inputPayload;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "output_payload", columnDefinition = "JSONB")
     private String outputPayload;
 

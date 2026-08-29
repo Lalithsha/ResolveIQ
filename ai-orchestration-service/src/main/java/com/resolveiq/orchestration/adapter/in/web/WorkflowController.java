@@ -35,45 +35,48 @@ public class WorkflowController {
     }
 
     @GetMapping("/ticket/{ticketId}")
-    public ResponseEntity<WorkflowInstance> getWorkflowByTicket(@PathVariable("ticketId") UUID ticketId) {
-        return instanceRepository.findByTicketId(ticketId)
+    public ResponseEntity<WorkflowInstance> getWorkflowByTicket(@RequestHeader("X-Tenant-Id") UUID tenantId,
+                                                                 @PathVariable("ticketId") UUID ticketId) {
+        return instanceRepository.findByTicketIdAndTenantId(ticketId, tenantId)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{id}/steps")
-    public ResponseEntity<List<WorkflowStep>> getWorkflowSteps(@PathVariable("id") UUID workflowId) {
+    public ResponseEntity<List<WorkflowStep>> getWorkflowSteps(@RequestHeader("X-Tenant-Id") UUID tenantId,
+                                                                @PathVariable("id") UUID workflowId) {
+        instanceRepository.findByIdAndTenantId(workflowId, tenantId).orElseThrow(() -> new IllegalArgumentException("Workflow not found"));
         List<WorkflowStep> steps = stepRepository.findByWorkflowIdOrderByStepOrderAsc(workflowId);
         return ResponseEntity.ok(steps);
     }
 
     @GetMapping("/failed")
     public ResponseEntity<List<WorkflowInstance>> listFailedWorkflows(
-        @RequestHeader(value = "X-Tenant-Id", required = false) String tenantHeader
+        @RequestHeader("X-Tenant-Id") UUID tenantId
     ) {
-        UUID tenantId = tenantHeader != null ? UUID.fromString(tenantHeader) : UUID.fromString("00000000-0000-0000-0000-000000000001");
         List<WorkflowInstance> failedWorkflows = instanceRepository.findByTenantIdAndStatus(tenantId, "FAILED");
         return ResponseEntity.ok(failedWorkflows);
     }
 
     @PostMapping("/{id}/retry")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> retryWorkflow(
         @PathVariable("id") UUID workflowId,
-        @RequestHeader(value = "X-Operator-Id", defaultValue = "system-ops") String operatorId,
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestHeader("X-User-Id") UUID operatorId,
         @RequestBody(required = false) Map<String, String> body
     ) {
-        WorkflowInstance instance = instanceRepository.findById(workflowId)
+        WorkflowInstance instance = instanceRepository.findByIdAndTenantId(workflowId, tenantId)
             .orElseThrow(() -> new IllegalArgumentException("Workflow not found with id: " + workflowId));
 
         String reason = body != null ? body.getOrDefault("reason", "Operator manual retry") : "Operator manual retry";
         log.info("Audited Workflow DLQ Replay triggered by [{}] for workflow [{}] reason: [{}]", operatorId, workflowId, reason);
 
-        instance.setStatus("RUNNING");
-        instanceRepository.save(instance);
+        orchestrator.retryTriageWorkflow(workflowId);
 
         return ResponseEntity.ok(Map.of(
             "workflowId", workflowId,
-            "status", "RETRY_QUEUED",
+            "status", "RETRY_EXECUTED",
             "operatorId", operatorId,
             "reason", reason
         ));

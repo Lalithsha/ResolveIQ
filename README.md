@@ -2,7 +2,7 @@
 
 > **Resolve faster. Answer with evidence.**
 
-ResolveIQ is a production-grade, event-driven customer support resolution platform built with **Java 21, Spring Boot, PostgreSQL/pgvector, Apache Kafka, and React**.
+ResolveIQ is a production-oriented, event-driven customer support portfolio platform built with **Java 21, Spring Boot, PostgreSQL/pgvector, Apache Kafka, and React**. Its core vertical slice is implemented; the remaining production acceptance gates are tracked honestly in `RESOLVEIQ_REMAINING_IMPLEMENTATION_PLAN.md`.
 
 It assists support agents by performing structured classification, hybrid retrieval (combining full-text keyword search and vector embeddings) across approved knowledge articles and privacy-sanitized resolved cases, predicting SLA breach risk, generating citation-backed draft responses, and enforcing a **strict Human-in-the-Loop governance boundary** with **zero customer-visible auto-sends**.
 
@@ -47,6 +47,7 @@ flowchart LR
 | **RAG Service** | `rag-service` | `8086` | Chunking, pgvector embeddings, hybrid RRF search, citation tracking |
 | **Discovery Service** | `discovery-service` | `8761` | Spring Cloud Netflix Eureka registry for local dev |
 | **Common Contracts** | `common-contracts` | — | Versioned event envelopes, DTOs, problem response primitives |
+| **Common Security** | `common-security` | — | Service JWT validation, trusted tenant principal, route authorization |
 | **Frontend** | `frontend` | `3000` | React 18 + TypeScript + Vite + Tailwind agent workspace |
 
 ---
@@ -68,22 +69,29 @@ flowchart LR
 - **Docker & Docker Compose**
 - **Node.js 20+ & npm**
 
-### 1. Start Infrastructure
+### 1. Configure local environment
 ```bash
-docker compose up -d postgres kafka minio
+cp .env.example .env
 ```
 
-### 2. Build Backend Services
+### 2. Start the complete application
+```bash
+docker compose --profile app up --build
+```
+
+The web application is available at [http://localhost:3000](http://localhost:3000). Only the frontend, API gateway, and development infrastructure publish host ports; owning backend services remain private inside the Compose network.
+
+### 3. Run quality gates directly
 ```bash
 ./mvnw clean verify
+npm --prefix frontend ci
+npm --prefix frontend run lint
+npm --prefix frontend run test
+npm --prefix frontend run build
+./scripts/scan-secrets.sh
 ```
 
-### 3. Start Frontend Console
-```bash
-npm --prefix frontend install
-npm --prefix frontend run dev
-```
-Open [http://localhost:3000](http://localhost:3000) to view the customer portal, agent workspace, knowledge console, and governance dashboard.
+The default Docker profile uses deterministic local AI adapters so the demo is reproducible. The `production` Spring profile rejects deterministic providers, missing provider credentials, default JWT secrets, and insecure refresh cookies.
 
 ---
 
@@ -94,6 +102,8 @@ Open [http://localhost:3000](http://localhost:3000) to view the customer portal,
 ./mvnw clean test
 
 # Run frontend typecheck and production build
+npm --prefix frontend run lint
+npm --prefix frontend run test
 npm --prefix frontend run build
 
 # Run secret scanning

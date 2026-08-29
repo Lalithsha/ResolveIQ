@@ -51,7 +51,9 @@ class AuthServiceTest {
     void setUp() {
         jwtTokenProvider = new JwtTokenProvider(
             "fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345",
-            900000
+            900000,
+            "resolveiq-auth",
+            "resolveiq-api"
         );
         passwordService = new PasswordService();
         authService = new AuthService(

@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public record AuthResponse(
     String accessToken,
+    @com.fasterxml.jackson.annotation.JsonIgnore
     String refreshToken,
     String tokenType,
     long expiresInMs,

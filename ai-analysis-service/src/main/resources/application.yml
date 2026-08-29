@@ -25,9 +25,10 @@ spring:
 
 resolveiq:
   ai:
-    chat-provider: ${RESOLVEIQ_AI_CHAT_PROVIDER:mock}
-    chat-model: ${RESOLVEIQ_AI_CHAT_MODEL:mock-model-v1}
-    api-key: ${RESOLVEIQ_AI_API_KEY:mock-api-key}
+    chat-provider: ${RESOLVEIQ_AI_CHAT_PROVIDER:deterministic}
+    chat-model: ${RESOLVEIQ_AI_CHAT_MODEL:resolveiq-deterministic-chat-v1}
+    base-url: ${RESOLVEIQ_AI_BASE_URL:https://api.openai.com/v1}
+    api-key: ${RESOLVEIQ_AI_API_KEY:}
     ollama-base-url: ${RESOLVEIQ_OLLAMA_BASE_URL:http://localhost:11434}
 
 eureka:
