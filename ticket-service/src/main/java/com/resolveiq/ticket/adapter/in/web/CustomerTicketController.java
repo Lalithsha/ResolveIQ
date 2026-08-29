@@ -1,6 +1,5 @@
 package com.resolveiq.ticket.adapter.in.web;
 
-import com.resolveiq.contracts.tracing.CorrelationContext;
 import com.resolveiq.ticket.application.dto.*;
 import com.resolveiq.ticket.application.service.TicketService;
 import jakarta.validation.Valid;
@@ -23,24 +22,25 @@ public class CustomerTicketController {
 
     @PostMapping
     public ResponseEntity<TicketResponse> createTicket(
-        @RequestHeader(value = "X-Tenant-Id", required = false) String tenantHeader,
-        @RequestHeader(value = "X-User-Id", required = false) String userHeader,
+        @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
+        @RequestHeader(value = "X-User-Id") String userHeader,
+        @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
         @Valid @RequestBody CreateTicketRequest request
     ) {
-        UUID tenantId = tenantHeader != null ? UUID.fromString(tenantHeader) : UUID.fromString("00000000-0000-0000-0000-000000000001");
-        UUID customerId = userHeader != null ? UUID.fromString(userHeader) : UUID.randomUUID();
+        UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
+        UUID customerId = parseRequiredUuid(userHeader, "X-User-Id");
 
-        TicketResponse response = ticketService.createTicket(tenantId, customerId, request);
+        TicketResponse response = ticketService.createTicket(tenantId, customerId, request, idempotencyKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
     public ResponseEntity<List<TicketResponse>> getCustomerTickets(
-        @RequestHeader(value = "X-Tenant-Id", required = false) String tenantHeader,
-        @RequestHeader(value = "X-User-Id", required = false) String userHeader
+        @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
+        @RequestHeader(value = "X-User-Id") String userHeader
     ) {
-        UUID tenantId = tenantHeader != null ? UUID.fromString(tenantHeader) : UUID.fromString("00000000-0000-0000-0000-000000000001");
-        UUID customerId = userHeader != null ? UUID.fromString(userHeader) : UUID.randomUUID();
+        UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
+        UUID customerId = parseRequiredUuid(userHeader, "X-User-Id");
 
         List<TicketResponse> tickets = ticketService.listCustomerTickets(tenantId, customerId);
         return ResponseEntity.ok(tickets);
@@ -48,23 +48,26 @@ public class CustomerTicketController {
 
     @GetMapping("/{id}")
     public ResponseEntity<TicketResponse> getTicketById(
-        @RequestHeader(value = "X-Tenant-Id", required = false) String tenantHeader,
+        @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
+        @RequestHeader(value = "X-User-Id") String userHeader,
         @PathVariable("id") UUID ticketId
     ) {
-        UUID tenantId = tenantHeader != null ? UUID.fromString(tenantHeader) : UUID.fromString("00000000-0000-0000-0000-000000000001");
-        TicketResponse ticket = ticketService.getTicketById(tenantId, ticketId);
+        UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
+        UUID customerId = parseRequiredUuid(userHeader, "X-User-Id");
+
+        TicketResponse ticket = ticketService.getCustomerTicketById(tenantId, customerId, ticketId);
         return ResponseEntity.ok(ticket);
     }
 
     @PostMapping("/{id}/messages")
     public ResponseEntity<TicketMessageResponse> addCustomerMessage(
-        @RequestHeader(value = "X-Tenant-Id", required = false) String tenantHeader,
-        @RequestHeader(value = "X-User-Id", required = false) String userHeader,
+        @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
+        @RequestHeader(value = "X-User-Id") String userHeader,
         @PathVariable("id") UUID ticketId,
         @Valid @RequestBody AddMessageRequest request
     ) {
-        UUID tenantId = tenantHeader != null ? UUID.fromString(tenantHeader) : UUID.fromString("00000000-0000-0000-0000-000000000001");
-        UUID customerId = userHeader != null ? UUID.fromString(userHeader) : UUID.randomUUID();
+        UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
+        UUID customerId = parseRequiredUuid(userHeader, "X-User-Id");
 
         TicketMessageResponse response = ticketService.addMessage(tenantId, ticketId, customerId, "CUSTOMER", request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -72,11 +75,25 @@ public class CustomerTicketController {
 
     @GetMapping("/{id}/messages")
     public ResponseEntity<List<TicketMessageResponse>> getTicketMessages(
-        @RequestHeader(value = "X-Tenant-Id", required = false) String tenantHeader,
+        @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
+        @RequestHeader(value = "X-User-Id") String userHeader,
         @PathVariable("id") UUID ticketId
     ) {
-        UUID tenantId = tenantHeader != null ? UUID.fromString(tenantHeader) : UUID.fromString("00000000-0000-0000-0000-000000000001");
-        List<TicketMessageResponse> messages = ticketService.getTicketMessages(tenantId, ticketId);
+        UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
+        UUID customerId = parseRequiredUuid(userHeader, "X-User-Id");
+
+        List<TicketMessageResponse> messages = ticketService.getCustomerTicketMessages(tenantId, customerId, ticketId);
         return ResponseEntity.ok(messages);
+    }
+
+    private UUID parseRequiredUuid(String header, String name) {
+        if (header == null || header.isBlank()) {
+            throw new SecurityException("Missing mandatory identity header: " + name);
+        }
+        try {
+            return UUID.fromString(header.trim());
+        } catch (IllegalArgumentException e) {
+            throw new SecurityException("Invalid UUID in header: " + name);
+        }
     }
 }

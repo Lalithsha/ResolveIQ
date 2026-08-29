@@ -38,6 +38,8 @@ class TicketServiceTest {
     private SuggestionFeedbackRepository feedbackRepository;
     @Mock
     private OutboxEventRepository outboxRepository;
+    @Mock
+    private IdempotencyKeyRepository idempotencyRepository;
 
     private ObjectMapper objectMapper;
     private TicketService ticketService;
@@ -53,6 +55,7 @@ class TicketServiceTest {
             suggestionRepository,
             feedbackRepository,
             outboxRepository,
+            idempotencyRepository,
             objectMapper
         );
     }
@@ -126,6 +129,59 @@ class TicketServiceTest {
             ticketService.updateStatus(tenantId, ticketId, customerId, new UpdateStatusRequest(TicketStatus.IN_PROGRESS, "Try reopen"))
         ).isInstanceOf(IllegalStateException.class)
          .hasMessageContaining("Illegal ticket state transition");
+    }
+
+    @Test
+    @DisplayName("Should return cached response when valid Idempotency-Key is provided")
+    void testIdempotentTicketCreation() throws Exception {
+        UUID tenantId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        String idempotencyKey = "key-test-12345";
+        CreateTicketRequest request = new CreateTicketRequest("Test Subject", "Test Description", "BILLING", TicketPriority.HIGH, "WEB", "en");
+
+        TicketResponse mockCachedResponse = new TicketResponse(
+            UUID.randomUUID(),
+            "RIQ-2026-000999",
+            tenantId,
+            customerId,
+            null,
+            null,
+            "Test Subject",
+            "Test Description",
+            "en",
+            TicketStatus.NEW,
+            TicketPriority.HIGH,
+            "BILLING",
+            "WEB",
+            null,
+            null,
+            null,
+            "PENDING",
+            null,
+            java.time.Instant.now(),
+            java.time.Instant.now(),
+            null,
+            null,
+            0L
+        );
+
+        String cachedJson = objectMapper.writeValueAsString(mockCachedResponse);
+        IdempotencyKey keyRecord = new IdempotencyKey(
+            idempotencyKey,
+            tenantId,
+            "hash_" + idempotencyKey,
+            cachedJson,
+            201,
+            java.time.Instant.now().plusSeconds(3600)
+        );
+
+        when(idempotencyRepository.findById(idempotencyKey)).thenReturn(Optional.of(keyRecord));
+
+        TicketResponse response = ticketService.createTicket(tenantId, customerId, request, idempotencyKey);
+
+        assertThat(response).isNotNull();
+        assertThat(response.ticketNumber()).isEqualTo("RIQ-2026-000999");
+        verify(ticketRepository, never()).save(any());
     }
 
     @Test

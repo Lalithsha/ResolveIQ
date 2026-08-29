@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -25,6 +26,7 @@ public class TicketService {
     private final AiSuggestionRepository suggestionRepository;
     private final SuggestionFeedbackRepository feedbackRepository;
     private final OutboxEventRepository outboxRepository;
+    private final IdempotencyKeyRepository idempotencyRepository;
     private final ObjectMapper objectMapper;
 
     private static final AtomicLong TICKET_SEQUENCE = new AtomicLong(1000);
@@ -36,6 +38,7 @@ public class TicketService {
         AiSuggestionRepository suggestionRepository,
         SuggestionFeedbackRepository feedbackRepository,
         OutboxEventRepository outboxRepository,
+        IdempotencyKeyRepository idempotencyRepository,
         ObjectMapper objectMapper
     ) {
         this.ticketRepository = ticketRepository;
@@ -44,11 +47,26 @@ public class TicketService {
         this.suggestionRepository = suggestionRepository;
         this.feedbackRepository = feedbackRepository;
         this.outboxRepository = outboxRepository;
+        this.idempotencyRepository = idempotencyRepository;
         this.objectMapper = objectMapper;
     }
 
     @Transactional
-    public TicketResponse createTicket(UUID tenantId, UUID customerId, CreateTicketRequest request) {
+    public TicketResponse createTicket(UUID tenantId, UUID customerId, CreateTicketRequest request, String idempotencyKey) {
+        // 1. Idempotency Check
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            Optional<IdempotencyKey> existingKey = idempotencyRepository.findById(idempotencyKey.trim());
+            if (existingKey.isPresent()) {
+                IdempotencyKey record = existingKey.get();
+                if (record.getResponseBody() != null) {
+                    try {
+                        return objectMapper.readValue(record.getResponseBody(), TicketResponse.class);
+                    } catch (JsonProcessingException ignored) {
+                    }
+                }
+            }
+        }
+
         String ticketNumber = "RIQ-2026-" + String.format("%06d", TICKET_SEQUENCE.incrementAndGet());
 
         Ticket ticket = new Ticket(
@@ -103,7 +121,31 @@ public class TicketService {
 
         saveOutboxEvent("ticket", ticket.getId(), TicketEvents.TICKET_CREATED, envelope);
 
-        return TicketResponse.fromEntity(ticket);
+        TicketResponse response = TicketResponse.fromEntity(ticket);
+
+        // Persist Idempotency Key
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            try {
+                String responseJson = objectMapper.writeValueAsString(response);
+                IdempotencyKey record = new IdempotencyKey(
+                    idempotencyKey.trim(),
+                    tenantId,
+                    "hash_" + idempotencyKey,
+                    responseJson,
+                    201,
+                    Instant.now().plusSeconds(86400) // 24hr retention
+                );
+                idempotencyRepository.save(record);
+            } catch (JsonProcessingException ignored) {
+            }
+        }
+
+        return response;
+    }
+
+    @Transactional
+    public TicketResponse createTicket(UUID tenantId, UUID customerId, CreateTicketRequest request) {
+        return createTicket(tenantId, customerId, request, null);
     }
 
     @Transactional
@@ -127,15 +169,15 @@ public class TicketService {
         );
         messageRepository.save(message);
 
-        // If customer replied while waiting, move back to IN_PROGRESS
+        // If ticket was WAITING_ON_CUSTOMER and customer replies, transition back to IN_PROGRESS
         if ("CUSTOMER".equalsIgnoreCase(senderRole) && ticket.getStatus() == TicketStatus.WAITING_ON_CUSTOMER) {
             ticket.transitionTo(TicketStatus.IN_PROGRESS);
             ticketRepository.save(ticket);
         }
 
         TicketEvents.TicketMessageAddedPayload payload = new TicketEvents.TicketMessageAddedPayload(
-            ticket.getId(),
             message.getId(),
+            ticket.getId(),
             senderId,
             senderRole,
             message.getContent(),
@@ -302,6 +344,13 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
+    public TicketResponse getCustomerTicketById(UUID tenantId, UUID customerId, UUID ticketId) {
+        return ticketRepository.findByIdAndTenantIdAndCustomerId(ticketId, tenantId, customerId)
+            .map(TicketResponse::fromEntity)
+            .orElseThrow(() -> new IllegalArgumentException("Ticket not found or access denied for id: " + ticketId));
+    }
+
+    @Transactional(readOnly = true)
     public List<TicketResponse> listCustomerTickets(UUID tenantId, UUID customerId) {
         return ticketRepository.findByTenantIdAndCustomerIdOrderByCreatedAtDesc(tenantId, customerId)
             .stream().map(TicketResponse::fromEntity).toList();
@@ -322,6 +371,16 @@ public class TicketService {
     @Transactional(readOnly = true)
     public List<TicketMessageResponse> getTicketMessages(UUID tenantId, UUID ticketId) {
         return messageRepository.findByTicketIdAndTenantIdOrderByCreatedAtAsc(ticketId, tenantId)
+            .stream().map(TicketMessageResponse::fromEntity).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketMessageResponse> getCustomerTicketMessages(UUID tenantId, UUID customerId, UUID ticketId) {
+        // Enforce customer ownership
+        ticketRepository.findByIdAndTenantIdAndCustomerId(ticketId, tenantId, customerId)
+            .orElseThrow(() -> new IllegalArgumentException("Ticket not found or access denied for id: " + ticketId));
+
+        return messageRepository.findByTicketIdAndTenantIdAndIsInternalFalseOrderByCreatedAtAsc(ticketId, tenantId)
             .stream().map(TicketMessageResponse::fromEntity).toList();
     }
 

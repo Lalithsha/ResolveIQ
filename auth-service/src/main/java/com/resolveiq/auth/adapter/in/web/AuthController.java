@@ -47,6 +47,18 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PostMapping("/users")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserProfileDto> createUser(
+        @Valid @RequestBody AdminCreateUserRequest request,
+        HttpServletRequest httpRequest
+    ) {
+        String ipAddress = httpRequest.getRemoteAddr();
+        String userAgent = httpRequest.getHeader("User-Agent");
+        UserProfileDto response = authService.createUserByAdmin(request, ipAddress, userAgent);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(
         @Valid @RequestBody TokenRefreshRequest request,

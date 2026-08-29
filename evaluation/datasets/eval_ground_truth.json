@@ -1,27 +1,1002 @@
 [
   {
-    "query": "Duplicate payment charge on credit card for invoice",
-    "relevant_article_ids": ["KB-104"],
+    "query": "How do I reset my password if I lost my phone authenticator?",
+    "category": "ACCOUNT",
+    "expected_intent": "password_reset",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-101"
+    ],
     "min_expected_recall_at_5": 1.0
   },
   {
-    "query": "Okta SSO SAML 401 signature validation error",
-    "relevant_article_ids": ["KB-105"],
+    "query": "Locked out of account because MFA code is not working",
+    "category": "ACCOUNT",
+    "expected_intent": "password_reset",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-101"
+    ],
     "min_expected_recall_at_5": 1.0
   },
   {
-    "query": "Change VAT tax ID number on company invoice",
-    "relevant_article_ids": ["KB-108"],
+    "query": "Need 2FA reset link for locked agent account",
+    "category": "ACCOUNT",
+    "expected_intent": "password_reset",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-101"
+    ],
     "min_expected_recall_at_5": 1.0
   },
   {
-    "query": "Delivery status says delivered but package is missing",
-    "relevant_article_ids": ["KB-112"],
+    "query": "Authenticator app deleted, how to bypass two factor authentication?",
+    "category": "ACCOUNT",
+    "expected_intent": "password_reset",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-101"
+    ],
     "min_expected_recall_at_5": 1.0
   },
   {
-    "query": "Webhook receiver getting 429 rate limit errors",
-    "relevant_article_ids": ["KB-119"],
+    "query": "Forgot account password and recovery email not arriving",
+    "category": "ACCOUNT",
+    "expected_intent": "password_reset",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-101"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "API returning 401 Unauthorized for valid JWT bearer token",
+    "category": "TECHNICAL",
+    "expected_intent": "api_troubleshooting",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-102"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How often do JWT access tokens expire in ResolveIQ?",
+    "category": "TECHNICAL",
+    "expected_intent": "api_troubleshooting",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-102"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Where can I generate a machine to machine API key?",
+    "category": "TECHNICAL",
+    "expected_intent": "api_troubleshooting",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-102"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Rotating refresh token failed with invalid signature",
+    "category": "TECHNICAL",
+    "expected_intent": "api_troubleshooting",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-102"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "API key permission denied when calling v1 endpoints",
+    "category": "TECHNICAL",
+    "expected_intent": "api_troubleshooting",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-102"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Reached maximum seat limit on our enterprise plan, how to add 5 more?",
+    "category": "BILLING",
+    "expected_intent": "subscription_change",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-103"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How are pro-rated charges calculated when upgrading agent seats?",
+    "category": "BILLING",
+    "expected_intent": "subscription_change",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-103"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Want to downgrade subscription tier at the end of billing cycle",
+    "category": "BILLING",
+    "expected_intent": "subscription_change",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-103"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Error adding new team member due to seat quota limit",
+    "category": "BILLING",
+    "expected_intent": "subscription_change",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-103"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Need quote for additional 20 agent licenses on Pro plan",
+    "category": "BILLING",
+    "expected_intent": "subscription_change",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-103"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Noticed duplicate charge on credit card for invoice INV-9812",
+    "category": "BILLING",
+    "expected_intent": "billing_dispute",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-104"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Charged twice for monthly subscription due to timeout",
+    "category": "BILLING",
+    "expected_intent": "billing_dispute",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-104"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Credit card shows two pending charges for the same transaction",
+    "category": "BILLING",
+    "expected_intent": "billing_dispute",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-104"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Requesting refund for double billing on Visa card",
+    "category": "BILLING",
+    "expected_intent": "billing_dispute",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-104"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Payment gateway timeout caused duplicate payment capture",
+    "category": "BILLING",
+    "expected_intent": "billing_dispute",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-104"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Okta SAML 2.0 login failing with 401 signature validation error",
+    "category": "TECHNICAL",
+    "expected_intent": "sso_troubleshooting",
+    "expected_urgency": "CRITICAL",
+    "relevant_article_ids": [
+      "KB-105"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Azure AD SSO certificate expired, users cannot login",
+    "category": "TECHNICAL",
+    "expected_intent": "sso_troubleshooting",
+    "expected_urgency": "CRITICAL",
+    "relevant_article_ids": [
+      "KB-105"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Mismatched Entity ID error in PingFederate SAML assertion",
+    "category": "TECHNICAL",
+    "expected_intent": "sso_troubleshooting",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-105"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How to update SP metadata certificate in tenant settings?",
+    "category": "TECHNICAL",
+    "expected_intent": "sso_troubleshooting",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-105"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Single sign on redirection loop after IdP certificate update",
+    "category": "TECHNICAL",
+    "expected_intent": "sso_troubleshooting",
+    "expected_urgency": "CRITICAL",
+    "relevant_article_ids": [
+      "KB-105"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Need SWIFT routing code and field 70 reference for international wire",
+    "category": "BILLING",
+    "expected_intent": "payment_inquiry",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-106"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Sent international wire transfer 5 days ago but invoice still unpaid",
+    "category": "BILLING",
+    "expected_intent": "payment_inquiry",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-106"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Where to find MT103 wire transfer instructions for invoice payment?",
+    "category": "BILLING",
+    "expected_intent": "payment_inquiry",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-106"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Wire payment returned by beneficiary bank due to missing reference",
+    "category": "BILLING",
+    "expected_intent": "payment_inquiry",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-106"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How long does international wire payment take to reconcile?",
+    "category": "BILLING",
+    "expected_intent": "payment_inquiry",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-106"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Customer requesting complete GDPR Article 17 account data erasure",
+    "category": "ACCOUNT",
+    "expected_intent": "privacy_request",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-107"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How do I submit a right to be forgotten privacy request for user?",
+    "category": "ACCOUNT",
+    "expected_intent": "privacy_request",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-107"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Are vector embeddings purged when a customer requests PII deletion?",
+    "category": "ACCOUNT",
+    "expected_intent": "privacy_request",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-107"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Export all personal ticket history and user data under GDPR",
+    "category": "ACCOUNT",
+    "expected_intent": "privacy_request",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-107"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Verify redaction status of customer personal identification records",
+    "category": "ACCOUNT",
+    "expected_intent": "privacy_request",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-107"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Need to change EU VAT number and company address on future invoices",
+    "category": "ACCOUNT",
+    "expected_intent": "tax_update",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-108"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How to update corporate tax ID (EIN) in billing settings?",
+    "category": "ACCOUNT",
+    "expected_intent": "tax_update",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-108"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Can I change the legal entity name on an already finalized invoice?",
+    "category": "ACCOUNT",
+    "expected_intent": "tax_update",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-108"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Invoice shows incorrect UK VAT number after corporate restructuring",
+    "category": "ACCOUNT",
+    "expected_intent": "tax_update",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-108"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Where to enter reverse charge VAT exemption certificate?",
+    "category": "ACCOUNT",
+    "expected_intent": "tax_update",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-108"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How to assign Team Lead permissions to support supervisor?",
+    "category": "ACCOUNT",
+    "expected_intent": "access_control",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-109"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "What are the 6 standard user roles available in ResolveIQ?",
+    "category": "ACCOUNT",
+    "expected_intent": "access_control",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-109"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Auditor role cannot view governance logs, need permission grant",
+    "category": "ACCOUNT",
+    "expected_intent": "access_control",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-109"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Agent cannot see tickets assigned to other teams in queue",
+    "category": "ACCOUNT",
+    "expected_intent": "access_control",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-109"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Restricting Knowledge Manager to draft authoring without publish rights",
+    "category": "ACCOUNT",
+    "expected_intent": "access_control",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-109"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Setting up custom branded domain support.mycompany.com with CNAME",
+    "category": "TECHNICAL",
+    "expected_intent": "domain_setup",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-110"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "SSL certificate failed to provision automatically for custom portal",
+    "category": "TECHNICAL",
+    "expected_intent": "domain_setup",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-110"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How long does Let's Encrypt SSL issuance take after DNS change?",
+    "category": "TECHNICAL",
+    "expected_intent": "domain_setup",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-110"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Custom portal domain showing invalid SSL certificate error",
+    "category": "TECHNICAL",
+    "expected_intent": "domain_setup",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-110"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "CNAME verification failing for branded customer support subdomain",
+    "category": "TECHNICAL",
+    "expected_intent": "domain_setup",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-110"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Cancel order placed 20 minutes ago before warehouse dispatch",
+    "category": "DELIVERY",
+    "expected_intent": "order_cancellation",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-111"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How to generate an RMA return shipping label for damaged item?",
+    "category": "DELIVERY",
+    "expected_intent": "order_cancellation",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-111"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Customer wants to return opened merchandise for full refund",
+    "category": "DELIVERY",
+    "expected_intent": "order_cancellation",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-111"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How many days after delivery can a return RMA be authorized?",
+    "category": "DELIVERY",
+    "expected_intent": "order_cancellation",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-111"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Warehouse received RMA return, when will refund be processed?",
+    "category": "DELIVERY",
+    "expected_intent": "order_cancellation",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-111"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Tracking says package delivered today but it is missing from porch",
+    "category": "DELIVERY",
+    "expected_intent": "missing_shipment",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-112"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "FedEx marked package as delivered with no signature or photo proof",
+    "category": "DELIVERY",
+    "expected_intent": "missing_shipment",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-112"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How to file a lost-in-transit carrier claim for order #ORD-4491?",
+    "category": "DELIVERY",
+    "expected_intent": "missing_shipment",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-112"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Package scan shows delivered to wrong address and coordinates",
+    "category": "DELIVERY",
+    "expected_intent": "missing_shipment",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-112"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Need urgent replacement sent for lost shipment marked delivered",
+    "category": "DELIVERY",
+    "expected_intent": "missing_shipment",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-112"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Commercial freight shipment delayed at customs due to missing HS code",
+    "category": "DELIVERY",
+    "expected_intent": "customs_inquiry",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-113"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Who is responsible for paying import VAT and duties on international order?",
+    "category": "DELIVERY",
+    "expected_intent": "customs_inquiry",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-113"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Customs broker requesting commercial invoice documentation for parcel",
+    "category": "DELIVERY",
+    "expected_intent": "customs_inquiry",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-113"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "International pallet stuck at port customs clearance checkpoint",
+    "category": "DELIVERY",
+    "expected_intent": "customs_inquiry",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-113"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Tariff code discrepancy holding up cross-border logistics delivery",
+    "category": "DELIVERY",
+    "expected_intent": "customs_inquiry",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-113"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Order fulfillment delayed due to out of stock warehouse inventory",
+    "category": "DELIVERY",
+    "expected_intent": "fulfillment_delay",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-114"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Can I request split shipment for items that are currently in stock?",
+    "category": "DELIVERY",
+    "expected_intent": "fulfillment_delay",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-114"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "When will backordered items be replenished and shipped?",
+    "category": "DELIVERY",
+    "expected_intent": "fulfillment_delay",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-114"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Order has been in processing state at warehouse for 4 business days",
+    "category": "DELIVERY",
+    "expected_intent": "fulfillment_delay",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-114"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Cancel backordered portion of order and refund to credit card",
+    "category": "DELIVERY",
+    "expected_intent": "fulfillment_delay",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-114"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Need to change delivery address on package that was shipped yesterday",
+    "category": "DELIVERY",
+    "expected_intent": "address_change",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-115"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How to submit an in-flight carrier intercept package reroute?",
+    "category": "DELIVERY",
+    "expected_intent": "address_change",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-115"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Typo in shipping address apartment number, package already on truck",
+    "category": "DELIVERY",
+    "expected_intent": "address_change",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-115"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Carrier intercept fee for rerouting shipment to new destination",
+    "category": "DELIVERY",
+    "expected_intent": "address_change",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-115"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Can FedEx hold package at facility because customer moved?",
+    "category": "DELIVERY",
+    "expected_intent": "address_change",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-115"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How to stream security audit events to Datadog or Splunk SIEM?",
+    "category": "TECHNICAL",
+    "expected_intent": "security_audit",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-116"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "What is the retention period for security audit logs in PostgreSQL?",
+    "category": "TECHNICAL",
+    "expected_intent": "security_audit",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-116"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Export audit trail of all role privilege escalations for Q3 compliance",
+    "category": "TECHNICAL",
+    "expected_intent": "security_audit",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-116"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Webhook endpoint for streaming immutable security audit events",
+    "category": "TECHNICAL",
+    "expected_intent": "security_audit",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-116"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Search audit logs for IP addresses associated with failed logins",
+    "category": "TECHNICAL",
+    "expected_intent": "security_audit",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-116"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How to configure CIDR block IP whitelisting for employee portal?",
+    "category": "TECHNICAL",
+    "expected_intent": "network_security",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-117"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Blocked from accessing portal due to IP whitelist restrictions",
+    "category": "TECHNICAL",
+    "expected_intent": "network_security",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-117"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Adding VPN subnet to authorized IP access list in security settings",
+    "category": "TECHNICAL",
+    "expected_intent": "network_security",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-117"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Emergency access procedure if administrator IP is accidentally blocked",
+    "category": "TECHNICAL",
+    "expected_intent": "network_security",
+    "expected_urgency": "CRITICAL",
+    "relevant_article_ids": [
+      "KB-117"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "API returning 403 Forbidden for corporate office gateway IP",
+    "category": "TECHNICAL",
+    "expected_intent": "network_security",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-117"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Setting up Okta SCIM 2.0 automated employee provisioning",
+    "category": "TECHNICAL",
+    "expected_intent": "scim_integration",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-118"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Deactivated user in Microsoft Entra ID still has active session",
+    "category": "TECHNICAL",
+    "expected_intent": "scim_integration",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-118"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "SCIM endpoint returning error when syncing user department groups",
+    "category": "TECHNICAL",
+    "expected_intent": "scim_integration",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-118"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How does SCIM handle automatic token revocation upon user termination?",
+    "category": "TECHNICAL",
+    "expected_intent": "scim_integration",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-118"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "OneLogin SCIM synchronization configuration and bearer token setup",
+    "category": "TECHNICAL",
+    "expected_intent": "scim_integration",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-118"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Webhook receiver receiving HTTP 429 Too Many Requests rate limits",
+    "category": "TECHNICAL",
+    "expected_intent": "webhook_management",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-119"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "What is the exponential backoff retry schedule for failed webhooks?",
+    "category": "TECHNICAL",
+    "expected_intent": "webhook_management",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-119"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Webhook endpoint timed out after 5000ms and was placed in retry queue",
+    "category": "TECHNICAL",
+    "expected_intent": "webhook_management",
+    "expected_urgency": "MEDIUM",
+    "relevant_article_ids": [
+      "KB-119"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How to handle Retry-After header when receiving webhook bursts?",
+    "category": "TECHNICAL",
+    "expected_intent": "webhook_management",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-119"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Webhook delivery failed with SSL handshake error on receiver",
+    "category": "TECHNICAL",
+    "expected_intent": "webhook_management",
+    "expected_urgency": "HIGH",
+    "relevant_article_ids": [
+      "KB-119"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "How to create an isolated staging sandbox environment for testing?",
+    "category": "TECHNICAL",
+    "expected_intent": "sandbox_setup",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-120"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Simulating ticket triage webhooks and mock AI responses in sandbox",
+    "category": "TECHNICAL",
+    "expected_intent": "sandbox_setup",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-120"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Resetting test data in developer sandbox without affecting production",
+    "category": "TECHNICAL",
+    "expected_intent": "sandbox_setup",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-120"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Can sandbox environments send real emails or trigger real charges?",
+    "category": "TECHNICAL",
+    "expected_intent": "sandbox_setup",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-120"
+    ],
+    "min_expected_recall_at_5": 1.0
+  },
+  {
+    "query": "Testing Stripe payment reconciliation webhook failure in sandbox",
+    "category": "TECHNICAL",
+    "expected_intent": "sandbox_setup",
+    "expected_urgency": "LOW",
+    "relevant_article_ids": [
+      "KB-120"
+    ],
     "min_expected_recall_at_5": 1.0
   }
 ]

@@ -70,6 +70,17 @@ public class WorkflowInstance {
         this.updatedAt = Instant.now();
     }
 
+    public void setStatus(String status) {
+        this.status = status;
+        this.updatedAt = Instant.now();
+    }
+
+    public void retry() {
+        this.status = "RUNNING";
+        this.deadlineAt = Instant.now().plusSeconds(60);
+        this.updatedAt = Instant.now();
+    }
+
     public void fail(String reason) {
         this.status = "FAILED";
         this.currentStep = "FAILED: " + reason;

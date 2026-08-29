@@ -25,4 +25,17 @@ public interface ResolvedCaseChunkRepository extends JpaRepository<ResolvedCaseC
         @Param("query") String query,
         @Param("limit") int limit
     );
+
+    @Query(value = """
+        SELECT rcc.* FROM rag_schema.resolved_case_chunks rcc
+        WHERE rcc.tenant_id = :tenantId
+          AND rcc.embedding IS NOT NULL
+        ORDER BY rcc.embedding <=> cast(:embedding as vector)
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<ResolvedCaseChunk> searchVector(
+        @Param("tenantId") UUID tenantId,
+        @Param("embedding") String embeddingString,
+        @Param("limit") int limit
+    );
 }

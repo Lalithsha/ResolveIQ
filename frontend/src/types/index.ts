@@ -59,7 +59,10 @@ export interface AiSuggestion {
 export interface Citation {
   sourceType: 'KNOWLEDGE_ARTICLE' | 'RESOLVED_CASE';
   sourceId: string;
+  versionId?: string;
+  chunkId?: string;
   title: string;
   citationText: string;
+  snippet?: string;
   confidenceScore?: number;
 }

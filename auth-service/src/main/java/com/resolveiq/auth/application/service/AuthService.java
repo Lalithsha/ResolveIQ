@@ -101,11 +101,11 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request, String ipAddress, String userAgent) {
-        UUID tenantId = request.tenantId() != null ? request.tenantId() : UUID.randomUUID();
+        UUID tenantId = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
         // Ensure default tenant exists if not present
         if (!tenantRepository.existsById(tenantId)) {
-            Tenant tenant = new Tenant(tenantId, "Default Tenant", "default.resolveiq.local", "ACTIVE");
+            Tenant tenant = new Tenant(tenantId, "ACME Global Enterprise", "acme.resolveiq.local", "ACTIVE");
             tenantRepository.save(tenant);
         }
 
@@ -114,9 +114,8 @@ public class AuthService {
             throw new IllegalArgumentException("User with email " + request.email() + " already exists in this tenant");
         }
 
-        Set<Role> roles = request.roles() != null && !request.roles().isEmpty()
-            ? request.roles()
-            : Set.of(Role.CUSTOMER);
+        // Public registration assigns ONLY Role.CUSTOMER
+        Set<Role> roles = Set.of(Role.CUSTOMER);
 
         User user = new User(
             UUID.randomUUID(),
@@ -148,6 +147,40 @@ public class AuthService {
             rawRefreshToken,
             "Bearer",
             jwtTokenProvider.getExpirationMs(),
+            user.getId(),
+            user.getTenantId(),
+            user.getEmail(),
+            user.getFullName(),
+            user.getRoles()
+        );
+    }
+
+    @Transactional
+    public UserProfileDto createUserByAdmin(AdminCreateUserRequest request, String ipAddress, String userAgent) {
+        UUID tenantId = request.tenantId();
+
+        if (!tenantRepository.existsById(tenantId)) {
+            throw new IllegalArgumentException("Tenant does not exist with ID: " + tenantId);
+        }
+
+        String normalizedEmail = request.email().toLowerCase().trim();
+        if (userRepository.existsByTenantIdAndNormalizedEmail(tenantId, normalizedEmail)) {
+            throw new IllegalArgumentException("User with email " + request.email() + " already exists in this tenant");
+        }
+
+        User user = new User(
+            UUID.randomUUID(),
+            tenantId,
+            request.email(),
+            passwordService.encode(request.password()),
+            request.fullName(),
+            request.roles()
+        );
+        userRepository.save(user);
+
+        recordAudit(tenantId, user.getId(), "STAFF_USER_CREATED", "SUCCESS", ipAddress, userAgent);
+
+        return new UserProfileDto(
             user.getId(),
             user.getTenantId(),
             user.getEmail(),

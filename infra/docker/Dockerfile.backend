@@ -1,0 +1,27 @@
+# Multi-stage Dockerfile for ResolveIQ Spring Boot Services
+FROM maven:3.9.9-eclipse-temurin-21-alpine AS builder
+WORKDIR /workspace
+
+# Cache parent and dependencies
+COPY pom.xml .
+COPY common-contracts/pom.xml common-contracts/
+COPY discovery-service/pom.xml discovery-service/
+COPY api-gateway/pom.xml api-gateway/
+COPY auth-service/pom.xml auth-service/
+COPY ticket-service/pom.xml ticket-service/
+COPY ai-orchestration-service/pom.xml ai-orchestration-service/
+COPY ai-analysis-service/pom.xml ai-analysis-service/
+COPY routing-service/pom.xml routing-service/
+COPY rag-service/pom.xml rag-service/
+
+COPY . .
+RUN mvn clean package -DskipTests
+
+FROM eclipse-temurin:21-jre-alpine
+ARG SERVICE_NAME
+WORKDIR /app
+COPY --from=builder /workspace/${SERVICE_NAME}/target/*.jar app.jar
+
+ENV JAVA_OPTS="-XX:+UseG1GC -XX:MaxRAMPercentage=75.0"
+EXPOSE 8080
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

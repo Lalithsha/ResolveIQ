@@ -1,0 +1,107 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Retrieval Recall@5",
+      "type": "stat",
+      "targets": [
+        { "datasource": "Prometheus", "expr": "resolveiq_retrieval_recall_at_5", "refId": "A" }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "title": "Mean Reciprocal Rank (MRR)",
+      "type": "stat",
+      "targets": [
+        { "datasource": "Prometheus", "expr": "resolveiq_retrieval_mrr", "refId": "A" }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "title": "Autonomous Send Rate (Invariant: 0.0%)",
+      "type": "stat",
+      "targets": [
+        { "datasource": "Prometheus", "expr": "resolveiq_autonomous_send_rate", "refId": "A" }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "title": "Kafka Outbox DLQ Pending",
+      "type": "stat",
+      "targets": [
+        { "datasource": "Prometheus", "expr": "sum(resolveiq_outbox_dead_count)", "refId": "A" }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 5,
+      "title": "HTTP Request Latency (p95 / p50)",
+      "type": "timeseries",
+      "targets": [
+        { "datasource": "Prometheus", "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))", "legendFormat": "p95", "refId": "A" },
+        { "datasource": "Prometheus", "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))", "legendFormat": "p50", "refId": "B" }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 6,
+      "title": "AI Workflow Execution Durations by Step",
+      "type": "timeseries",
+      "targets": [
+        { "datasource": "Prometheus", "expr": "sum by (step) (rate(resolveiq_workflow_step_duration_ms_sum[5m])) / sum by (step) (rate(resolveiq_workflow_step_duration_ms_count[5m]))", "legendFormat": "{{step}}", "refId": "A" }
+      ]
+    }
+  ],
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["resolveiq", "production", "slo"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "title": "ResolveIQ Platform Governance & Telemetry",
+  "uid": "resolveiq-main-governance"
+}

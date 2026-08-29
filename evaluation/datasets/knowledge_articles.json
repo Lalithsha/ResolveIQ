@@ -1,11 +1,35 @@
 [
   {
+    "id": "KB-101",
+    "title": "Account Password Reset and Multi-Factor 2FA Recovery",
+    "category": "ACCOUNT",
+    "version": "1.0",
+    "content": "Users locked out due to forgotten passwords or lost MFA authenticator devices can trigger an email recovery link valid for 15 minutes. If TOTP recovery codes are unavailable, tenant administrators can temporarily reset the 2FA requirement via the Admin User Management panel with dual-approver confirmation.",
+    "tags": ["account", "password-reset", "2fa", "mfa", "recovery", "security"]
+  },
+  {
+    "id": "KB-102",
+    "title": "API Authentication, API Keys and JWT Token Lifecycles",
+    "category": "TECHNICAL",
+    "version": "1.2",
+    "content": "All API requests require Bearer token authorization using HMAC-SHA256 signed JWTs. Access tokens expire after 15 minutes and must be refreshed using rotating refresh tokens. API keys for machine-to-machine integrations are provisioned in Settings > Developer > API Keys with SHA-256 hashing.",
+    "tags": ["api", "authentication", "jwt", "tokens", "api-keys", "developer"]
+  },
+  {
+    "id": "KB-103",
+    "title": "Subscription Tier Upgrades, Seat Limits and Add-ons",
+    "category": "BILLING",
+    "version": "1.0",
+    "content": "When a tenant reaches its active seat quota, additional agent seats can be provisioned immediately on the Billing page. Pro-rated charges for the remainder of the billing cycle are invoiced automatically. Downgrades take effect at the beginning of the subsequent billing cycle.",
+    "tags": ["billing", "subscription", "seats", "upgrade", "pricing"]
+  },
+  {
     "id": "KB-104",
     "title": "Payment Reconciliation and Duplicate Charge Guidelines",
     "category": "BILLING",
     "version": "2.1",
     "content": "When a customer reports duplicate charges on credit cards, support agents must verify the payment processor transaction IDs in the billing dashboard. If dual authorizations occurred due to a gateway timeout, initiate a void on the pending transaction and reconcile the invoice state. Always notify the customer with the reversal reference number.",
-    "tags": ["billing", "duplicate-charge", "credit-card", "reconciliation"]
+    "tags": ["billing", "duplicate-charge", "credit-card", "reconciliation", "refund"]
   },
   {
     "id": "KB-105",
@@ -13,7 +37,23 @@
     "category": "TECHNICAL",
     "version": "1.0",
     "content": "SAML response signature failures in Okta, Azure AD, or PingFederate typically result from an expired X.509 signing certificate or mismatched Entity ID. Verify that the IdP metadata matches the SP metadata in the tenant security settings. Regenerate signing certificates if the expiry date has passed.",
-    "tags": ["sso", "saml", "okta", "authentication", "security"]
+    "tags": ["sso", "saml", "okta", "authentication", "security", "azure-ad"]
+  },
+  {
+    "id": "KB-106",
+    "title": "International Wire Transfers and SWIFT Routing Instructions",
+    "category": "BILLING",
+    "version": "1.1",
+    "content": "Enterprise customers paying via international wire transfer or SWIFT must include the unique invoice reference code in field 70 of the MT103 wire message. Wires take 2-4 banking days to reconcile. Unallocated funds are held in escrow for 10 business days before being returned to the sending institution.",
+    "tags": ["billing", "wire-transfer", "swift", "international", "invoices"]
+  },
+  {
+    "id": "KB-107",
+    "title": "Data Export, GDPR Compliance and Privacy Deletion Requests",
+    "category": "ACCOUNT",
+    "version": "1.0",
+    "content": "GDPR Article 17 Right to Erasure requests must be logged under Compliance > Privacy Requests. Customer personal identifiable data (PII) is permanently redacted across tickets, messages, and vector embeddings within 30 days while retaining anonymized transaction metrics for financial auditing.",
+    "tags": ["gdpr", "privacy", "erasure", "compliance", "pii", "account"]
   },
   {
     "id": "KB-108",
@@ -21,7 +61,31 @@
     "category": "ACCOUNT",
     "version": "1.2",
     "content": "Tax identification numbers (such as EU VAT, UK VAT, or US EIN) and legal entity addresses can be updated by tenant administrators under Settings > Billing > Legal Information. Invoices already finalized cannot have their entity changed; subsequent invoices will reflect the updated tax profile.",
-    "tags": ["account", "vat", "tax-id", "invoicing", "address"]
+    "tags": ["account", "vat", "tax-id", "invoicing", "address", "billing"]
+  },
+  {
+    "id": "KB-109",
+    "title": "Role-Based Access Control RBAC and Team Permissions",
+    "category": "ACCOUNT",
+    "version": "1.0",
+    "content": "ResolveIQ enforces 6 distinct persona roles: CUSTOMER, AGENT, TEAM_LEAD, KNOWLEDGE_MANAGER, ADMIN, and AUDITOR. Role assignments are scoped to the authenticated tenant. Custom team assignments define ticket visibility in the agent queue.",
+    "tags": ["rbac", "roles", "permissions", "team-lead", "admin", "security"]
+  },
+  {
+    "id": "KB-110",
+    "title": "Custom Domain Configuration and SSL Certificate Management",
+    "category": "TECHNICAL",
+    "version": "1.3",
+    "content": "To configure a branded customer portal domain (e.g., support.customer.com), create a CNAME record pointing to proxy.resolveiq.local. SSL certificates are provisioned automatically via Let's Encrypt once DNS propagation completes (typically 15-60 minutes).",
+    "tags": ["dns", "cname", "custom-domain", "ssl", "certificates", "technical"]
+  },
+  {
+    "id": "KB-111",
+    "title": "Order Cancellation and Return Material Authorization RMA",
+    "category": "DELIVERY",
+    "version": "1.0",
+    "content": "Orders can be cancelled online within 60 minutes of placement before warehouse picking begins. After shipment, customers must request an RMA return shipping label. Returned items are inspected within 48 hours of warehouse receipt, triggering an automatic refund.",
+    "tags": ["rma", "cancellation", "returns", "refund", "delivery", "orders"]
   },
   {
     "id": "KB-112",
@@ -29,7 +93,55 @@
     "category": "DELIVERY",
     "version": "1.1",
     "content": "If a carrier marks a package as delivered but the customer cannot locate it, verify the carrier proof-of-delivery signature and GPS coordinate scan. For missing shipments, file a carrier trace claim within 48 hours and issue a priority replacement if the trace is unresolved.",
-    "tags": ["delivery", "shipping", "carrier", "replacement"]
+    "tags": ["delivery", "shipping", "carrier", "replacement", "tracking", "lost-package"]
+  },
+  {
+    "id": "KB-113",
+    "title": "Freight Shipping, Customs Clearance and Import Duties",
+    "category": "DELIVERY",
+    "version": "1.0",
+    "content": "Commercial freight shipments crossing international borders require commercial invoices and Harmonized System (HS) tariff codes. If customs delays occur due to unpaid import VAT or duty, the local broker contacts the consignee. ResolveIQ tracks customs clearance milestone events.",
+    "tags": ["freight", "customs", "import-duties", "tariffs", "international", "delivery"]
+  },
+  {
+    "id": "KB-114",
+    "title": "Warehouse Fulfillment Delays and Backorder Notifications",
+    "category": "DELIVERY",
+    "version": "1.2",
+    "content": "When inventory shortages cause fulfillment delays exceeding 3 business days, backorder notifications are dispatched to customers with updated replenishment ETAs. Customers may opt for split shipments or an immediate refund for the backordered line items.",
+    "tags": ["warehouse", "fulfillment", "backorder", "delays", "inventory", "delivery"]
+  },
+  {
+    "id": "KB-115",
+    "title": "Address Change Requests Post-Shipment and Rerouting",
+    "category": "DELIVERY",
+    "version": "1.0",
+    "content": "Delivery addresses cannot be modified directly once tracking numbers are generated. Support agents can submit an in-flight carrier intercept package reroute request with carriers (FedEx/UPS/DHL) for an administrative carrier fee if the parcel has not reached the final delivery facility.",
+    "tags": ["address-change", "reroute", "carrier-intercept", "shipping", "delivery"]
+  },
+  {
+    "id": "KB-116",
+    "title": "Security Audit Logs Retention and SIEM Streaming",
+    "category": "TECHNICAL",
+    "version": "1.0",
+    "content": "Immutable security audit logs record login attempts, privilege escalations, token revocations, and configuration changes. Logs are retained for 365 days in PostgreSQL with JSONB indexing. Enterprise tenants can stream audit logs to Splunk, Datadog, or AWS S3 via webhook endpoints.",
+    "tags": ["audit-logs", "siem", "splunk", "security", "retention", "technical"]
+  },
+  {
+    "id": "KB-117",
+    "title": "IP Whitelisting and CIDR Network Access Controls",
+    "category": "TECHNICAL",
+    "version": "1.1",
+    "content": "Tenant administrators can restrict portal and API access to authorized corporate IP CIDR blocks under Security > Network Access. Out-of-bounds requests receive HTTP 403 Forbidden. At least one administrator IP must remain outside the block list to prevent lockout.",
+    "tags": ["ip-whitelist", "cidr", "firewall", "network", "security", "technical"]
+  },
+  {
+    "id": "KB-118",
+    "title": "SCIM 2.0 Automated User Provisioning and Deprovisioning",
+    "category": "TECHNICAL",
+    "version": "1.0",
+    "content": "ResolveIQ supports System for Cross-domain Identity Management (SCIM 2.0) for automated employee lifecycle management with Okta, Microsoft Entra ID, and OneLogin. When an employee is deactivated in the corporate IdP, SCIM immediately revokes all active session refresh tokens.",
+    "tags": ["scim", "provisioning", "deprovisioning", "okta", "entra-id", "technical"]
   },
   {
     "id": "KB-119",
@@ -37,6 +149,14 @@
     "category": "TECHNICAL",
     "version": "2.0",
     "content": "Webhook dispatchers employ exponential backoff with jitter on non-2xx responses. If an endpoint responds with HTTP 429, the dispatcher pauses delivery for the duration specified in the Retry-After header. Developers should ensure endpoints return 200 OK before executing heavy asynchronous downstream jobs.",
-    "tags": ["webhooks", "rate-limiting", "api", "developer", "backoff"]
+    "tags": ["webhooks", "rate-limiting", "api", "developer", "backoff", "technical"]
+  },
+  {
+    "id": "KB-120",
+    "title": "Sandbox Environment Setup and Test Webhook Events",
+    "category": "TECHNICAL",
+    "version": "1.0",
+    "content": "Developers can provision isolated staging sandbox environments under Developer > Sandboxes. Sandboxes simulate ticket lifecycles, mock payment webhooks, and AI draft suggestions without impacting production telemetry or billing records.",
+    "tags": ["sandbox", "testing", "developer", "mock-events", "technical"]
   }
 ]

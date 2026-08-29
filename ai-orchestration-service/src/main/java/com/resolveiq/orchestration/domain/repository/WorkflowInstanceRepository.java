@@ -12,4 +12,5 @@ import java.util.UUID;
 public interface WorkflowInstanceRepository extends JpaRepository<WorkflowInstance, UUID> {
     Optional<WorkflowInstance> findByTicketId(UUID ticketId);
     List<WorkflowInstance> findByTenantIdOrderByCreatedAtDesc(UUID tenantId);
+    List<WorkflowInstance> findByTenantIdAndStatus(UUID tenantId, String status);
 }

@@ -12,6 +12,7 @@ import java.util.UUID;
 @Repository
 public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     Optional<Ticket> findByIdAndTenantId(UUID id, UUID tenantId);
+    Optional<Ticket> findByIdAndTenantIdAndCustomerId(UUID id, UUID tenantId, UUID customerId);
     Optional<Ticket> findByTicketNumberAndTenantId(String ticketNumber, UUID tenantId);
     List<Ticket> findByTenantIdAndCustomerIdOrderByCreatedAtDesc(UUID tenantId, UUID customerId);
     List<Ticket> findByTenantIdAndTeamIdOrderByCreatedAtDesc(UUID tenantId, UUID teamId);

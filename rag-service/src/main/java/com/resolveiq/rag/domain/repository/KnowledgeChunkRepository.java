@@ -28,4 +28,20 @@ public interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunk, 
         @Param("query") String query,
         @Param("limit") int limit
     );
+
+    @Query(value = """
+        SELECT kc.* FROM rag_schema.knowledge_chunks kc
+        JOIN rag_schema.knowledge_documents kd ON kc.document_id = kd.id
+        WHERE kc.tenant_id = :tenantId
+          AND kd.status = 'PUBLISHED'
+          AND kc.version_id = kd.active_version_id
+          AND kc.embedding IS NOT NULL
+        ORDER BY kc.embedding <=> cast(:embedding as vector)
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<KnowledgeChunk> searchVector(
+        @Param("tenantId") UUID tenantId,
+        @Param("embedding") String embeddingString,
+        @Param("limit") int limit
+    );
 }

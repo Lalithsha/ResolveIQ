@@ -1,0 +1,29 @@
+groups:
+  - name: resolveiq-alerts
+    rules:
+      - alert: HighOutboxDeadLetterCount
+        expr: sum(resolveiq_outbox_dead_count) > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High number of Dead-Letter Outbox events in ResolveIQ"
+          description: "There are more than 5 events in DEAD state. Check DLQ and trigger replay using dlq-replay runbook."
+
+      - alert: HighWorkflowFailureRate
+        expr: sum(rate(resolveiq_workflow_failed_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI Triage workflow failure rate exceeded 5%"
+          description: "Downstream AI service (Analysis, Routing, or RAG) may be degraded or timing out."
+
+      - alert: AutonomousSendRateViolation
+        expr: resolveiq_autonomous_send_rate > 0
+        for: 0s
+        labels:
+          severity: page
+        annotations:
+          summary: "CRITICAL SAFETY INVARIANT VIOLATION: Autonomous Send Rate > 0"
+          description: "An unreviewed AI suggestion was dispatched without human agent approval."
