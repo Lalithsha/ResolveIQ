@@ -1,0 +1,1902 @@
+[
+  {
+    "case_id": 1,
+    "query": "How do I reset my password if I lost my phone authenticator?",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-101"
+    ],
+    "retrieved_top_5": [
+      "KB-101",
+      "KB-112",
+      "KB-105",
+      "KB-113",
+      "KB-119"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.184
+  },
+  {
+    "case_id": 2,
+    "query": "Locked out of account because MFA code is not working",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-101"
+    ],
+    "retrieved_top_5": [
+      "KB-101",
+      "KB-106",
+      "KB-117",
+      "KB-108",
+      "KB-105"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.167
+  },
+  {
+    "case_id": 3,
+    "query": "Need 2FA reset link for locked agent account",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-101"
+    ],
+    "retrieved_top_5": [
+      "KB-101",
+      "KB-103",
+      "KB-114",
+      "KB-112",
+      "KB-107"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 4,
+    "query": "Authenticator app deleted, how to bypass two factor authentication?",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-101"
+    ],
+    "retrieved_top_5": [
+      "KB-101",
+      "KB-102",
+      "KB-104",
+      "KB-107",
+      "KB-106"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 5,
+    "query": "Forgot account password and recovery email not arriving",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-101"
+    ],
+    "retrieved_top_5": [
+      "KB-101",
+      "KB-104",
+      "KB-107",
+      "KB-106",
+      "KB-108"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 6,
+    "query": "API returning 401 Unauthorized for valid JWT bearer token",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-102"
+    ],
+    "retrieved_top_5": [
+      "KB-102",
+      "KB-119",
+      "KB-101",
+      "KB-107",
+      "KB-117"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 7,
+    "query": "How often do JWT access tokens expire in ResolveIQ?",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-102"
+    ],
+    "retrieved_top_5": [
+      "KB-102",
+      "KB-118",
+      "KB-109",
+      "KB-113",
+      "KB-103"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 8,
+    "query": "Where can I generate a machine to machine API key?",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-102"
+    ],
+    "retrieved_top_5": [
+      "KB-102",
+      "KB-110",
+      "KB-117",
+      "KB-116",
+      "KB-111"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 9,
+    "query": "Rotating refresh token failed with invalid signature",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-102"
+    ],
+    "retrieved_top_5": [
+      "KB-102",
+      "KB-118",
+      "KB-114",
+      "KB-104",
+      "KB-116"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 10,
+    "query": "API key permission denied when calling v1 endpoints",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-102"
+    ],
+    "retrieved_top_5": [
+      "KB-102",
+      "KB-119",
+      "KB-104",
+      "KB-103",
+      "KB-105"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 11,
+    "query": "Reached maximum seat limit on our enterprise plan, how to add 5 more?",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-103"
+    ],
+    "retrieved_top_5": [
+      "KB-103",
+      "KB-105",
+      "KB-114",
+      "KB-106",
+      "KB-109"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 12,
+    "query": "How are pro-rated charges calculated when upgrading agent seats?",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-103"
+    ],
+    "retrieved_top_5": [
+      "KB-103",
+      "KB-102",
+      "KB-101",
+      "KB-104",
+      "KB-109"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 13,
+    "query": "Want to downgrade subscription tier at the end of billing cycle",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-103"
+    ],
+    "retrieved_top_5": [
+      "KB-103",
+      "KB-106",
+      "KB-117",
+      "KB-112",
+      "KB-109"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 14,
+    "query": "Error adding new team member due to seat quota limit",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-103"
+    ],
+    "retrieved_top_5": [
+      "KB-103",
+      "KB-101",
+      "KB-104",
+      "KB-109",
+      "KB-110"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 15,
+    "query": "Need quote for additional 20 agent licenses on Pro plan",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-103"
+    ],
+    "retrieved_top_5": [
+      "KB-103",
+      "KB-104",
+      "KB-102",
+      "KB-106",
+      "KB-114"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 16,
+    "query": "Noticed duplicate charge on credit card for invoice INV-9812",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-104"
+    ],
+    "retrieved_top_5": [
+      "KB-104",
+      "KB-101",
+      "KB-106",
+      "KB-119",
+      "KB-118"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 17,
+    "query": "Charged twice for monthly subscription due to timeout",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-104"
+    ],
+    "retrieved_top_5": [
+      "KB-106",
+      "KB-103",
+      "KB-102",
+      "KB-101",
+      "KB-104"
+    ],
+    "recall_at_5": true,
+    "rank": 5,
+    "reciprocal_rank": 0.2,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 18,
+    "query": "Credit card shows two pending charges for the same transaction",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-104"
+    ],
+    "retrieved_top_5": [
+      "KB-104",
+      "KB-118",
+      "KB-106",
+      "KB-107",
+      "KB-112"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 19,
+    "query": "Requesting refund for double billing on Visa card",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-104"
+    ],
+    "retrieved_top_5": [
+      "KB-104",
+      "KB-102",
+      "KB-114",
+      "KB-106",
+      "KB-103"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 20,
+    "query": "Payment gateway timeout caused duplicate payment capture",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-104"
+    ],
+    "retrieved_top_5": [
+      "KB-104",
+      "KB-101",
+      "KB-120",
+      "KB-108",
+      "KB-105"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.17
+  },
+  {
+    "case_id": 21,
+    "query": "Okta SAML 2.0 login failing with 401 signature validation error",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-105"
+    ],
+    "retrieved_top_5": [
+      "KB-105",
+      "KB-118",
+      "KB-106",
+      "KB-104",
+      "KB-102"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.175
+  },
+  {
+    "case_id": 22,
+    "query": "Azure AD SSO certificate expired, users cannot login",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-105"
+    ],
+    "retrieved_top_5": [
+      "KB-105",
+      "KB-101",
+      "KB-102",
+      "KB-110",
+      "KB-112"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 23,
+    "query": "Mismatched Entity ID error in PingFederate SAML assertion",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-105"
+    ],
+    "retrieved_top_5": [
+      "KB-105",
+      "KB-108",
+      "KB-106",
+      "KB-115",
+      "KB-104"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.171
+  },
+  {
+    "case_id": 24,
+    "query": "How to update SP metadata certificate in tenant settings?",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-105"
+    ],
+    "retrieved_top_5": [
+      "KB-105",
+      "KB-106",
+      "KB-101",
+      "KB-109",
+      "KB-110"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.17
+  },
+  {
+    "case_id": 25,
+    "query": "Single sign on redirection loop after IdP certificate update",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-105"
+    ],
+    "retrieved_top_5": [
+      "KB-119",
+      "KB-118",
+      "KB-102",
+      "KB-106",
+      "KB-110"
+    ],
+    "recall_at_5": false,
+    "rank": 6,
+    "reciprocal_rank": 0.1667,
+    "latency_ms": 0.158
+  },
+  {
+    "case_id": 26,
+    "query": "Need SWIFT routing code and field 70 reference for international wire",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-106"
+    ],
+    "retrieved_top_5": [
+      "KB-106",
+      "KB-103",
+      "KB-112",
+      "KB-107",
+      "KB-116"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.165
+  },
+  {
+    "case_id": 27,
+    "query": "Sent international wire transfer 5 days ago but invoice still unpaid",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-106"
+    ],
+    "retrieved_top_5": [
+      "KB-106",
+      "KB-113",
+      "KB-114",
+      "KB-105",
+      "KB-112"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 28,
+    "query": "Where to find MT103 wire transfer instructions for invoice payment?",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-106"
+    ],
+    "retrieved_top_5": [
+      "KB-106",
+      "KB-104",
+      "KB-101",
+      "KB-110",
+      "KB-107"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 29,
+    "query": "Wire payment returned by beneficiary bank due to missing reference",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-106"
+    ],
+    "retrieved_top_5": [
+      "KB-104",
+      "KB-106",
+      "KB-108",
+      "KB-101",
+      "KB-113"
+    ],
+    "recall_at_5": true,
+    "rank": 2,
+    "reciprocal_rank": 0.5,
+    "latency_ms": 0.163
+  },
+  {
+    "case_id": 30,
+    "query": "How long does international wire payment take to reconcile?",
+    "category": "BILLING",
+    "expected_articles": [
+      "KB-106"
+    ],
+    "retrieved_top_5": [
+      "KB-106",
+      "KB-104",
+      "KB-107",
+      "KB-113",
+      "KB-101"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 31,
+    "query": "Customer requesting complete GDPR Article 17 account data erasure",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-107"
+    ],
+    "retrieved_top_5": [
+      "KB-107",
+      "KB-101",
+      "KB-109",
+      "KB-104",
+      "KB-112"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 32,
+    "query": "How do I submit a right to be forgotten privacy request for user?",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-107"
+    ],
+    "retrieved_top_5": [
+      "KB-101",
+      "KB-106",
+      "KB-107",
+      "KB-110",
+      "KB-102"
+    ],
+    "recall_at_5": true,
+    "rank": 3,
+    "reciprocal_rank": 0.3333,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 33,
+    "query": "Are vector embeddings purged when a customer requests PII deletion?",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-107"
+    ],
+    "retrieved_top_5": [
+      "KB-103",
+      "KB-110",
+      "KB-107",
+      "KB-114",
+      "KB-104"
+    ],
+    "recall_at_5": true,
+    "rank": 3,
+    "reciprocal_rank": 0.3333,
+    "latency_ms": 0.167
+  },
+  {
+    "case_id": 34,
+    "query": "Export all personal ticket history and user data under GDPR",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-107"
+    ],
+    "retrieved_top_5": [
+      "KB-107",
+      "KB-109",
+      "KB-118",
+      "KB-120",
+      "KB-104"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.167
+  },
+  {
+    "case_id": 35,
+    "query": "Verify redaction status of customer personal identification records",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-107"
+    ],
+    "retrieved_top_5": [
+      "KB-104",
+      "KB-112",
+      "KB-110",
+      "KB-105",
+      "KB-101"
+    ],
+    "recall_at_5": false,
+    "rank": 10,
+    "reciprocal_rank": 0.1,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 36,
+    "query": "Need to change EU VAT number and company address on future invoices",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-108"
+    ],
+    "retrieved_top_5": [
+      "KB-106",
+      "KB-115",
+      "KB-103",
+      "KB-108",
+      "KB-113"
+    ],
+    "recall_at_5": true,
+    "rank": 4,
+    "reciprocal_rank": 0.25,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 37,
+    "query": "How to update corporate tax ID (EIN) in billing settings?",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-108"
+    ],
+    "retrieved_top_5": [
+      "KB-108",
+      "KB-106",
+      "KB-102",
+      "KB-118",
+      "KB-101"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.171
+  },
+  {
+    "case_id": 38,
+    "query": "Can I change the legal entity name on an already finalized invoice?",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-108"
+    ],
+    "retrieved_top_5": [
+      "KB-108",
+      "KB-115",
+      "KB-101",
+      "KB-111",
+      "KB-105"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.165
+  },
+  {
+    "case_id": 39,
+    "query": "Invoice shows incorrect UK VAT number after corporate restructuring",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-108"
+    ],
+    "retrieved_top_5": [
+      "KB-104",
+      "KB-106",
+      "KB-118",
+      "KB-105",
+      "KB-111"
+    ],
+    "recall_at_5": false,
+    "rank": 6,
+    "reciprocal_rank": 0.1667,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 40,
+    "query": "Where to enter reverse charge VAT exemption certificate?",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-108"
+    ],
+    "retrieved_top_5": [
+      "KB-110",
+      "KB-106",
+      "KB-113",
+      "KB-104",
+      "KB-116"
+    ],
+    "recall_at_5": false,
+    "rank": 16,
+    "reciprocal_rank": 0.0625,
+    "latency_ms": 0.158
+  },
+  {
+    "case_id": 41,
+    "query": "How to assign Team Lead permissions to support supervisor?",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-109"
+    ],
+    "retrieved_top_5": [
+      "KB-109",
+      "KB-110",
+      "KB-106",
+      "KB-101",
+      "KB-104"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 42,
+    "query": "What are the 6 standard user roles available in ResolveIQ?",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-109"
+    ],
+    "retrieved_top_5": [
+      "KB-109",
+      "KB-118",
+      "KB-106",
+      "KB-113",
+      "KB-115"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 43,
+    "query": "Auditor role cannot view governance logs, need permission grant",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-109"
+    ],
+    "retrieved_top_5": [
+      "KB-109",
+      "KB-112",
+      "KB-116",
+      "KB-115",
+      "KB-104"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 44,
+    "query": "Agent cannot see tickets assigned to other teams in queue",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-109"
+    ],
+    "retrieved_top_5": [
+      "KB-109",
+      "KB-106",
+      "KB-115",
+      "KB-103",
+      "KB-104"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 45,
+    "query": "Restricting Knowledge Manager to draft authoring without publish rights",
+    "category": "ACCOUNT",
+    "expected_articles": [
+      "KB-109"
+    ],
+    "retrieved_top_5": [
+      "KB-102",
+      "KB-106",
+      "KB-120",
+      "KB-101",
+      "KB-113"
+    ],
+    "recall_at_5": false,
+    "rank": 12,
+    "reciprocal_rank": 0.0833,
+    "latency_ms": 0.158
+  },
+  {
+    "case_id": 46,
+    "query": "Setting up custom branded domain support.mycompany.com with CNAME",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-110"
+    ],
+    "retrieved_top_5": [
+      "KB-110",
+      "KB-109",
+      "KB-103",
+      "KB-104",
+      "KB-102"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 47,
+    "query": "SSL certificate failed to provision automatically for custom portal",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-110"
+    ],
+    "retrieved_top_5": [
+      "KB-110",
+      "KB-101",
+      "KB-109",
+      "KB-106",
+      "KB-117"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 48,
+    "query": "How long does Let's Encrypt SSL issuance take after DNS change?",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-110"
+    ],
+    "retrieved_top_5": [
+      "KB-110",
+      "KB-102",
+      "KB-115",
+      "KB-103",
+      "KB-101"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 49,
+    "query": "Custom portal domain showing invalid SSL certificate error",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-110"
+    ],
+    "retrieved_top_5": [
+      "KB-110",
+      "KB-109",
+      "KB-117",
+      "KB-118",
+      "KB-108"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 50,
+    "query": "CNAME verification failing for branded customer support subdomain",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-110"
+    ],
+    "retrieved_top_5": [
+      "KB-107",
+      "KB-115",
+      "KB-110",
+      "KB-101",
+      "KB-104"
+    ],
+    "recall_at_5": true,
+    "rank": 3,
+    "reciprocal_rank": 0.3333,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 51,
+    "query": "Cancel order placed 20 minutes ago before warehouse dispatch",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-111"
+    ],
+    "retrieved_top_5": [
+      "KB-111",
+      "KB-101",
+      "KB-106",
+      "KB-114",
+      "KB-102"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 52,
+    "query": "How to generate an RMA return shipping label for damaged item?",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-111"
+    ],
+    "retrieved_top_5": [
+      "KB-111",
+      "KB-101",
+      "KB-106",
+      "KB-113",
+      "KB-114"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 53,
+    "query": "Customer wants to return opened merchandise for full refund",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-111"
+    ],
+    "retrieved_top_5": [
+      "KB-104",
+      "KB-111",
+      "KB-114",
+      "KB-109",
+      "KB-110"
+    ],
+    "recall_at_5": true,
+    "rank": 2,
+    "reciprocal_rank": 0.5,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 54,
+    "query": "How many days after delivery can a return RMA be authorized?",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-111"
+    ],
+    "retrieved_top_5": [
+      "KB-111",
+      "KB-115",
+      "KB-112",
+      "KB-102",
+      "KB-107"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 55,
+    "query": "Warehouse received RMA return, when will refund be processed?",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-111"
+    ],
+    "retrieved_top_5": [
+      "KB-111",
+      "KB-114",
+      "KB-103",
+      "KB-108",
+      "KB-115"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 56,
+    "query": "Tracking says package delivered today but it is missing from porch",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-112"
+    ],
+    "retrieved_top_5": [
+      "KB-112",
+      "KB-101",
+      "KB-115",
+      "KB-105",
+      "KB-110"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 57,
+    "query": "FedEx marked package as delivered with no signature or photo proof",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-112"
+    ],
+    "retrieved_top_5": [
+      "KB-101",
+      "KB-112",
+      "KB-108",
+      "KB-115",
+      "KB-114"
+    ],
+    "recall_at_5": true,
+    "rank": 2,
+    "reciprocal_rank": 0.5,
+    "latency_ms": 0.165
+  },
+  {
+    "case_id": 58,
+    "query": "How to file a lost-in-transit carrier claim for order #ORD-4491?",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-112"
+    ],
+    "retrieved_top_5": [
+      "KB-112",
+      "KB-106",
+      "KB-101",
+      "KB-110",
+      "KB-116"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 59,
+    "query": "Package scan shows delivered to wrong address and coordinates",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-112"
+    ],
+    "retrieved_top_5": [
+      "KB-112",
+      "KB-101",
+      "KB-115",
+      "KB-107",
+      "KB-114"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.158
+  },
+  {
+    "case_id": 60,
+    "query": "Need urgent replacement sent for lost shipment marked delivered",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-112"
+    ],
+    "retrieved_top_5": [
+      "KB-112",
+      "KB-103",
+      "KB-116",
+      "KB-101",
+      "KB-115"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 61,
+    "query": "Commercial freight shipment delayed at customs due to missing HS code",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-113"
+    ],
+    "retrieved_top_5": [
+      "KB-113",
+      "KB-112",
+      "KB-106",
+      "KB-104",
+      "KB-109"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 62,
+    "query": "Who is responsible for paying import VAT and duties on international order?",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-113"
+    ],
+    "retrieved_top_5": [
+      "KB-106",
+      "KB-113",
+      "KB-119",
+      "KB-111",
+      "KB-108"
+    ],
+    "recall_at_5": true,
+    "rank": 2,
+    "reciprocal_rank": 0.5,
+    "latency_ms": 0.168
+  },
+  {
+    "case_id": 63,
+    "query": "Customs broker requesting commercial invoice documentation for parcel",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-113"
+    ],
+    "retrieved_top_5": [
+      "KB-113",
+      "KB-115",
+      "KB-106",
+      "KB-119",
+      "KB-103"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.163
+  },
+  {
+    "case_id": 64,
+    "query": "International pallet stuck at port customs clearance checkpoint",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-113"
+    ],
+    "retrieved_top_5": [
+      "KB-106",
+      "KB-113",
+      "KB-105",
+      "KB-117",
+      "KB-107"
+    ],
+    "recall_at_5": true,
+    "rank": 2,
+    "reciprocal_rank": 0.5,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 65,
+    "query": "Tariff code discrepancy holding up cross-border logistics delivery",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-113"
+    ],
+    "retrieved_top_5": [
+      "KB-112",
+      "KB-113",
+      "KB-106",
+      "KB-115",
+      "KB-102"
+    ],
+    "recall_at_5": true,
+    "rank": 2,
+    "reciprocal_rank": 0.5,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 66,
+    "query": "Order fulfillment delayed due to out of stock warehouse inventory",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-114"
+    ],
+    "retrieved_top_5": [
+      "KB-114",
+      "KB-111",
+      "KB-101",
+      "KB-117",
+      "KB-106"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 67,
+    "query": "Can I request split shipment for items that are currently in stock?",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-114"
+    ],
+    "retrieved_top_5": [
+      "KB-111",
+      "KB-116",
+      "KB-115",
+      "KB-106",
+      "KB-114"
+    ],
+    "recall_at_5": true,
+    "rank": 5,
+    "reciprocal_rank": 0.2,
+    "latency_ms": 0.164
+  },
+  {
+    "case_id": 68,
+    "query": "When will backordered items be replenished and shipped?",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-114"
+    ],
+    "retrieved_top_5": [
+      "KB-103",
+      "KB-114",
+      "KB-108",
+      "KB-104",
+      "KB-111"
+    ],
+    "recall_at_5": true,
+    "rank": 2,
+    "reciprocal_rank": 0.5,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 69,
+    "query": "Order has been in processing state at warehouse for 4 business days",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-114"
+    ],
+    "retrieved_top_5": [
+      "KB-114",
+      "KB-106",
+      "KB-111",
+      "KB-115",
+      "KB-104"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.163
+  },
+  {
+    "case_id": 70,
+    "query": "Cancel backordered portion of order and refund to credit card",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-114"
+    ],
+    "retrieved_top_5": [
+      "KB-111",
+      "KB-106",
+      "KB-114",
+      "KB-104",
+      "KB-101"
+    ],
+    "recall_at_5": true,
+    "rank": 3,
+    "reciprocal_rank": 0.3333,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 71,
+    "query": "Need to change delivery address on package that was shipped yesterday",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-115"
+    ],
+    "retrieved_top_5": [
+      "KB-115",
+      "KB-103",
+      "KB-101",
+      "KB-112",
+      "KB-114"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.165
+  },
+  {
+    "case_id": 72,
+    "query": "How to submit an in-flight carrier intercept package reroute?",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-115"
+    ],
+    "retrieved_top_5": [
+      "KB-101",
+      "KB-106",
+      "KB-102",
+      "KB-115",
+      "KB-105"
+    ],
+    "recall_at_5": true,
+    "rank": 4,
+    "reciprocal_rank": 0.25,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 73,
+    "query": "Typo in shipping address apartment number, package already on truck",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-115"
+    ],
+    "retrieved_top_5": [
+      "KB-115",
+      "KB-108",
+      "KB-104",
+      "KB-109",
+      "KB-111"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 74,
+    "query": "Carrier intercept fee for rerouting shipment to new destination",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-115"
+    ],
+    "retrieved_top_5": [
+      "KB-112",
+      "KB-115",
+      "KB-107",
+      "KB-101",
+      "KB-116"
+    ],
+    "recall_at_5": true,
+    "rank": 2,
+    "reciprocal_rank": 0.5,
+    "latency_ms": 0.164
+  },
+  {
+    "case_id": 75,
+    "query": "Can FedEx hold package at facility because customer moved?",
+    "category": "DELIVERY",
+    "expected_articles": [
+      "KB-115"
+    ],
+    "retrieved_top_5": [
+      "KB-112",
+      "KB-115",
+      "KB-101",
+      "KB-111",
+      "KB-117"
+    ],
+    "recall_at_5": true,
+    "rank": 2,
+    "reciprocal_rank": 0.5,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 76,
+    "query": "How to stream security audit events to Datadog or Splunk SIEM?",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-116"
+    ],
+    "retrieved_top_5": [
+      "KB-116",
+      "KB-101",
+      "KB-106",
+      "KB-113",
+      "KB-110"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 77,
+    "query": "What is the retention period for security audit logs in PostgreSQL?",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-116"
+    ],
+    "retrieved_top_5": [
+      "KB-116",
+      "KB-109",
+      "KB-106",
+      "KB-112",
+      "KB-113"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 78,
+    "query": "Export audit trail of all role privilege escalations for Q3 compliance",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-116"
+    ],
+    "retrieved_top_5": [
+      "KB-116",
+      "KB-107",
+      "KB-109",
+      "KB-112",
+      "KB-102"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 79,
+    "query": "Webhook endpoint for streaming immutable security audit events",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-116"
+    ],
+    "retrieved_top_5": [
+      "KB-116",
+      "KB-119",
+      "KB-120",
+      "KB-103",
+      "KB-115"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.158
+  },
+  {
+    "case_id": 80,
+    "query": "Search audit logs for IP addresses associated with failed logins",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-116"
+    ],
+    "retrieved_top_5": [
+      "KB-116",
+      "KB-101",
+      "KB-118",
+      "KB-115",
+      "KB-117"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 81,
+    "query": "How to configure CIDR block IP whitelisting for employee portal?",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-117"
+    ],
+    "retrieved_top_5": [
+      "KB-117",
+      "KB-110",
+      "KB-114",
+      "KB-106",
+      "KB-101"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 82,
+    "query": "Blocked from accessing portal due to IP whitelist restrictions",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-117"
+    ],
+    "retrieved_top_5": [
+      "KB-117",
+      "KB-101",
+      "KB-105",
+      "KB-109",
+      "KB-110"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.158
+  },
+  {
+    "case_id": 83,
+    "query": "Adding VPN subnet to authorized IP access list in security settings",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-117"
+    ],
+    "retrieved_top_5": [
+      "KB-117",
+      "KB-101",
+      "KB-116",
+      "KB-109",
+      "KB-119"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 84,
+    "query": "Emergency access procedure if administrator IP is accidentally blocked",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-117"
+    ],
+    "retrieved_top_5": [
+      "KB-117",
+      "KB-104",
+      "KB-112",
+      "KB-101",
+      "KB-109"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 85,
+    "query": "API returning 403 Forbidden for corporate office gateway IP",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-117"
+    ],
+    "retrieved_top_5": [
+      "KB-102",
+      "KB-117",
+      "KB-119",
+      "KB-104",
+      "KB-101"
+    ],
+    "recall_at_5": true,
+    "rank": 2,
+    "reciprocal_rank": 0.5,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 86,
+    "query": "Setting up Okta SCIM 2.0 automated employee provisioning",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-118"
+    ],
+    "retrieved_top_5": [
+      "KB-118",
+      "KB-103",
+      "KB-105",
+      "KB-106",
+      "KB-109"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 87,
+    "query": "Deactivated user in Microsoft Entra ID still has active session",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-118"
+    ],
+    "retrieved_top_5": [
+      "KB-118",
+      "KB-105",
+      "KB-101",
+      "KB-119",
+      "KB-115"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 88,
+    "query": "SCIM endpoint returning error when syncing user department groups",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-118"
+    ],
+    "retrieved_top_5": [
+      "KB-118",
+      "KB-103",
+      "KB-104",
+      "KB-114",
+      "KB-119"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 89,
+    "query": "How does SCIM handle automatic token revocation upon user termination?",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-118"
+    ],
+    "retrieved_top_5": [
+      "KB-118",
+      "KB-101",
+      "KB-102",
+      "KB-105",
+      "KB-116"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 90,
+    "query": "OneLogin SCIM synchronization configuration and bearer token setup",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-118"
+    ],
+    "retrieved_top_5": [
+      "KB-118",
+      "KB-116",
+      "KB-110",
+      "KB-101",
+      "KB-120"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.163
+  },
+  {
+    "case_id": 91,
+    "query": "Webhook receiver receiving HTTP 429 Too Many Requests rate limits",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-119"
+    ],
+    "retrieved_top_5": [
+      "KB-119",
+      "KB-103",
+      "KB-115",
+      "KB-117",
+      "KB-116"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.16
+  },
+  {
+    "case_id": 92,
+    "query": "What is the exponential backoff retry schedule for failed webhooks?",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-119"
+    ],
+    "retrieved_top_5": [
+      "KB-119",
+      "KB-112",
+      "KB-107",
+      "KB-101",
+      "KB-118"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.159
+  },
+  {
+    "case_id": 93,
+    "query": "Webhook endpoint timed out after 5000ms and was placed in retry queue",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-119"
+    ],
+    "retrieved_top_5": [
+      "KB-119",
+      "KB-116",
+      "KB-115",
+      "KB-109",
+      "KB-103"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.162
+  },
+  {
+    "case_id": 94,
+    "query": "How to handle Retry-After header when receiving webhook bursts?",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-119"
+    ],
+    "retrieved_top_5": [
+      "KB-102",
+      "KB-106",
+      "KB-101",
+      "KB-103",
+      "KB-104"
+    ],
+    "recall_at_5": false,
+    "rank": 8,
+    "reciprocal_rank": 0.125,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 95,
+    "query": "Webhook delivery failed with SSL handshake error on receiver",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-119"
+    ],
+    "retrieved_top_5": [
+      "KB-119",
+      "KB-115",
+      "KB-116",
+      "KB-103",
+      "KB-104"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.163
+  },
+  {
+    "case_id": 96,
+    "query": "How to create an isolated staging sandbox environment for testing?",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-120"
+    ],
+    "retrieved_top_5": [
+      "KB-120",
+      "KB-106",
+      "KB-101",
+      "KB-102",
+      "KB-110"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.171
+  },
+  {
+    "case_id": 97,
+    "query": "Simulating ticket triage webhooks and mock AI responses in sandbox",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-120"
+    ],
+    "retrieved_top_5": [
+      "KB-120",
+      "KB-119",
+      "KB-104",
+      "KB-116",
+      "KB-109"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.161
+  },
+  {
+    "case_id": 98,
+    "query": "Resetting test data in developer sandbox without affecting production",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-120"
+    ],
+    "retrieved_top_5": [
+      "KB-120",
+      "KB-119",
+      "KB-102",
+      "KB-107",
+      "KB-118"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.169
+  },
+  {
+    "case_id": 99,
+    "query": "Can sandbox environments send real emails or trigger real charges?",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-120"
+    ],
+    "retrieved_top_5": [
+      "KB-120",
+      "KB-101",
+      "KB-111",
+      "KB-106",
+      "KB-103"
+    ],
+    "recall_at_5": true,
+    "rank": 1,
+    "reciprocal_rank": 1.0,
+    "latency_ms": 0.163
+  },
+  {
+    "case_id": 100,
+    "query": "Testing Stripe payment reconciliation webhook failure in sandbox",
+    "category": "TECHNICAL",
+    "expected_articles": [
+      "KB-120"
+    ],
+    "retrieved_top_5": [
+      "KB-104",
+      "KB-120",
+      "KB-101",
+      "KB-109",
+      "KB-105"
+    ],
+    "recall_at_5": true,
+    "rank": 2,
+    "reciprocal_rank": 0.5,
+    "latency_ms": 0.159
+  }
+]

@@ -19,4 +19,7 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     List<Ticket> findByTenantIdAndAssignedAgentIdOrderByCreatedAtDesc(UUID tenantId, UUID assignedAgentId);
     List<Ticket> findByTenantIdAndStatusOrderByCreatedAtDesc(UUID tenantId, TicketStatus status);
     List<Ticket> findByTenantIdOrderByCreatedAtDesc(UUID tenantId);
+
+    @org.springframework.data.jpa.repository.Query(value = "SELECT nextval('ticket_schema.ticket_number_seq')", nativeQuery = true)
+    Long getNextTicketSequenceVal();
 }

@@ -39,6 +39,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
+    @ExceptionHandler(com.resolveiq.ticket.domain.exception.IdempotencyConflictException.class)
+    public ResponseEntity<ProblemDetailResponse> handleIdempotencyConflict(com.resolveiq.ticket.domain.exception.IdempotencyConflictException ex) {
+        ProblemDetailResponse response = ProblemDetailResponse.of(
+            "Idempotency Key Conflict",
+            HttpStatus.CONFLICT.value(),
+            ex.getMessage(),
+            "IDEMPOTENCY_KEY_REUSED",
+            CorrelationContext.getCorrelationId()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetailResponse> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, Object> errors = new HashMap<>();

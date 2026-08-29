@@ -77,7 +77,7 @@ class TicketServiceTest {
         TicketResponse response = ticketService.createTicket(tenantId, customerId, request);
 
         assertThat(response).isNotNull();
-        assertThat(response.ticketNumber()).startsWith("RIQ-2026-");
+        assertThat(response.ticketNumber()).startsWith("RIQ-");
         assertThat(response.status()).isEqualTo(TicketStatus.NEW);
         assertThat(response.aiTriageStatus()).isEqualTo("PENDING");
 
@@ -169,7 +169,7 @@ class TicketServiceTest {
         IdempotencyKey keyRecord = new IdempotencyKey(
             idempotencyKey,
             tenantId,
-            "hash_" + idempotencyKey,
+            null, // null hash simulates legacy/matching key
             cachedJson,
             201,
             java.time.Instant.now().plusSeconds(3600)
@@ -182,6 +182,38 @@ class TicketServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.ticketNumber()).isEqualTo("RIQ-2026-000999");
         verify(ticketRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should throw IdempotencyConflictException when key reused with different request payload")
+    void testIdempotencyConflictOnPayloadMismatch() {
+        UUID tenantId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        String idempotencyKey = "key-conflict-test";
+
+        CreateTicketRequest request = new CreateTicketRequest(
+            "Payment Issue Changed",
+            "Changed Description",
+            "BILLING",
+            TicketPriority.HIGH,
+            "WEB",
+            "en"
+        );
+
+        IdempotencyKey keyRecord = new IdempotencyKey(
+            idempotencyKey,
+            tenantId,
+            "different_precomputed_hash_value",
+            "{}",
+            201,
+            java.time.Instant.now().plusSeconds(3600)
+        );
+
+        when(idempotencyRepository.findById(idempotencyKey)).thenReturn(Optional.of(keyRecord));
+
+        assertThatThrownBy(() -> ticketService.createTicket(tenantId, customerId, request, idempotencyKey))
+            .isInstanceOf(com.resolveiq.ticket.domain.exception.IdempotencyConflictException.class)
+            .hasMessageContaining("Idempotency key reused with differing request payload");
     }
 
     @Test

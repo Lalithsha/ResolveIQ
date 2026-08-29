@@ -1262,3 +1262,785 @@ ResolveIQ may be called **portfolio-ready** only when WP-0 through WP-9 gates pa
 - **portfolio-ready system** only after evaluation, resilience, deployment, and documentation gates pass.
 
 The final resume statement must use measured values from the checked-in evaluation/load reports and must not imply real customer deployment or business impact unless that evidence exists.
+
+---
+
+## 24. Second implementation audit — current repository status
+
+> **Re-audit date:** 2026-08-29
+> **Audited commit:** `979e618`
+> **Verdict:** The repository is a partially integrated prototype. It is not complete, not yet a working AI/vector vertical slice, and not portfolio-ready under this plan.
+
+This section records the state after the first large remediation implementation. It is the starting point for all subsequent agent work. The checkboxes in earlier sections remain unchecked intentionally: an agent may mark an item complete only after its required automated or manual evidence exists.
+
+### 24.1 Commands verified during the second audit
+
+| Command/check | Result | Interpretation |
+|---|---|---|
+| `./mvnw clean verify` | Passed | Twelve backend unit/mock tests passed; this does not prove service startup or distributed behavior |
+| `npm run lint` | Passed | Frontend static lint baseline is operational |
+| `npm run test` | Passed | Only one frontend smoke test exists |
+| `npm run build` | Passed | TypeScript and Vite production compilation succeed |
+| `docker compose config --quiet` | Passed | Compose YAML is syntactically valid |
+| `./scripts/scan-secrets.sh` | Passed | The repository's basic pattern scan found no matching secret |
+| Evaluation runner | Executed | Recall@5 was 97%; MRR changed between executions because the runner uses randomized Python `hash()` |
+| `docker compose ps` | Not run successfully | Docker daemon was unavailable during audit |
+| Git state | Clean | `main` tracked `origin/main`; audit made no product change |
+
+The Maven run emitted JaCoCo instrumentation warnings on the local newer JDK because JaCoCo 0.8.12 does not understand class-file major version 70. CI is configured for Java 21, but the local toolchain warning must still be resolved or the project must enforce Java 21 through Maven Toolchains/Enforcer so coverage results cannot silently degrade.
+
+### 24.2 Improvements verified
+
+- Public registration no longer accepts roles and currently assigns `CUSTOMER`.
+- Gateway strips inbound tenant/user/role/internal-caller headers.
+- Gateway verifies the JWT HMAC signature and injects identity headers.
+- Customer ticket endpoints now require tenant/user headers and customer-scoped service queries.
+- Ticket creation has an initial idempotency implementation.
+- Native PostgreSQL lexical and pgvector query methods exist.
+- Retrieval stores citation records.
+- Orchestration-service now has an outbox publisher.
+- A typed frontend API client and an unused authentication context exist.
+- Customer, agent, knowledge, and governance screens make some API calls.
+- Frontend ESLint, Vitest, Dockerfiles, a Grafana dashboard, Prometheus alerts, and a 100-query dataset exist.
+- CI runs backend build, frontend lint/test/build, and a basic secret scan.
+
+### 24.3 Release-blocking findings still present
+
+#### Runtime/startup blockers
+
+- No Spring bean implements `EmbeddingPort` in `rag-service`.
+- No Spring bean implements `ChatClientPort` in `ai-analysis-service`.
+- Configuration defaults to mock provider names and mock API keys, but no main-source mock adapter exists either.
+- Maven tests instantiate mocks manually and do not start application contexts, so the green build does not detect these missing runtime beans.
+- Compose contains infrastructure services only; none of the Spring services or the frontend are started.
+
+#### Security blockers
+
+- Gateway accepts a hardcoded development JWT secret fallback.
+- JWT issuer, audience, token type, and required role claims are not fully validated.
+- `/actuator/**` is public at gateway and auth-service.
+- Gateway authenticates but does not enforce route-level roles.
+- Ticket, RAG, routing, analysis, and orchestration services do not independently validate credentials or authorize roles.
+- Downstream controllers still trust identity headers; a directly reachable service can be spoofed.
+- Workflow read/retry operations lack tenant-safe lookup and operations/admin authorization.
+- Access tokens are stored in browser `localStorage`; refresh tokens are returned in JSON rather than secure cookies.
+- Password reset, logout-all, cookie refresh, complete refresh-family behavior, CSRF/CORS policy, and authorization matrices are incomplete.
+
+#### Ticket-domain blockers
+
+- Ticket number uses a process-local `AtomicLong` and hardcoded `2026`; restart/concurrency uniqueness is unsafe.
+- Idempotency key is not scoped by tenant, user, route, and request hash.
+- Same key plus different body is not rejected.
+- Concurrent idempotent creates are not proven safe.
+- Attachments/MinIO application integration is absent.
+- Team membership, skill scope, complete routing administration, business calendars, and complete SLA behavior are not proven.
+
+#### Event/workflow blockers
+
+- Ticket and workflow outbox publishers query only `PENDING`; records changed to `RETRY` are never selected again.
+- Publishers block inside a database transaction on Kafka `.get()`.
+- There is no due time/backoff, safe multi-instance claim, complete dead-letter persistence, or verified replay.
+- Orchestration consumer has no processed-event idempotency and catches malformed events without a real DLQ path.
+- The whole triage workflow is one transaction containing remote HTTP calls.
+- Workflow steps are not resumable after process termination.
+- The completion event contains a random suggestion ID that is not created before publication.
+- The current workflow retry endpoint updates status but does not enqueue/resume durable work.
+
+#### RAG blockers
+
+- Ingestion saves only `embedding_model`; it never generates or writes an embedding value.
+- Chunk entities do not map the vector column.
+- Native pgvector queries therefore cannot retrieve newly ingested chunks.
+- Lexical SQL lacks rank ordering.
+- ACL/product/language/effective-date/embedding-version filters are incomplete.
+- SQL exceptions are swallowed, and empty/error paths fall back to unbounded tenant chunk loading.
+- Knowledge versions are published immediately instead of using review, staged indexing, atomic activation, and rollback.
+- Resolved-case approval trusts already-sanitized request strings instead of sanitizing and showing an approval diff.
+
+#### AI copilot blockers
+
+- There is no real chat-model adapter.
+- Draft generation is a Java string template rather than a provider-backed, schema-controlled generation step.
+- Analysis output accepts arbitrary enums/ranges and is recorded as `VALID` even when parsing fails.
+- Prompt-injection protection is basic string replacement.
+- PII, secret, policy, claim support, citation coverage, and groundedness validators are incomplete.
+- Suggestion provenance/lifecycle, invalidation, regeneration, review concurrency, and exactly-once send are incomplete.
+
+#### Frontend blockers
+
+- `AuthProvider` is not mounted.
+- React Router and React Query are not mounted.
+- `App` starts in an agent role and swaps pages through a role dropdown.
+- `AuthContext` supplies a fictional agent by default and writes identity/roles to local storage.
+- There are no login/register/reset/protected routes.
+- Static metrics, mock model names, alert-based actions, and incomplete data/error states remain.
+- There is only one frontend test, checking that the ResolveIQ brand renders.
+- No Playwright or axe suite exists.
+
+#### Evaluation/production blockers
+
+- Evaluation uses an in-process token overlap and pseudo-vector implementation, not ResolveIQ's retrieval API/PostgreSQL/provider path.
+- Python's process-randomized `hash()` makes MRR non-reproducible.
+- PII leakage, cross-tenant leakage, and autonomous-send rate are hardcoded as zero.
+- The report always says all gates passed.
+- No development/test split, safety dataset execution, per-case persisted diagnostics, or application-backed latency exists.
+- No application Compose profile, staging HTTPS deployment, container CI scanning/SBOM, Testcontainers suite, E2E suite, load/failure test, backup script/restore drill, or portfolio demo evidence exists.
+
+### 24.4 Updated status ledger
+
+| Work package | Current state | Gate decision |
+|---|---|---|
+| WP-0 baseline | Lint/build/basic unit tests improved | **Open** — migration/context/integration and honest-doc gates missing |
+| WP-1 security | Registration and gateway header stripping improved | **Open/P0** — service auth, RBAC, JWT/cookie lifecycle missing |
+| WP-2 ticket domain | Ownership/idempotency partially improved | **Open** — numbering, robust idempotency, attachments/SLA incomplete |
+| WP-3 workflow | Orchestration publisher added | **Open/P0** — retry/idempotency/transaction/suggestion invariants broken |
+| WP-4 RAG | Native SQL and citation persistence added | **Open/P0** — no embeddings/provider/index lifecycle |
+| WP-5 AI copilot | Existing mock/template behavior remains | **Open/P0** — real provider, validation, persisted suggestion missing |
+| WP-6 frontend | Some pages call APIs | **Open** — app shell/auth/routing and complete journeys missing |
+| WP-7 evaluation | Dataset expanded to 100 | **Open** — runner is non-production and safety values are asserted |
+| WP-8 hardening | Dashboard/alerts/Dockerfiles added | **Open** — instrumentation, tests, recovery/security gates missing |
+| WP-9 delivery | Image recipes exist | **Open** — full stack, staging and portfolio evidence missing |
+
+---
+
+## 25. Exact dependency-ordered implementation backlog
+
+The following issues are intentionally prescriptive. Execute them in order. Do not combine all issues into a single large commit. An issue is complete only when its tests and gate pass.
+
+### RIQ-001 — Enforce the toolchain and make startup tests part of the build
+
+**Goal:** Make a green build detect missing application beans, invalid migrations, and unsupported local Java versions.
+
+**Implementation:**
+
+1. Add Maven Enforcer rules at the parent level for Java 21 and the required Maven version.
+2. Add `.mvn/jvm.config` only for safe shared JVM flags; do not hide test or instrumentation failures.
+3. Upgrade JaCoCo to a version compatible with supported local/CI JDKs or require Maven Toolchains to execute tests with Java 21.
+4. Add a minimal `@SpringBootTest` context test to gateway, auth, ticket, analysis, routing, RAG, and orchestration modules.
+5. Use a `test` profile with explicit deterministic provider beans and container-backed dependencies. Do not use production mock defaults.
+6. Add a Testcontainers PostgreSQL image with pgvector. Run every Flyway migration through it.
+7. Add Kafka Testcontainers for producer/consumer integration suites.
+8. Remove either `frontend/bun.lock` or `frontend/package-lock.json`; retain npm and `package-lock.json` because CI already uses `npm ci`, unless the owner explicitly chooses Bun.
+9. Add a CI integration job with Docker services/Testcontainers and publish test/coverage artifacts.
+10. Add a JaCoCo `check` execution with an initial agreed floor. Require high coverage for authorization, state machines, idempotency, event handling, and validators rather than chasing a misleading global percentage.
+
+**Tests/gate:**
+
+- [ ] `java -version` and Maven Enforcer show Java 21 for verification.
+- [ ] Every service context starts in `test` profile.
+- [ ] Empty-database migration test passes using PostgreSQL/pgvector.
+- [ ] A deliberately removed provider bean makes the context test fail.
+- [ ] JaCoCo generates reports without unsupported-class warnings and enforces its floor.
+- [ ] Exactly one frontend lockfile remains.
+
+### RIQ-002 — Replace the header trust model with defense-in-depth JWT authentication
+
+**Goal:** A client cannot gain identity, tenant, or role by bypassing the gateway or spoofing headers.
+
+**Pattern:** OAuth2 resource server at the gateway **and every owning service**. Forward the original Bearer token; each service derives identity from its validated `Jwt`. Headers may carry correlation/trace metadata but must not be the authorization source.
+
+**Implementation:**
+
+1. Add issuer and audience claims to access tokens; add a `token_type=access` claim and unique `jti`.
+2. Configure validation for signature, algorithm allow-list, issuer, audience, expiry, not-before, subject UUID, tenant UUID, token type, and non-empty roles.
+3. Remove the default JWT secret in production-like profiles. Startup must fail if the secret/key source is absent or still equals the local example.
+4. Prefer asymmetric signing for portfolio staging: auth signs with a private key; gateway/services verify with the public key. If HMAC remains for local scope, document shared-secret distribution and rotation.
+5. Keep gateway stripping all inbound identity headers.
+6. Stop using those headers inside business controllers. Create a small security adapter in each service that maps `Jwt` to immutable `ResolveIqPrincipal(userId, tenantId, roles)`.
+7. Add `SecurityFilterChain`/`SecurityWebFilterChain`, `@EnableMethodSecurity`, and `@PreAuthorize` or explicit authorization policy calls in every owning service.
+8. Scope resource lookup by principal tenant and ownership/team permission. Never accept tenant/user identity from a public request body/query/header.
+9. Restrict actuator exposure to `health` and `info`; protect details and all metrics/admin endpoints. Do not expose service actuator ports publicly.
+10. Restrict CORS to configured frontend origins. Document cookie/CSRF behavior after RIQ-004.
+11. If internal service-to-service endpoints require a different audience, mint/use an internal service credential rather than a magic `X-Internal-Caller` string.
+
+**Controller pattern:**
+
+```java
+@GetMapping("/{id}")
+@PreAuthorize("hasRole('CUSTOMER')")
+public TicketResponse getTicket(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+    ResolveIqPrincipal principal = principalMapper.from(jwt);
+    return ticketService.getCustomerTicket(principal.tenantId(), id, principal.userId());
+}
+```
+
+Do not centralize JPA repositories or service-specific domain authorization in `common-contracts`. Shared code may contain token-claim names and principal mapping only.
+
+**Tests/gate:**
+
+- [ ] Missing/malformed/expired/future/wrong-signature/wrong-issuer/wrong-audience/wrong-token-type JWTs return `401`.
+- [ ] Valid identity with insufficient role returns `403`.
+- [ ] Spoofed headers through gateway are overwritten/ignored.
+- [ ] Calling a service directly with spoofed headers and no JWT returns `401`.
+- [ ] Cross-tenant UUID and same-tenant cross-customer IDOR tests pass for every resource type.
+- [ ] Agent team scope and auditor read-only matrix pass.
+- [ ] Public actuator exposure is limited to a non-sensitive health response.
+
+### RIQ-003 — Complete authentication and browser session lifecycle
+
+**Goal:** Deliver a secure, usable browser authentication flow.
+
+**Implementation:**
+
+1. Return the short-lived access token in the authentication response but return refresh token only as a `HttpOnly` cookie.
+2. Use `Secure=true` outside local HTTP development, explicit path, `SameSite=Lax` or stricter where compatible, bounded expiry, and no broad domain.
+3. Make refresh accept the cookie, rotate the token on every use, revoke the previous record, and detect reuse by token family.
+4. On reuse, revoke the entire family and audit it.
+5. Implement logout-current by revoking the current family and clearing the cookie.
+6. Implement logout-all by revoking all active families for the authenticated user.
+7. Implement password reset with random high-entropy, hashed, one-time, expiring token; always return an enumeration-safe public response.
+8. Add login rate limiting/lockout with consistent audit events and a recovery rule.
+9. Ensure admin-created users belong to the admin's tenant unless a platform-level role explicitly exists; do not trust arbitrary tenant ID from a tenant admin.
+10. Remove tokens from frontend `localStorage`. Keep access token in memory and perform a cookie-based refresh on application bootstrap.
+11. Add CSRF defense if cookie-authenticated state-changing endpoints use browser cookies beyond refresh/logout; document the exact model.
+
+**Tests/gate:**
+
+- [ ] Cookie flags are correct in local and production profiles.
+- [ ] Refresh rotates; old-token replay revokes the family.
+- [ ] Logout-current and logout-all invalidate expected sessions.
+- [ ] Password reset token is hashed, expires, is single-use, and public response is enumeration-safe.
+- [ ] Browser reload restores a valid session without local-storage tokens.
+- [ ] XSS-accessible storage contains no bearer or refresh token.
+
+### RIQ-004 — Fix ticket numbers and command idempotency
+
+**Goal:** Ticket and send operations remain correct after restart, concurrency, and client retry.
+
+**Implementation:**
+
+1. Add a Flyway migration for a ticket-number sequence or counter table. Prefer a PostgreSQL sequence for global monotonic numbers; if yearly reset is mandatory, lock a `(tenant_id, year)` counter row.
+2. Generate the year from a documented business timezone; never hardcode it.
+3. Keep a database unique constraint on `(tenant_id, ticket_number)`.
+4. Replace the current string-primary-key idempotency design with a record containing tenant ID, actor ID, operation/route, key, canonical request SHA-256, status (`IN_PROGRESS`/`COMPLETED`/`FAILED_RETRYABLE`), response code/body/reference, created/expiry timestamps, and version.
+5. Add a unique constraint on `(tenant_id, actor_id, operation, idempotency_key)`.
+6. Canonicalize request fields before hashing. Exclude volatile transport headers.
+7. Insert/claim the idempotency row in the same transaction as the command. Handle unique-constraint races by re-reading.
+8. Same scope/key/hash returns the original response. Same scope/key/different hash returns `409 IDEMPOTENCY_KEY_REUSED`.
+9. Require idempotency keys for ticket create, message/reply create, suggestion approve/send, replay, and other externally retried commands.
+10. Add bounded retention cleanup with metrics.
+
+**Tests/gate:**
+
+- [ ] Parallel creation test produces one ticket and one outbox event.
+- [ ] Service restart cannot repeat ticket number.
+- [ ] Same key/body returns identical resource/status.
+- [ ] Same key/different body returns `409`.
+- [ ] Same textual key in another tenant/user/operation is independent.
+- [ ] Duplicate send produces one customer-visible message/event.
+
+### RIQ-005 — Finish the manual ticket, SLA, team, and attachment domain
+
+**Goal:** ResolveIQ remains a complete support application without AI.
+
+**Implementation:**
+
+1. Finish ticket states and transition authorization from the blueprint; persist immutable actor/source/reason/correlation history.
+2. Add paginated customer/agent queues and bounded filters/sorts.
+3. Persist customer replies, public agent replies, and internal notes separately; never expose internal notes to customers.
+4. Implement team, membership, skills, routing-rule, SLA-policy, and business-calendar administration with tenant scope.
+5. Persist routing/SLA selected rule IDs and reason codes.
+6. Implement SLA pause/resume/at-risk/breach/completion calculations using tenant timezone and business calendar.
+7. Introduce `AttachmentStoragePort` in ticket-service and a MinIO adapter.
+8. Persist attachment metadata/state. Use server object keys, safe display names, allow-listed MIME/type, size/count limits, quarantine/scanned state, signed URLs, ownership checks, and abandoned-upload cleanup.
+9. Keep MinIO implementation behind the port and provide a test adapter.
+10. Do not send unscanned attachment contents to models.
+
+**Tests/gate:**
+
+- [ ] Every role/state transition combination is tested.
+- [ ] Internal note never appears in customer APIs.
+- [ ] Queue pagination is bounded and stable.
+- [ ] SLA timezone/calendar/pause/breach boundaries pass.
+- [ ] Upload traversal, MIME mismatch, oversize, expired URL, quarantine, cross-ticket, and cross-tenant tests pass.
+- [ ] Customer-to-agent-to-customer manual E2E passes with Kafka and AI disabled.
+
+### RIQ-006 — Implement a reusable, correct transactional outbox pattern
+
+**Goal:** Every committed business event is eventually attempted, including failed retry rows, without unsafe database locks around Kafka waits.
+
+**Implementation:**
+
+1. Add `attempt_count`, `next_attempt_at`, `last_error_code`, `claimed_at`, `claimed_by`, and terminal timestamp fields to both outboxes through new migrations.
+2. Create repository native query to claim due `PENDING` or `RETRY` rows using `FOR UPDATE SKIP LOCKED`, ordered by due/created time, in a short transaction.
+3. Change claimed rows to a transient claimed state or lease them with `claimed_at/claimed_by`; commit the claim transaction.
+4. Publish outside the database transaction with bounded timeout.
+5. In a new short transaction, mark `PUBLISHED` or calculate exponential-backoff `RETRY`; after maximum attempts mark `DEAD`.
+6. Recover expired claims after a worker crash.
+7. Use event ID in Kafka headers and ticket ID as partition key.
+8. Apply the same tested component/pattern to ticket and orchestration services without sharing their database tables.
+9. Add metrics for count/oldest age/attempts/dead and logs with event/correlation IDs.
+
+**Tests/gate:**
+
+- [ ] `RETRY` row becomes eligible only after `next_attempt_at`.
+- [ ] Two publisher instances safely split/claim work.
+- [ ] Crash after publish but before database update results in harmless duplicate delivery.
+- [ ] Broker outage retains events and recovery publishes them.
+- [ ] Long Kafka waits do not hold database transactions/row locks.
+
+### RIQ-007 — Add consumer idempotency, retries, DLQ, and audited replay
+
+**Goal:** At-least-once Kafka delivery causes at-most-one business effect, and poison events are visible/recoverable.
+
+**Implementation:**
+
+1. Add processed-event storage to every consuming service, especially orchestration.
+2. Validate envelope/event version/tenant/aggregate fields before invoking business logic.
+3. Insert processed event and perform the business mutation in the same local transaction.
+4. Duplicate event ID returns a successful no-op.
+5. Remove catch-and-log swallowing from Kafka listeners.
+6. Configure retry classification: timeout/temporary provider/DB errors retry; malformed schema/unsupported version/domain invariant go directly to DLQ.
+7. Add retry topics or a Spring Kafka error handler with bounded delays and a dead-letter recoverer.
+8. Persist DLQ inventory metadata for operations without duplicating sensitive payload unnecessarily.
+9. Implement admin-only tenant-safe replay: actor, reason, original ID, replay ID, timestamp, and outcome. Replay passes normal validation/idempotency.
+10. Replace the current status-only workflow retry endpoint with a command that durably enqueues or resumes work.
+
+**Tests/gate:**
+
+- [ ] Duplicate ticket event creates one workflow.
+- [ ] Poison event reaches DLQ rather than disappearing.
+- [ ] Transient failure retries only the configured number of times.
+- [ ] Unauthorized replay returns `403`; cross-tenant replay is impossible.
+- [ ] Replayed event is audited and cannot duplicate an already completed effect.
+
+### RIQ-008 — Refactor orchestration into a resumable process manager
+
+**Goal:** No external call occurs inside a database transaction; any service restart resumes from durable state.
+
+**Pattern:** Process manager/saga with explicit step state. The process coordinates local service calls but does not own ticket, analysis, routing, or knowledge tables.
+
+**State model:**
+
+- Workflow: `NEW`, `RUNNING`, `WAITING_RETRY`, `COMPLETED`, `COMPLETED_WITH_FALLBACK`, `MANUAL_ACTION_REQUIRED`, `FAILED`.
+- Step: `PENDING`, `RUNNING`, `SUCCEEDED`, `FAILED_RETRYABLE`, `FAILED_TERMINAL`, `SKIPPED`.
+- Attempt: number, provider/target, input hash, start/end, timeout, safe error code, output reference, trace ID.
+
+**Implementation:**
+
+1. On idempotent `TicketCreated`, create workflow and first pending step in a short transaction.
+2. A worker atomically claims one due step and commits.
+3. Worker calls analysis/routing/RAG/draft provider outside transaction with trace/correlation and explicit timeout.
+4. Worker opens a short transaction to persist attempt result and schedule next step/retry/manual state.
+5. Use persisted request/input hashes to make repeated attempts explainable.
+6. Resume due workflow steps through scheduled polling or durable step-command events.
+7. Distinguish deterministic fallback from successful AI results in state and UI.
+8. Do not fabricate successful retrieval/classification after dependency failure.
+9. Completion requires a persisted suggestion reference produced by RIQ-011.
+10. Emit completion/failure only through the working outbox.
+
+**Tests/gate:**
+
+- [ ] Kill/restart after each step and verify resume without repeated completed effects.
+- [ ] Dependency timeout moves to retry/manual state honestly.
+- [ ] Configured URLs are non-null; tests use WireMock/MockWebServer rather than accidental `/null` calls.
+- [ ] Workflow trace includes every attempt and downstream call.
+- [ ] Completion cannot commit without an existing suggestion.
+
+### RIQ-009 — Implement real and deterministic AI provider adapters
+
+**Goal:** Main applications start and can use a real provider, while CI remains deterministic and offline.
+
+**Required adapters:**
+
+- `DeterministicEmbeddingAdapter` and `DeterministicChatAdapter`, active only in `test` and explicit `demo-fixture` profile.
+- One real OpenAI-compatible embedding adapter.
+- One real OpenAI-compatible chat adapter with structured JSON output support where available.
+- Optional Ollama adapters for local no-cloud demos; use the same ports.
+
+**Implementation:**
+
+1. Use Spring `RestClient`/`WebClient` behind adapter classes. Vendor DTOs stay inside adapter packages.
+2. Select adapters with validated configuration and `@ConditionalOnProperty`/profiles.
+3. Fail startup when provider selection has zero or multiple beans.
+4. Production-like profile rejects deterministic/mock provider and missing/default API key.
+5. Validate embedding count/dimension/finite values and chat response size/schema envelope.
+6. Apply connect/read/total timeout, retry only safe transient failures, circuit breaker, concurrency bulkhead, token/input limit, daily budget, and kill switch.
+7. Record provider request ID, model, latency, token usage, estimated cost, retry count, and safe status; never log secret or full sensitive content.
+8. Add controlled stub-server contract tests for success, timeout, `429`, `5xx`, malformed JSON, dimension mismatch, and oversized response.
+
+**Gate:**
+
+- [ ] Analysis and RAG contexts start in test and real-provider configuration validation tests.
+- [ ] Opt-in smoke test proves one real chat and embedding call without making normal CI depend on external availability.
+- [ ] Production-like startup fails with mock/default provider configuration.
+
+### RIQ-010 — Build real embedding ingestion and governed index activation
+
+**Goal:** Every active retrievable chunk has a stored, versioned vector generated once during ingestion.
+
+**Pattern:** Asynchronous staged indexing plus atomic activation.
+
+**Implementation:**
+
+1. Add index-job and embedding-version tables with tenant, source/version, chunker version, provider/model, dimension, content hash, status, counts, timestamps, and error codes.
+2. Add vector mapping. Use `pgvector-java` with JDBC/native persistence, or Hibernate Vector support if pinned and proven by integration tests. Do not serialize vectors as arbitrary text fields in entities.
+3. Knowledge creation remains `DRAFT`; submission moves to review; authorized publish creates an immutable version and indexing job.
+4. Deterministically chunk normalized text with section/offset metadata and content hashes.
+5. Batch only changed/new chunks through `EmbeddingPort` outside database transactions.
+6. Store embeddings, model/dimension/version, and chunks in a staging index version.
+7. Validate dimensions, expected count, non-null vectors, and source ownership.
+8. In one short transaction, activate the fully indexed version and retire the prior active pointer.
+9. Failed/partial jobs never become active.
+10. Retain previous active index for rollback and implement an authorized rollback action.
+11. Apply the same pipeline to human-approved sanitized resolved cases.
+
+**Tests/gate:**
+
+- [ ] PostgreSQL integration test verifies vectors are non-null and dimension-correct.
+- [ ] Querying never calls embed for stored chunks.
+- [ ] Duplicate unchanged content reuses/skips work according to policy.
+- [ ] Provider failure leaves old active version searchable.
+- [ ] Activation and rollback are atomic and audited.
+
+### RIQ-011 — Complete production hybrid retrieval and suggestion persistence
+
+**Goal:** Retrieve bounded authorized evidence and persist the exact suggestion/citations before completing workflow.
+
+**Implementation:**
+
+1. Add `ts_rank_cd(...) DESC` plus deterministic tie-breaker to lexical SQL.
+2. Run vector and lexical queries separately with bounded candidate pools.
+3. Apply tenant, active index/version, ACL/team/customer visibility, product, language, source state, effective date, and embedding version in SQL before ranking.
+4. Remove the catch-all SQL exception fallback from production. Test profile may use an explicit test repository; production retrieval failure must return a typed degraded/error result.
+5. Never use unbounded `findByTenantId` as a production query fallback.
+6. Fuse ranks through versioned/configured RRF. Persist component ranks/scores and retrieval parameters.
+7. Resolve source title/version with tenant-safe repositories.
+8. Persist citation records linked to retrieval run and later suggestion.
+9. Define an orchestration-to-ticket command/event containing the complete suggestion draft/provenance and citation references.
+10. Ticket-service validates ticket/tenant, creates the suggestion with the supplied ID idempotently, then emits `AiSuggestionCreated.v1` or returns a command acknowledgement.
+11. Orchestration emits `TicketTriageCompleted.v1` only after suggestion persistence is confirmed.
+12. Never create a random suggestion ID solely for an event.
+
+**Tests/gate:**
+
+- [ ] `EXPLAIN ANALYZE` demonstrates indexes and bounded candidate work on representative synthetic data.
+- [ ] Active/ACL/product/language/cross-tenant filters pass PostgreSQL tests.
+- [ ] Retrieval database failure produces degraded/manual behavior, not all-tenant scanning.
+- [ ] Every completion event references an existing tenant/ticket suggestion.
+- [ ] Every citation resolves to the immutable authorized source version used at generation time.
+
+### RIQ-012 — Add strict AI schemas, safety validators, and human-only send
+
+**Goal:** Treat model output as untrusted and prevent unsupported customer-visible responses.
+
+**Implementation:**
+
+1. Define versioned JSON schemas/Java DTOs for classification and draft output.
+2. Reject unknown enums, missing required fields, out-of-range confidence, excessive lengths, invalid language, malformed citations, and non-finite numeric values.
+3. Attempt one bounded schema repair if configured; otherwise create an explicit deterministic fallback with `validationOutcome=FALLBACK`, never `VALID`.
+4. Implement pre-provider PII/secret redaction using tested detectors and tenant policy. Store only necessary redaction metadata.
+5. Delimit trusted instructions, untrusted ticket content, and retrieved evidence structurally.
+6. Add output validators for PII/secrets, unsafe links, unsupported refunds/account actions/deadlines, policy conflicts, citation existence/coverage, and evidence support.
+7. Generate drafts with citation IDs, not copied free-form citation JSON.
+8. Compute confidence from documented components; name it `systemConfidence`, not model certainty.
+9. Low/contradictory/no evidence produces an abstention/manual-assistance suggestion.
+10. Persist prompt/model/provider/parameters/token/cost/latency/retrieval/citations/validator versions and outcomes.
+11. Implement immutable suggestion versions and states. Editing creates final content/history rather than overwriting provenance.
+12. Invalidate suggestions on relevant ticket/source changes. Regeneration creates a new version with reason.
+13. Implement authorized, optimistic-lock-protected review. Approval and send must be explicit idempotent human commands.
+14. Enforce in architecture/code tests that no provider/orchestration/event consumer directly invokes customer send.
+
+**Tests/gate:**
+
+- [ ] Malformed/hostile/out-of-range model outputs never become valid suggestions.
+- [ ] PII, prompt-injection, unsupported-action, conflicting-evidence, and missing-citation suites pass.
+- [ ] No-evidence case abstains.
+- [ ] Concurrent review produces one accepted state.
+- [ ] Duplicate send creates exactly one public message.
+- [ ] Static dependency and E2E tests prove human-only send.
+
+### RIQ-013 — Rebuild the frontend shell around real authentication and server state
+
+**Goal:** Remove the role-switching demo path and make every visible action/data point real.
+
+**Implementation:**
+
+1. Mount `AuthProvider`, `QueryClientProvider`, `BrowserRouter`, error boundary, and notification provider in `main.tsx`.
+2. Add `/login`, `/register`, `/forgot-password`, and `/reset-password` pages.
+3. On bootstrap, call cookie refresh or `/auth/me`; show a bounded session-loading state.
+4. Add protected route components based on authenticated roles. Role choice may select among roles actually held by the user but cannot grant a role.
+5. Remove the fictional default user and production role dropdown.
+6. Remove access-token/local identity storage. Keep non-sensitive UI preferences only.
+7. Convert every page to React Query hooks over the typed client. Add query keys by tenant-safe resource identity; invalidate after commands.
+8. Implement the complete route list from WP-6, including lead, evaluation, audit, and operations pages.
+9. Replace `alert()` with accessible inline/toast/dialog feedback and real mutation results.
+10. Remove hardcoded ticket, citation, provider, metric, workflow, and governance rows. If fixture mode remains, require explicit development configuration and visible `DEMO FIXTURE` labeling.
+11. Implement loading, empty, validation, `401/403/404/409/429/5xx`, offline/degraded AI, optimistic conflict, retry, and cancellation behavior.
+12. Ensure responsive and keyboard/screen-reader behavior described by the blueprint.
+13. Generate/check client types against OpenAPI in CI.
+
+**Tests/gate:**
+
+- [ ] Component tests cover auth bootstrap, protected roles, forms, query/mutation states, and problem details.
+- [ ] No source search finds hardcoded production user/model/metric data or browser `alert()`.
+- [ ] No bearer/refresh token appears in local/session storage.
+- [ ] Desktop/mobile Playwright journeys from WP-6 pass through gateway against real services.
+- [ ] Axe finds no critical violations; manual keyboard smoke record exists.
+
+### RIQ-014 — Replace the evaluation script with an application-backed harness
+
+**Goal:** Every reported metric is reproducible and measured against the same code path used by the application.
+
+**Implementation:**
+
+1. Split reviewed synthetic cases into development and frozen test sets. Keep final test labels stable.
+2. Extend cases with tenant, ACL, language, active/inactive version, expected source/version, expected abstention, and safety expectations.
+3. Seed the dataset through supported knowledge APIs/index jobs or a versioned test seeder that produces identical database state.
+4. Call the authenticated retrieval/evaluation API through gateway, or call a shared application adapter that invokes the real PostgreSQL queries and configured deterministic embedding adapter. Do not duplicate retrieval logic in Python.
+5. Remove `build_mock_embedding`, Python `hash()`, in-memory RRF duplication, and hardcoded success values.
+6. Persist per-case retrieved ranks/source versions/scores, latency, error, filter result, citation result, and safety outcomes.
+7. Calculate Recall@K, MRR, optional nDCG, zero-result, filter leakage, p50/p95/p99, schema validity, citation coverage, groundedness, abstention, PII leakage, unsafe action, and autonomous-send invariant from observations.
+8. If a metric was not executed, report `NOT MEASURED`; never substitute zero.
+9. Report failure when required cases error or gates fail. Exit nonzero for gated CI evaluation.
+10. Record dataset version/hash, application commit, provider/model, embedding/chunking/index versions, RRF parameters, prompt versions, seed, environment, and time.
+11. Use stable hashing such as SHA-256 for deterministic fixtures.
+12. Add baseline/candidate comparison with statistically honest sample-size warnings and rollback decision.
+
+**Tests/gate:**
+
+- [ ] Two deterministic runs on identical commit/data produce identical ranks/metrics.
+- [ ] Deliberately broken retrieval lowers metrics and exits nonzero.
+- [ ] Deliberate cross-tenant result makes leakage gate fail.
+- [ ] PII fixture makes leakage test fail when validator is disabled.
+- [ ] Report contains no unmeasured numeric claim.
+- [ ] Measured latency includes application/database path and states environment/data size.
+
+### RIQ-015 — Build complete integration, contract, E2E, accessibility, and failure suites
+
+**Goal:** Turn every important plan invariant into an executable gate.
+
+**Implementation order:**
+
+1. PostgreSQL/Flyway repository and pgvector tests.
+2. Gateway/service JWT and authorization matrix.
+3. Ticket state/SLA/idempotency/attachment integration tests.
+4. Kafka outbox/redelivery/retry/DLQ/replay tests.
+5. Workflow restart/provider failure tests.
+6. Provider stub contract tests.
+7. OpenAPI and event compatibility tests.
+8. Frontend component/MSW tests.
+9. Full-stack Playwright and axe tests.
+10. Load and failure/chaos tests.
+
+Create CI jobs with clear names and preserve artifacts/logs on failure. Use deterministic provider adapters in normal CI and an opt-in external-provider smoke workflow. Do not make PR success depend on a paid provider.
+
+**Minimum required test count is behavior-driven, not numeric.** Every matrix row and failure scenario in this plan must have at least one test. Twelve backend tests and one frontend smoke test are not sufficient.
+
+**Gate:** Section 17 test architecture and the exact acceptance journey both pass in CI.
+
+### RIQ-016 — Create a real full-stack Compose environment
+
+**Goal:** One documented command starts infrastructure, all services, gateway, and frontend from a clean clone.
+
+**Implementation:**
+
+1. Keep an `infra` profile for PostgreSQL, Kafka, MinIO, and optional observability.
+2. Add discovery, auth, ticket, analysis, routing, RAG, orchestration, gateway, and frontend services using the checked-in Dockerfiles.
+3. Use module-specific build args/targets and copy only the correct executable JAR.
+4. Run containers as non-root with read-only filesystem where practical, temp mounts, resource limits, and health checks.
+5. Add service health/readiness endpoints that test local readiness without exposing secrets.
+6. Use Compose health dependencies where useful, while application clients still handle dependency loss after startup.
+7. Use internal networks. Expose frontend/gateway plus explicitly local-only consoles; do not publish backend/database/broker ports in the portfolio staging profile.
+8. Move local credentials into `.env.example` interpolation. Mark them fictional and reject them in production profile.
+9. Add deterministic seed/migration service and explicit demo reset command.
+10. Document startup, readiness verification, logs, shutdown preserving data, and explicit destructive teardown.
+
+**Tests/gate:**
+
+- [ ] `docker compose --profile app up --build` starts a healthy full stack.
+- [ ] Gateway health and each internal readiness check pass.
+- [ ] Exact E2E journey runs without manual database edits.
+- [ ] Stopping/restarting service containers preserves/resumes workflow correctly.
+- [ ] Clean-clone CI smoke validates the Compose path.
+
+### RIQ-017 — Complete observability, operations, backups, and security supply chain
+
+**Goal:** Demonstrate diagnosis and recovery rather than only shipping monitoring containers.
+
+**Implementation:**
+
+1. Add Micrometer/OpenTelemetry dependencies and configuration to every service.
+2. Instrument HTTP, Kafka, DB, workflow step, retrieval, indexing, provider, suggestion review/send, and security audit boundaries.
+3. Propagate W3C trace context and correlation IDs across HTTP and Kafka.
+4. Add structured production logging and central redaction tests.
+5. Provision all Grafana dashboards and Prometheus alert rules through mounted provisioning paths; verify the existing dashboard is actually loaded.
+6. Implement metrics listed in WP-8 with bounded labels.
+7. Create alert tests and link each alert to a corrected executable runbook.
+8. Implement actual PostgreSQL/MinIO backup scripts with checksums, encryption/access handling, retention, and failure exit codes.
+9. Restore into an isolated environment, run integrity/E2E checks, and record RPO/RTO evidence.
+10. Add dependency review, CodeQL/SAST, secret scanner, image build/scan, SBOM, and artifact provenance/signing as appropriate for the repository.
+11. Add synthetic load and dependency-failure suites; record environment, versions, data size, p50/p95/p99, throughput, error/resource results.
+12. Update threat model and runbooks to match actual controls rather than intended controls.
+
+**Gate:** All WP-8 acceptance items pass with checked-in configuration and dated evidence reports.
+
+### RIQ-018 — Deploy and produce the evidence-backed portfolio package
+
+**Goal:** Deliver a safe recruiter/interviewer experience with no false claims.
+
+**Implementation:**
+
+1. Deploy the verified images to a small staging platform over HTTPS.
+2. Expose only frontend/gateway. Restrict infrastructure, services, actuator details, and dashboards.
+3. Configure managed secrets, restrictive CORS, rate limits, synthetic demo accounts, data reset, AI daily budget, provider kill switch, and abuse monitoring.
+4. Run post-deploy security and exact E2E smoke tests.
+5. Seed the coherent duplicate-charge story defined in WP-9.
+6. Capture architecture and request/event sequence diagrams from the final design.
+7. Capture screenshots only after removing fixture labels and hardcoded data.
+8. Run and check in final application-backed evaluation, load, failure, security, and restore summaries.
+9. Record a three-to-five-minute video showing customer creation, durable workflow, real retrieval/citations, human edit/send, customer response, governance, and one failure recovery.
+10. Update README and resume statement with only the measured final results.
+11. Document costs, limits, deferred Kubernetes/state-changing tools, and future work honestly.
+
+**Gate:** WP-9 and the final release decision pass.
+
+---
+
+## 26. Cross-cutting patterns the implementation agent must follow
+
+### 26.1 Hexagonal boundaries
+
+- Domain/application code depends on ports, not Kafka, HTTP vendor DTOs, MinIO, or model SDKs.
+- Inbound adapters translate HTTP/events into application commands.
+- Outbound adapters implement repositories, providers, Kafka, object storage, and telemetry.
+- Do not create interfaces for trivial internal helpers; use ports at real external/test boundaries.
+
+### 26.2 Transaction pattern
+
+- Transaction: validate current database state, mutate owned records, write outbox, commit.
+- No transaction: HTTP/provider/object-store/Kafka wait.
+- Follow-up transaction: persist external result/attempt and schedule next state.
+- Never solve distributed consistency with cross-service database access or one distributed transaction.
+
+### 26.3 Idempotent command/consumer pattern
+
+- Identify operation by stable command/event ID.
+- Scope and hash the input.
+- Claim under unique constraint.
+- Perform one local business effect.
+- Store outcome atomically.
+- Redelivery/retry returns prior outcome or a safe no-op.
+
+### 26.4 Tenant-safe repository pattern
+
+- Every tenant-owned lookup includes `tenantId` in SQL/repository method.
+- Customer-owned lookup additionally includes `customerId`.
+- Agent lookup includes tenant plus validated team/assignment policy.
+- Do not load by ID and authorize afterward if a single scoped query can prevent leakage.
+- Cross-tenant access should normally appear as not found and never reveal metadata.
+
+### 26.5 AI safety pattern
+
+- Sanitize/minimize before provider.
+- Delimit untrusted input.
+- Require structured output.
+- Parse and validate strictly.
+- Retrieve authorized evidence.
+- Validate claims/citations/policy/PII.
+- Abstain when uncertain.
+- Persist provenance.
+- Require human action for send/mutation.
+- Measure behavior on a frozen dataset.
+
+### 26.6 Failure pattern
+
+- Use stable safe error codes; preserve full safe diagnostic internally.
+- Classify retryable versus terminal.
+- Bound retries and queue growth.
+- Expose manual fallback.
+- Emit metrics/traces/audit.
+- Test the failure intentionally.
+
+### 26.7 UI data pattern
+
+- Server state through React Query.
+- Form state through React Hook Form/schema validation.
+- Auth from secure session context.
+- Role checks affect visibility but never replace backend authorization.
+- Every mutation has pending/disabled/success/conflict/error behavior.
+- No hardcoded production metric or user identity.
+
+---
+
+## 27. Final zero-remaining-work verification protocol
+
+An agent must not declare the project complete until it performs this protocol in order and records the result.
+
+### 27.1 Static/repository checks
+
+```bash
+git status --short
+./scripts/scan-secrets.sh
+./mvnw clean verify
+npm --prefix frontend ci
+npm --prefix frontend run lint
+npm --prefix frontend run test
+npm --prefix frontend run build
+docker compose config --quiet
+```
+
+Additionally prove:
+
+- exactly one frontend lockfile;
+- no main-source mock/default provider in production profile;
+- no hardcoded JWT/provider secret fallback in production;
+- no `AtomicLong` ticket numbering;
+- no unbounded RAG tenant fallback;
+- no remote call inside `@Transactional` workflow method;
+- no random suggestion ID without persistence;
+- no public controller trusts tenant/user headers as identity;
+- no local-storage token;
+- no hardcoded UI metrics/users/model results;
+- no evaluation hardcoded pass/zero metrics;
+- no public application endpoint bypasses gateway/service authentication.
+
+### 27.2 Integration environment
+
+1. Start Docker.
+2. Build/start full application profile from clean data.
+3. Wait for health gates; do not use arbitrary sleeps.
+4. Run Flyway/schema verification.
+5. Seed fictional demo/evaluation data through supported path.
+6. Run backend integration/contract suites.
+7. Run frontend component suite.
+8. Run Playwright/axe suite.
+9. Run application-backed evaluation.
+10. Run load and failure suites.
+11. Run backup and isolated restore drill.
+12. Run container/security/SBOM gates.
+
+### 27.3 Required proof artifacts
+
+- Unit/integration/contract/E2E reports.
+- Coverage reports with enforced thresholds.
+- OpenAPI and event-contract compatibility report.
+- Per-case evaluation results and aggregate report.
+- Load/failure report with environment/data size.
+- Security scan and accepted-risk record.
+- Backup/restore drill report.
+- Architecture and sequence diagrams.
+- Desktop/mobile accessibility report/screenshots.
+- Demo deployment smoke result and video.
+
+### 27.4 Final manual audit questions
+
+Every answer must be **yes** with evidence:
+
+1. Can a clean clone start the complete system with documented commands?
+2. Can each service start with validated runtime dependencies?
+3. Can a customer complete manual support when AI/Kafka is degraded?
+4. Can no user cross tenant/customer/team/role boundaries?
+5. Can a broker outage recover without loss or duplicate business effect?
+6. Can a workflow resume after restart at every step?
+7. Are stored vectors real, versioned, filtered, and queried through pgvector?
+8. Does every cited suggestion point to immutable authorized evidence?
+9. Does weak evidence abstain?
+10. Is an authenticated human the only customer-send path?
+11. Does every displayed metric come from measured persisted data?
+12. Are evaluation results reproducible and application-backed?
+13. Can an operator trace, alert, diagnose, retry/replay, back up, and restore safely?
+14. Does the deployed demo use only synthetic data, HTTPS, limits, and budget controls?
+15. Does every README/resume claim match a runnable feature or checked-in report?
+
+If any answer is no or unverified, the project is not complete. Create a bounded issue using the completion-report template and continue in dependency order.

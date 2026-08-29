@@ -1,15 +1,15 @@
 services:
   # ============================================================================
-  # Core Infrastructure Services
+  # Core Infrastructure Services (Profile: infra / default)
   # ============================================================================
 
   postgres:
     image: pgvector/pgvector:pg16
     container_name: resolveiq-postgres
     environment:
-      POSTGRES_DB: resolveiq
-      POSTGRES_USER: resolveiq_app
-      POSTGRES_PASSWORD: local_dev_password_change_in_prod
+      POSTGRES_DB: ${POSTGRES_DB:-resolveiq}
+      POSTGRES_USER: ${POSTGRES_USER:-resolveiq_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_password_change_in_prod}
     ports:
       - "5432:5432"
     volumes:
@@ -64,13 +64,172 @@ services:
     container_name: resolveiq-minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: resolveiq_minio_dev_access
-      MINIO_ROOT_PASSWORD: resolveiq_minio_dev_secret_key_12345
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-resolveiq_minio_dev_access}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-resolveiq_minio_dev_secret_key_12345}
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
       - minio-data:/data
+
+  # ============================================================================
+  # Application Services (Profile: app)
+  # ============================================================================
+
+  discovery-service:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: discovery-service
+    container_name: resolveiq-discovery
+    profiles: ["app"]
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: api-gateway
+    container_name: resolveiq-gateway
+    profiles: ["app"]
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
+    depends_on:
+      - discovery-service
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: auth-service
+    container_name: resolveiq-auth
+    profiles: ["app"]
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ticket-service:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: ticket-service
+    container_name: resolveiq-ticket
+    profiles: ["app"]
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  ai-orchestration-service:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: ai-orchestration-service
+    container_name: resolveiq-orchestration
+    profiles: ["app"]
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  ai-analysis-service:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: ai-analysis-service
+    container_name: resolveiq-analysis
+    profiles: ["app"]
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  routing-service:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: routing-service
+    container_name: resolveiq-routing
+    profiles: ["app"]
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  rag-service:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: rag-service
+    container_name: resolveiq-rag
+    profiles: ["app"]
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.frontend
+    container_name: resolveiq-frontend
+    profiles: ["app"]
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
 
   # ============================================================================
   # Observability Stack (Profile: observability)
@@ -94,6 +253,7 @@ services:
     profiles: ["observability"]
     volumes:
       - ./infra/compose/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./infra/compose/prometheus/alerts.yml:/etc/prometheus/alerts.yml
     ports:
       - "9090:9090"
 
@@ -106,6 +266,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - ./infra/compose/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./infra/compose/grafana/dashboards:/var/lib/grafana/dashboards
     ports:
       - "3001:3000"
     depends_on:

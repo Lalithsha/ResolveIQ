@@ -51,13 +51,54 @@ public class TicketService {
         this.objectMapper = objectMapper;
     }
 
+    private String computeRequestHash(CreateTicketRequest request) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            String raw = String.format("%s|%s|%s|%s|%s|%s",
+                request.subject() != null ? request.subject().trim() : "",
+                request.description() != null ? request.description().trim() : "",
+                request.category() != null ? request.category().trim() : "",
+                request.priority() != null ? request.priority().name() : "",
+                request.channel() != null ? request.channel().trim() : "",
+                request.language() != null ? request.language().trim() : ""
+            );
+            byte[] hash = digest.digest(raw.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            return String.valueOf(request.hashCode());
+        }
+    }
+
+    private String generateTicketNumber() {
+        int currentYear = java.time.Year.now(java.time.ZoneId.of("UTC")).getValue();
+        long seq;
+        try {
+            Long val = ticketRepository.getNextTicketSequenceVal();
+            seq = val != null ? val : System.currentTimeMillis() % 1000000;
+        } catch (Exception e) {
+            seq = Math.abs(UUID.randomUUID().getMostSignificantBits() % 900000) + 100000;
+        }
+        return String.format("RIQ-%d-%06d", currentYear, seq);
+    }
+
     @Transactional
     public TicketResponse createTicket(UUID tenantId, UUID customerId, CreateTicketRequest request, String idempotencyKey) {
+        String reqHash = computeRequestHash(request);
+
         // 1. Idempotency Check
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             Optional<IdempotencyKey> existingKey = idempotencyRepository.findById(idempotencyKey.trim());
             if (existingKey.isPresent()) {
                 IdempotencyKey record = existingKey.get();
+                if (record.getRequestHash() != null && !record.getRequestHash().equals(reqHash)) {
+                    throw new com.resolveiq.ticket.domain.exception.IdempotencyConflictException("Idempotency key reused with differing request payload");
+                }
                 if (record.getResponseBody() != null) {
                     try {
                         return objectMapper.readValue(record.getResponseBody(), TicketResponse.class);
@@ -67,7 +108,7 @@ public class TicketService {
             }
         }
 
-        String ticketNumber = "RIQ-2026-" + String.format("%06d", TICKET_SEQUENCE.incrementAndGet());
+        String ticketNumber = generateTicketNumber();
 
         Ticket ticket = new Ticket(
             UUID.randomUUID(),
@@ -130,7 +171,7 @@ public class TicketService {
                 IdempotencyKey record = new IdempotencyKey(
                     idempotencyKey.trim(),
                     tenantId,
-                    "hash_" + idempotencyKey,
+                    reqHash,
                     responseJson,
                     201,
                     Instant.now().plusSeconds(86400) // 24hr retention

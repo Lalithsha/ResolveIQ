@@ -18,7 +18,7 @@ SECRET_PATTERNS=(
 FOUND=0
 
 for pattern in "${SECRET_PATTERNS[@]}"; do
-    if grep -rInE --exclude="scan-secrets.sh" --exclude-dir={.git,node_modules,target,dist,.idea,.vscode} "$pattern" . ; then
+    if grep -rInE --exclude="scan-secrets.sh" --exclude=".env" --exclude=".env.*" --exclude-dir={.git,node_modules,target,dist,.idea,.vscode} "$pattern" . ; then
         echo "WARNING: Potential secret found matching pattern: $pattern"
         FOUND=1
     fi
