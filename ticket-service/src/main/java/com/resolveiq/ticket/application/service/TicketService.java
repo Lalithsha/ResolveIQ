@@ -87,10 +87,9 @@ public class TicketService {
     public TicketResponse createTicket(UUID tenantId, UUID customerId, CreateTicketRequest request, String idempotencyKey) {
         String reqHash = computeRequestHash(request);
 
-        if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            throw new IllegalArgumentException("Idempotency-Key header is required");
-        }
-        String normalizedKey = idempotencyKey.trim();
+        String normalizedKey = (idempotencyKey != null && !idempotencyKey.isBlank())
+            ? idempotencyKey.trim()
+            : UUID.randomUUID().toString();
         if (normalizedKey.length() > 255) {
             throw new IllegalArgumentException("Idempotency-Key must not exceed 255 characters");
         }

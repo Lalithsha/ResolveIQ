@@ -24,8 +24,8 @@ public class KnowledgeController {
 
     @PostMapping("/articles")
     public ResponseEntity<KnowledgeDocument> createArticle(
-        @RequestHeader("X-Tenant-Id") UUID tenantId,
-        @RequestHeader("X-User-Id") UUID userId,
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId,
+        @RequestHeader(value = "X-User-Id") UUID userId,
         @Valid @RequestBody CreateDocumentRequest request
     ) {
         KnowledgeDocument doc = knowledgeService.createDocument(tenantId, userId, request);
@@ -34,7 +34,7 @@ public class KnowledgeController {
 
     @GetMapping("/articles")
     public ResponseEntity<List<KnowledgeDocument>> listArticles(
-        @RequestHeader("X-Tenant-Id") UUID tenantId
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId
     ) {
         List<KnowledgeDocument> docs = knowledgeService.listDocuments(tenantId);
         return ResponseEntity.ok(docs);
@@ -42,8 +42,8 @@ public class KnowledgeController {
 
     @GetMapping("/articles/{id}")
     public ResponseEntity<KnowledgeDocument> getArticle(
-        @RequestHeader("X-Tenant-Id") UUID tenantId,
-        @PathVariable("id") UUID documentId
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId,
+        @PathVariable(value = "id") UUID documentId
     ) {
         KnowledgeDocument doc = knowledgeService.getDocument(tenantId, documentId);
         return ResponseEntity.ok(doc);
@@ -51,9 +51,9 @@ public class KnowledgeController {
 
     @PostMapping("/articles/{id}/publish")
     public ResponseEntity<KnowledgeDocument> publishVersion(
-        @RequestHeader("X-Tenant-Id") UUID tenantId,
-        @RequestHeader("X-User-Id") UUID userId,
-        @PathVariable("id") UUID documentId,
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId,
+        @RequestHeader(value = "X-User-Id") UUID userId,
+        @PathVariable(value = "id") UUID documentId,
         @Valid @RequestBody PublishVersionRequest request
     ) {
         KnowledgeDocument doc = knowledgeService.publishNewVersion(tenantId, documentId, userId, request);
@@ -62,8 +62,8 @@ public class KnowledgeController {
 
     @PostMapping("/resolved-cases/approve")
     public ResponseEntity<ResolvedCase> approveResolvedCase(
-        @RequestHeader("X-Tenant-Id") UUID tenantId,
-        @RequestHeader("X-User-Id") UUID userId,
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId,
+        @RequestHeader(value = "X-User-Id") UUID userId,
         @Valid @RequestBody ApproveResolvedCaseRequest request
     ) {
         ResolvedCase resolvedCase = knowledgeService.approveResolvedCase(tenantId, userId, request);

@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
   /* Light theme - Exact tokens from Section 13.3 */
   --color-bg: #F8FAFC;
   --color-surface: #FFFFFF;
@@ -24,12 +25,13 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
     /* Dark theme */
     --color-bg: #0B1220;
     --color-surface: #111827;
     --color-surface-muted: #1E293B;
     --color-text: #F8FAFC;
-    --color-text-muted: #CBD5E1;
+    --color-text-muted: #94A3B8;
     --color-border: #334155;
     --color-border-subtle: #1E293B;
     --color-primary: #60A5FA;
@@ -49,6 +51,24 @@ body {
   color: var(--color-text);
   background-color: var(--color-bg);
   line-height: 1.5;
+}
+
+@layer base {
+  input, textarea, select {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    border-color: var(--color-border);
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: var(--color-text-muted);
+    opacity: 0.8;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
 }
 
 code, kbd, samp, pre {

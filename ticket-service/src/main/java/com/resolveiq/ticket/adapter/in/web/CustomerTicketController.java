@@ -24,7 +24,7 @@ public class CustomerTicketController {
     public ResponseEntity<TicketResponse> createTicket(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
         @RequestHeader(value = "X-User-Id") String userHeader,
-        @RequestHeader("Idempotency-Key") String idempotencyKey,
+        @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
         @Valid @RequestBody CreateTicketRequest request
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
@@ -38,8 +38,8 @@ public class CustomerTicketController {
     public ResponseEntity<List<TicketResponse>> getCustomerTickets(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
         @RequestHeader(value = "X-User-Id") String userHeader,
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "50") int size
+        @RequestParam(value = "page", defaultValue = "0") int page,
+        @RequestParam(value = "size", defaultValue = "50") int size
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
         UUID customerId = parseRequiredUuid(userHeader, "X-User-Id");
@@ -52,7 +52,7 @@ public class CustomerTicketController {
     public ResponseEntity<TicketResponse> getTicketById(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
         @RequestHeader(value = "X-User-Id") String userHeader,
-        @PathVariable("id") UUID ticketId
+        @PathVariable(value = "id") UUID ticketId
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
         UUID customerId = parseRequiredUuid(userHeader, "X-User-Id");
@@ -65,7 +65,7 @@ public class CustomerTicketController {
     public ResponseEntity<TicketMessageResponse> addCustomerMessage(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
         @RequestHeader(value = "X-User-Id") String userHeader,
-        @PathVariable("id") UUID ticketId,
+        @PathVariable(value = "id") UUID ticketId,
         @Valid @RequestBody AddMessageRequest request
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
@@ -79,7 +79,7 @@ public class CustomerTicketController {
     public ResponseEntity<List<TicketMessageResponse>> getTicketMessages(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
         @RequestHeader(value = "X-User-Id") String userHeader,
-        @PathVariable("id") UUID ticketId
+        @PathVariable(value = "id") UUID ticketId
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
         UUID customerId = parseRequiredUuid(userHeader, "X-User-Id");

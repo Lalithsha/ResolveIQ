@@ -21,7 +21,7 @@ public class RetrievalController {
 
     @PostMapping("/search")
     public ResponseEntity<RetrievalResultDto> search(
-        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId,
         @Valid @RequestBody RetrievalQueryRequest request
     ) {
         int topK = request.topK() != null ? request.topK() : 5;

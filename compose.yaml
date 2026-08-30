@@ -80,6 +80,7 @@ services:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.backend
+      target: dev
       args:
         SERVICE_NAME: discovery-service
     container_name: resolveiq-discovery
@@ -88,6 +89,10 @@ services:
       - "${DISCOVERY_PORT:-8761}:8761"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      DEV_SERVICE_NAME: discovery-service
+    volumes:
+      - .:/workspace
+      - maven-cache:/root/.m2
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health | grep -q UP"]
       interval: 10s
@@ -98,6 +103,7 @@ services:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.backend
+      target: dev
       args:
         SERVICE_NAME: api-gateway
     container_name: resolveiq-gateway
@@ -106,8 +112,12 @@ services:
       - "${GATEWAY_PORT:-8080}:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      DEV_SERVICE_NAME: api-gateway
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
+    volumes:
+      - .:/workspace
+      - maven-cache:/root/.m2
     depends_on:
       discovery-service:
         condition: service_healthy
@@ -121,15 +131,20 @@ services:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.backend
+      target: dev
       args:
         SERVICE_NAME: auth-service
     container_name: resolveiq-auth
     profiles: ["app"]
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      DEV_SERVICE_NAME: auth-service
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
+    volumes:
+      - .:/workspace
+      - maven-cache:/root/.m2
     depends_on:
       postgres:
         condition: service_healthy
@@ -145,16 +160,21 @@ services:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.backend
+      target: dev
       args:
         SERVICE_NAME: ticket-service
     container_name: resolveiq-ticket
     profiles: ["app"]
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      DEV_SERVICE_NAME: ticket-service
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
+    volumes:
+      - .:/workspace
+      - maven-cache:/root/.m2
     depends_on:
       postgres:
         condition: service_healthy
@@ -172,12 +192,14 @@ services:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.backend
+      target: dev
       args:
         SERVICE_NAME: ai-orchestration-service
     container_name: resolveiq-orchestration
     profiles: ["app"]
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      DEV_SERVICE_NAME: ai-orchestration-service
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
@@ -185,6 +207,9 @@ services:
       RESOLVEIQ_SERVICES_ANALYSIS_URL: http://ai-analysis-service:8084
       RESOLVEIQ_SERVICES_ROUTING_URL: http://routing-service:8085
       RESOLVEIQ_SERVICES_RAG_URL: http://rag-service:8086
+    volumes:
+      - .:/workspace
+      - maven-cache:/root/.m2
     depends_on:
       postgres:
         condition: service_healthy
@@ -208,15 +233,20 @@ services:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.backend
+      target: dev
       args:
         SERVICE_NAME: ai-analysis-service
     container_name: resolveiq-analysis
     profiles: ["app"]
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      DEV_SERVICE_NAME: ai-analysis-service
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
+    volumes:
+      - .:/workspace
+      - maven-cache:/root/.m2
     depends_on:
       postgres:
         condition: service_healthy
@@ -232,15 +262,20 @@ services:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.backend
+      target: dev
       args:
         SERVICE_NAME: routing-service
     container_name: resolveiq-routing
     profiles: ["app"]
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      DEV_SERVICE_NAME: routing-service
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
+    volumes:
+      - .:/workspace
+      - maven-cache:/root/.m2
     depends_on:
       postgres:
         condition: service_healthy
@@ -256,15 +291,20 @@ services:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.backend
+      target: dev
       args:
         SERVICE_NAME: rag-service
     container_name: resolveiq-rag
     profiles: ["app"]
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      DEV_SERVICE_NAME: rag-service
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
+    volumes:
+      - .:/workspace
+      - maven-cache:/root/.m2
     depends_on:
       postgres:
         condition: service_healthy
@@ -280,10 +320,16 @@ services:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.frontend
+      target: dev
     container_name: resolveiq-frontend
     profiles: ["app"]
     ports:
-      - "${FRONTEND_PORT:-3000}:80"
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      API_PROXY_TARGET: http://api-gateway:8080
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     depends_on:
       api-gateway:
         condition: service_healthy
@@ -334,3 +380,4 @@ volumes:
   kafka-data:
   kafka-data-v2:
   minio-data:
+  maven-cache:

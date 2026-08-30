@@ -35,16 +35,20 @@ public class WorkflowController {
     }
 
     @GetMapping("/ticket/{ticketId}")
-    public ResponseEntity<WorkflowInstance> getWorkflowByTicket(@RequestHeader("X-Tenant-Id") UUID tenantId,
-                                                                 @PathVariable("ticketId") UUID ticketId) {
+    public ResponseEntity<WorkflowInstance> getWorkflowByTicket(
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId,
+        @PathVariable(value = "ticketId") UUID ticketId
+    ) {
         return instanceRepository.findByTicketIdAndTenantId(ticketId, tenantId)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{id}/steps")
-    public ResponseEntity<List<WorkflowStep>> getWorkflowSteps(@RequestHeader("X-Tenant-Id") UUID tenantId,
-                                                                @PathVariable("id") UUID workflowId) {
+    public ResponseEntity<List<WorkflowStep>> getWorkflowSteps(
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId,
+        @PathVariable(value = "id") UUID workflowId
+    ) {
         instanceRepository.findByIdAndTenantId(workflowId, tenantId).orElseThrow(() -> new IllegalArgumentException("Workflow not found"));
         List<WorkflowStep> steps = stepRepository.findByWorkflowIdOrderByStepOrderAsc(workflowId);
         return ResponseEntity.ok(steps);
@@ -52,7 +56,7 @@ public class WorkflowController {
 
     @GetMapping("/failed")
     public ResponseEntity<List<WorkflowInstance>> listFailedWorkflows(
-        @RequestHeader("X-Tenant-Id") UUID tenantId
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId
     ) {
         List<WorkflowInstance> failedWorkflows = instanceRepository.findByTenantIdAndStatus(tenantId, "FAILED");
         return ResponseEntity.ok(failedWorkflows);
@@ -61,9 +65,9 @@ public class WorkflowController {
     @PostMapping("/{id}/retry")
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> retryWorkflow(
-        @PathVariable("id") UUID workflowId,
-        @RequestHeader("X-Tenant-Id") UUID tenantId,
-        @RequestHeader("X-User-Id") UUID operatorId,
+        @PathVariable(value = "id") UUID workflowId,
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId,
+        @RequestHeader(value = "X-User-Id") UUID operatorId,
         @RequestBody(required = false) Map<String, String> body
     ) {
         WorkflowInstance instance = instanceRepository.findByIdAndTenantId(workflowId, tenantId)

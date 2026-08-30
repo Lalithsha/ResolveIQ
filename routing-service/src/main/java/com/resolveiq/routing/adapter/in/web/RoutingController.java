@@ -35,7 +35,7 @@ public class RoutingController {
     @PostMapping("/decide")
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('SYSTEM','ADMIN')")
     public ResponseEntity<RoutingDecisionResponse> decide(
-        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId,
         @Valid @RequestBody RoutingDecisionRequest request) {
         if (request.tenantId() == null || !tenantId.equals(request.tenantId())) {
             throw new SecurityException("Request tenant does not match authenticated tenant");
@@ -45,7 +45,7 @@ public class RoutingController {
     }
 
     @GetMapping("/teams")
-    public ResponseEntity<List<Team>> listTeams(@RequestHeader("X-Tenant-Id") UUID tenantId) {
+    public ResponseEntity<List<Team>> listTeams(@RequestHeader(value = "X-Tenant-Id") UUID tenantId) {
         List<Team> teams = teamRepository.findByTenantId(tenantId);
         return ResponseEntity.ok(teams);
     }
@@ -53,7 +53,7 @@ public class RoutingController {
     @PostMapping("/teams")
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Team> createTeam(
-        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId,
         @Valid @RequestBody CreateTeamRequest request
     ) {
         Team team = new Team(UUID.randomUUID(), tenantId, request.name(), request.description(), request.maxActiveTickets());
@@ -64,7 +64,7 @@ public class RoutingController {
     @PostMapping("/rules")
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RoutingRule> createRule(
-        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId,
         @Valid @RequestBody CreateRoutingRuleRequest request
     ) {
         RoutingRule rule = new RoutingRule(

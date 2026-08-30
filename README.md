@@ -74,12 +74,21 @@ flowchart LR
 cp .env.example .env
 ```
 
-### 2. Start the complete application
+### 2. Start the complete development application
 ```bash
-docker compose --profile app up --build
+docker compose --profile app up -d --build
 ```
 
 The web application is available at [http://localhost:3000](http://localhost:3000). Only the frontend, API gateway, and development infrastructure publish host ports; owning backend services remain private inside the Compose network.
+
+The `app` profile is wired for automatic local reload:
+
+- React/TypeScript/CSS changes are applied by Vite HMR without restarting a container.
+- Each Spring Boot container watches its module, `common-contracts`, `common-security`, resources, and relevant Maven POMs. It compiles in the background and automatically restarts only that service after a successful build.
+- A failed Java build leaves the last successful service process running; saving a corrected source file triggers another build.
+- `compose.yaml`, Dockerfile, frontend dependency-manifest, port, and container-environment changes still require `docker compose ... up -d --build` because they change the container definition rather than application source. Backend Maven POM changes are watched and rebuilt automatically.
+
+The first build creates the development images and shared Maven dependency cache. Subsequent source edits do not require another Compose command. Production images remain available through the `prod` targets in both Dockerfiles.
 
 ### 3. Run quality gates directly
 ```bash

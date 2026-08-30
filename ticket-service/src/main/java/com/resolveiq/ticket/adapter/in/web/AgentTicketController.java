@@ -39,7 +39,7 @@ public class AgentTicketController {
     @GetMapping("/{id}")
     public ResponseEntity<TicketResponse> getTicketDetails(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
-        @PathVariable("id") UUID ticketId
+        @PathVariable(value = "id") UUID ticketId
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
         TicketResponse ticket = ticketService.getTicketById(tenantId, ticketId);
@@ -49,7 +49,7 @@ public class AgentTicketController {
     @PostMapping("/{id}/assign")
     public ResponseEntity<TicketResponse> assignTicket(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
-        @PathVariable("id") UUID ticketId,
+        @PathVariable(value = "id") UUID ticketId,
         @RequestBody AssignTicketRequest request
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
@@ -61,7 +61,7 @@ public class AgentTicketController {
     public ResponseEntity<TicketResponse> updateTicketStatus(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
         @RequestHeader(value = "X-User-Id") String userHeader,
-        @PathVariable("id") UUID ticketId,
+        @PathVariable(value = "id") UUID ticketId,
         @Valid @RequestBody UpdateStatusRequest request
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
@@ -75,7 +75,7 @@ public class AgentTicketController {
     public ResponseEntity<TicketMessageResponse> addAgentReply(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
         @RequestHeader(value = "X-User-Id") String userHeader,
-        @PathVariable("id") UUID ticketId,
+        @PathVariable(value = "id") UUID ticketId,
         @Valid @RequestBody AddMessageRequest request
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
@@ -88,7 +88,7 @@ public class AgentTicketController {
     @GetMapping("/{id}/suggestions")
     public ResponseEntity<List<AiSuggestionResponse>> getSuggestions(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
-        @PathVariable("id") UUID ticketId
+        @PathVariable(value = "id") UUID ticketId
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
         List<AiSuggestionResponse> suggestions = ticketService.getTicketSuggestions(tenantId, ticketId);
@@ -99,7 +99,7 @@ public class AgentTicketController {
     public ResponseEntity<Void> recordFeedback(
         @RequestHeader(value = "X-Tenant-Id") String tenantHeader,
         @RequestHeader(value = "X-User-Id") String userHeader,
-        @PathVariable("id") UUID ticketId,
+        @PathVariable(value = "id") UUID ticketId,
         @Valid @RequestBody SuggestionFeedbackRequest request
     ) {
         UUID tenantId = parseRequiredUuid(tenantHeader, "X-Tenant-Id");
