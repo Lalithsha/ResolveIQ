@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
 import { CustomerPortal } from './pages/CustomerPortal';
@@ -11,7 +11,19 @@ import { Role } from './types';
 
 export const App: React.FC = () => {
   const { user, activeRole, setActiveRole, isAuthenticated, isLoading, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>('my-queue');
+  const [activeTab, setActiveTab] = useState<string>('create');
+
+  useEffect(() => {
+    if (activeRole === 'CUSTOMER' && !['create', 'my-tickets', 'help'].includes(activeTab)) {
+      setActiveTab('create');
+    } else if (activeRole === 'AGENT' && !['my-queue', 'team-queue', 'sla-risk', 'knowledge-search'].includes(activeTab)) {
+      setActiveTab('my-queue');
+    } else if (activeRole === 'KNOWLEDGE_MANAGER' && !['articles', 'resolved-cases', 'embeddings'].includes(activeTab)) {
+      setActiveTab('articles');
+    } else if (activeRole === 'ADMIN' && !['overview', 'tickets', 'routing', 'knowledge', 'governance', 'settings'].includes(activeTab)) {
+      setActiveTab('overview');
+    }
+  }, [activeRole, activeTab]);
 
   if (isLoading) return <div className="min-h-screen bg-background grid place-items-center text-primary font-semibold">Loading secure workspace…</div>;
   if (!isAuthenticated || !user) return <AuthPage />;
@@ -26,12 +38,12 @@ export const App: React.FC = () => {
 
   const renderContent = () => {
     if (activeRole === 'CUSTOMER') {
-      return <CustomerPortal />;
+      return <CustomerPortal activeTab={activeTab} onSelectTab={setActiveTab} />;
     }
     if (activeRole === 'KNOWLEDGE_MANAGER' || activeTab === 'knowledge-search' || activeTab === 'knowledge') {
       return <KnowledgeConsole />;
     }
-    if (activeRole === 'ADMIN' && (activeTab === 'governance' || activeTab === 'overview')) {
+    if (activeRole === 'ADMIN' && (activeTab === 'governance' || activeTab === 'overview' || activeTab === 'routing' || activeTab === 'settings')) {
       return <AdminGovernance />;
     }
     return <AgentWorkspace />;

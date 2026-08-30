@@ -66,3 +66,13 @@ export interface Citation {
   snippet?: string;
   confidenceScore?: number;
 }
+
+export interface TicketMessage {
+  id: string;
+  ticketId: string;
+  senderId: string;
+  senderRole: 'CUSTOMER' | 'AGENT' | 'SYSTEM';
+  content: string;
+  isInternal: boolean;
+  createdAt: string;
+}

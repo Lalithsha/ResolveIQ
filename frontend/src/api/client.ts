@@ -1,4 +1,4 @@
-import { Ticket, AiSuggestion, Citation, Role } from '../types';
+import { Ticket, TicketMessage, AiSuggestion, Citation, Role } from '../types';
 
 const API_BASE = '/api/v1';
 
@@ -119,15 +119,15 @@ class ApiClient {
     });
   }
 
-  async addCustomerMessage(ticketId: string, content: string): Promise<any> {
-    return this.request(`/customer/tickets/${ticketId}/messages`, {
+  async addCustomerMessage(ticketId: string, content: string): Promise<TicketMessage> {
+    return this.request<TicketMessage>(`/customer/tickets/${ticketId}/messages`, {
       method: 'POST',
       body: JSON.stringify({ content, isInternal: false }),
     });
   }
 
-  async getCustomerMessages(ticketId: string): Promise<any[]> {
-    return this.request(`/customer/tickets/${ticketId}/messages`);
+  async getCustomerMessages(ticketId: string): Promise<TicketMessage[]> {
+    return this.request<TicketMessage[]>(`/customer/tickets/${ticketId}/messages`);
   }
 
   // Agent Ticket APIs

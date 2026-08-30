@@ -11,11 +11,11 @@ ON CONFLICT (id) DO NOTHING;
 -- 2. Demo Users (Password for all fictional users: ResolveIQ2026! => BCrypt hash)
 INSERT INTO auth_schema.users (id, tenant_id, email, normalized_email, password_hash, full_name, status, failed_login_attempts, created_at, updated_at)
 VALUES
-  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'alex.morgan@acme.com', 'alex.morgan@acme.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', 'Alex Morgan', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000001', 'sarah.chen@resolveiq.local', 'sarah.chen@resolveiq.local', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', 'Sarah Chen', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000001', 'marcus.vance@resolveiq.local', 'marcus.vance@resolveiq.local', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', 'Marcus Vance', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('44444444-4444-4444-4444-444444444444', '00000000-0000-0000-0000-000000000001', 'elena.rostova@resolveiq.local', 'elena.rostova@resolveiq.local', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', 'Elena Rostova', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('55555555-5555-5555-5555-555555555555', '00000000-0000-0000-0000-000000000001', 'admin@resolveiq.local', 'admin@resolveiq.local', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', 'David Kross', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'alex.morgan@acme.com', 'alex.morgan@acme.com', '$2a$10$idQEPDOdriw/Gfbfew3fFu2RGVaUdL1hO8ta9P55hfrNRK2FH5j2u', 'Alex Morgan', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000001', 'sarah.chen@resolveiq.local', 'sarah.chen@resolveiq.local', '$2a$10$idQEPDOdriw/Gfbfew3fFu2RGVaUdL1hO8ta9P55hfrNRK2FH5j2u', 'Sarah Chen', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000001', 'marcus.vance@resolveiq.local', 'marcus.vance@resolveiq.local', '$2a$10$idQEPDOdriw/Gfbfew3fFu2RGVaUdL1hO8ta9P55hfrNRK2FH5j2u', 'Marcus Vance', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('44444444-4444-4444-4444-444444444444', '00000000-0000-0000-0000-000000000001', 'elena.rostova@resolveiq.local', 'elena.rostova@resolveiq.local', '$2a$10$idQEPDOdriw/Gfbfew3fFu2RGVaUdL1hO8ta9P55hfrNRK2FH5j2u', 'Elena Rostova', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('55555555-5555-5555-5555-555555555555', '00000000-0000-0000-0000-000000000001', 'admin@resolveiq.local', 'admin@resolveiq.local', '$2a$10$idQEPDOdriw/Gfbfew3fFu2RGVaUdL1hO8ta9P55hfrNRK2FH5j2u', 'David Kross', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT (id) DO NOTHING;
 
 -- User Roles Map
