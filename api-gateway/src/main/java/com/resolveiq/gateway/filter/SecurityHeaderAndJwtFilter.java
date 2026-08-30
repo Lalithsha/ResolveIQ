@@ -51,10 +51,10 @@ public class SecurityHeaderAndJwtFilter implements GlobalFilter, Ordered {
         String path = request.getURI().getPath();
 
         // 1. Ensure Correlation ID exists
-        String correlationId = request.getHeaders().getFirst("X-Correlation-Id");
-        if (!StringUtils.hasText(correlationId) || correlationId.length() > 64 || !correlationId.matches("[A-Za-z0-9._-]+")) {
-            correlationId = UUID.randomUUID().toString();
-        }
+        String rawCorrelationId = request.getHeaders().getFirst("X-Correlation-Id");
+        String correlationId = (StringUtils.hasText(rawCorrelationId) && rawCorrelationId != null && rawCorrelationId.length() <= 64 && rawCorrelationId.matches("[A-Za-z0-9._-]+"))
+            ? rawCorrelationId
+            : UUID.randomUUID().toString();
 
         // 2. Strip any inbound client-spoofed internal identity headers
         ServerHttpRequest.Builder requestBuilder = request.mutate()
@@ -73,7 +73,7 @@ public class SecurityHeaderAndJwtFilter implements GlobalFilter, Ordered {
 
         // 4. Validate JWT Bearer token for protected routes
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-        if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ") || authHeader.length() <= 7) {
             return returnUnauthorized(exchange, "Missing or malformed Authorization header", correlationId);
         }
 

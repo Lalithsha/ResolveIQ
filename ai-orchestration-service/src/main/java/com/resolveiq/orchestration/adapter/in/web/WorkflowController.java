@@ -70,8 +70,9 @@ public class WorkflowController {
         @RequestHeader(value = "X-User-Id") UUID operatorId,
         @RequestBody(required = false) Map<String, String> body
     ) {
-        WorkflowInstance instance = instanceRepository.findByIdAndTenantId(workflowId, tenantId)
-            .orElseThrow(() -> new IllegalArgumentException("Workflow not found with id: " + workflowId));
+        if (instanceRepository.findByIdAndTenantId(workflowId, tenantId).isEmpty()) {
+            throw new IllegalArgumentException("Workflow not found with id: " + workflowId);
+        }
 
         String reason = body != null ? body.getOrDefault("reason", "Operator manual retry") : "Operator manual retry";
         log.info("Audited Workflow DLQ Replay triggered by [{}] for workflow [{}] reason: [{}]", operatorId, workflowId, reason);

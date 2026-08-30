@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.resolveiq.contracts.event.EventEnvelope;
 import com.resolveiq.contracts.event.TicketEvents;
 import com.resolveiq.contracts.tracing.CorrelationContext;
-import com.resolveiq.orchestration.domain.model.*;
-import com.resolveiq.orchestration.domain.repository.*;
+import com.resolveiq.orchestration.domain.model.WorkflowInstance;
+import com.resolveiq.orchestration.domain.model.WorkflowOutboxEvent;
 import com.resolveiq.security.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,10 +24,6 @@ public class TriageWorkflowOrchestrator {
 
     private static final Logger log = LoggerFactory.getLogger(TriageWorkflowOrchestrator.class);
 
-    private final WorkflowInstanceRepository instanceRepository;
-    private final WorkflowStepRepository stepRepository;
-    private final WorkflowAttemptRepository attemptRepository;
-    private final WorkflowOutboxRepository outboxRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final WorkflowPersistenceService persistence;
@@ -43,19 +39,11 @@ public class TriageWorkflowOrchestrator {
     private String ragUrl = "http://localhost:8086";
 
     public TriageWorkflowOrchestrator(
-        WorkflowInstanceRepository instanceRepository,
-        WorkflowStepRepository stepRepository,
-        WorkflowAttemptRepository attemptRepository,
-        WorkflowOutboxRepository outboxRepository,
         RestTemplateBuilder restTemplateBuilder,
         ObjectMapper objectMapper,
         WorkflowPersistenceService persistence,
         JwtService jwtService
     ) {
-        this.instanceRepository = instanceRepository;
-        this.stepRepository = stepRepository;
-        this.attemptRepository = attemptRepository;
-        this.outboxRepository = outboxRepository;
         this.restTemplate = restTemplateBuilder
             .setConnectTimeout(Duration.ofSeconds(3))
             .setReadTimeout(Duration.ofSeconds(5))
@@ -198,12 +186,11 @@ public class TriageWorkflowOrchestrator {
             ResponseEntity<JsonNode> resp = restTemplate.postForEntity(analysisUrl + "/api/v1/analysis/classify", entity, JsonNode.class);
             if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
                 JsonNode b = resp.getBody();
-                return new AnalysisResultDto(
-                    b.get("category").asText(),
-                    b.get("intent").asText(),
-                    b.get("sentiment").asText(),
-                    b.get("urgency").asText()
-                );
+                String category = b.hasNonNull("category") ? b.get("category").asText() : "GENERAL";
+                String intent = b.hasNonNull("intent") ? b.get("intent").asText() : "general_inquiry";
+                String sentiment = b.hasNonNull("sentiment") ? b.get("sentiment").asText() : "NEUTRAL";
+                String urgency = b.hasNonNull("urgency") ? b.get("urgency").asText() : "MEDIUM";
+                return new AnalysisResultDto(category, intent, sentiment, urgency);
             }
             throw new IllegalStateException("Analysis service returned an empty response");
         } catch (Exception e) {
@@ -229,8 +216,8 @@ public class TriageWorkflowOrchestrator {
             ResponseEntity<JsonNode> resp = restTemplate.postForEntity(routingUrl + "/api/v1/routing/decide", entity, JsonNode.class);
             if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
                 JsonNode b = resp.getBody();
-                UUID teamId = b.has("targetTeamId") && !b.get("targetTeamId").isNull() ? UUID.fromString(b.get("targetTeamId").asText()) : null;
-                UUID agentId = b.has("assignedAgentId") && !b.get("assignedAgentId").isNull() ? UUID.fromString(b.get("assignedAgentId").asText()) : null;
+                UUID teamId = b.hasNonNull("targetTeamId") ? UUID.fromString(b.get("targetTeamId").asText()) : null;
+                UUID agentId = b.hasNonNull("assignedAgentId") ? UUID.fromString(b.get("assignedAgentId").asText()) : null;
                 UUID slaPolicyId = b.hasNonNull("slaPolicyId") ? UUID.fromString(b.get("slaPolicyId").asText()) : null;
                 java.time.Instant firstDue = b.hasNonNull("firstResponseDueAt") ? java.time.Instant.parse(b.get("firstResponseDueAt").asText()) : null;
                 java.time.Instant resolutionDue = b.hasNonNull("resolutionDueAt") ? java.time.Instant.parse(b.get("resolutionDueAt").asText()) : null;
@@ -260,9 +247,11 @@ public class TriageWorkflowOrchestrator {
             if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
                 JsonNode b = resp.getBody();
                 List<String> citationTexts = new ArrayList<>();
-                if (b.has("citations") && b.get("citations").isArray()) {
+                if (b.hasNonNull("citations") && b.get("citations").isArray()) {
                     for (JsonNode c : b.get("citations")) {
-                        citationTexts.add(c.get("citationText").asText());
+                        if (c.hasNonNull("citationText")) {
+                            citationTexts.add(c.get("citationText").asText());
+                        }
                     }
                 }
                 return new RetrievalResultDto(citationTexts, 0.85);

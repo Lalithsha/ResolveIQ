@@ -6,35 +6,26 @@ import com.resolveiq.analysis.application.dto.TicketAnalysisRequest;
 import com.resolveiq.analysis.application.dto.TicketAnalysisResponse;
 import com.resolveiq.analysis.application.port.ChatClientPort;
 import com.resolveiq.analysis.domain.model.AnalysisResult;
-import com.resolveiq.analysis.domain.repository.AnalysisResultRepository;
-import com.resolveiq.analysis.domain.repository.PromptVersionRepository;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
-import java.util.UUID;
 import java.util.Set;
 
 @Service
 public class TicketAnalysisService {
 
-    private final AnalysisResultRepository analysisRepository;
-    private final PromptVersionRepository promptRepository;
     private final ChatClientPort chatClient;
     private final ObjectMapper objectMapper;
     private final AnalysisPersistenceService persistence;
 
     public TicketAnalysisService(
-        AnalysisResultRepository analysisRepository,
-        PromptVersionRepository promptRepository,
         ChatClientPort chatClient,
         ObjectMapper objectMapper,
         AnalysisPersistenceService persistence
     ) {
-        this.analysisRepository = analysisRepository;
-        this.promptRepository = promptRepository;
         this.chatClient = chatClient;
         this.objectMapper = objectMapper;
         this.persistence = persistence;

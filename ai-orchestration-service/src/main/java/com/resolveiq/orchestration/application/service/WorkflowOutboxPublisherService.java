@@ -2,7 +2,6 @@ package com.resolveiq.orchestration.application.service;
 
 import com.resolveiq.contracts.event.TicketEvents;
 import com.resolveiq.orchestration.domain.model.WorkflowOutboxEvent;
-import com.resolveiq.orchestration.domain.repository.WorkflowOutboxRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -20,16 +19,13 @@ public class WorkflowOutboxPublisherService {
     private static final Logger log = LoggerFactory.getLogger(WorkflowOutboxPublisherService.class);
     private final String workerId = "orch-worker-" + UUID.randomUUID().toString().substring(0, 8);
 
-    private final WorkflowOutboxRepository outboxRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final WorkflowOutboxTransactionManager transactionManager;
 
     public WorkflowOutboxPublisherService(
-        WorkflowOutboxRepository outboxRepository,
         KafkaTemplate<String, Object> kafkaTemplate,
         WorkflowOutboxTransactionManager transactionManager
     ) {
-        this.outboxRepository = outboxRepository;
         this.kafkaTemplate = kafkaTemplate;
         this.transactionManager = transactionManager;
     }
@@ -58,29 +54,20 @@ public class WorkflowOutboxPublisherService {
                 kafkaTemplate.send(topic, key, event.getPayload()).get(5, TimeUnit.SECONDS);
             }
             success = true;
-            log.debug("Successfully published workflow event [{}] ID [{}] to topic [{}]", event.getEventType(), event.getId(), topic);
         } catch (Exception e) {
-            errorCode = classifyError(e);
-            log.warn("Failed to publish workflow outbox event [{}] ID [{}]: {}", event.getEventType(), event.getId(), e.getMessage());
+            errorCode = e.getClass().getSimpleName();
+            log.error("Failed to publish workflow outbox event id: {} to topic: {}", event.getId(), topic, e);
         }
 
         transactionManager.recordResult(event.getId(), success, errorCode);
     }
 
-    private String classifyError(Exception error) {
-        if (error instanceof java.util.concurrent.TimeoutException) return "KAFKA_TIMEOUT";
-        if (error instanceof InterruptedException) {
-            Thread.currentThread().interrupt();
-            return "PUBLISH_INTERRUPTED";
-        }
-        return "KAFKA_PUBLISH_FAILED";
-    }
-
     private String resolveTopicForEventType(String eventType) {
-        return switch (eventType) {
-            case TicketEvents.TICKET_TRIAGE_COMPLETED -> TicketEvents.TICKET_TRIAGE_COMPLETED;
-            case TicketEvents.TICKET_TRIAGE_FAILED -> TicketEvents.TICKET_TRIAGE_FAILED;
-            default -> "resolveiq.workflow.events";
-        };
+        if (TicketEvents.TICKET_TRIAGE_COMPLETED.equals(eventType)) {
+            return "resolveiq.tickets.triage-completed.v1";
+        } else if (TicketEvents.TICKET_TRIAGE_FAILED.equals(eventType)) {
+            return "resolveiq.tickets.triage-failed.v1";
+        }
+        return "resolveiq.orchestration.events.v1";
     }
 }

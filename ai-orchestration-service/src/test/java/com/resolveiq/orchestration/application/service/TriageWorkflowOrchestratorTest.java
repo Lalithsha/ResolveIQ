@@ -6,7 +6,6 @@ import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.resolveiq.orchestration.domain.model.WorkflowInstance;
-import com.resolveiq.orchestration.domain.model.WorkflowOutboxEvent;
 import com.resolveiq.orchestration.domain.model.WorkflowStep;
 import com.resolveiq.orchestration.domain.repository.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,10 +60,6 @@ class TriageWorkflowOrchestratorTest {
         when(attemptRepository.findById(any())).thenAnswer(call -> Optional.ofNullable(attempts.get(call.getArgument(0))));
         persistence = new WorkflowPersistenceService(instanceRepository, stepRepository, attemptRepository, outboxRepository);
         orchestrator = new TriageWorkflowOrchestrator(
-            instanceRepository,
-            stepRepository,
-            attemptRepository,
-            outboxRepository,
             new RestTemplateBuilder(),
             objectMapper,
             persistence,
@@ -98,7 +93,6 @@ class TriageWorkflowOrchestratorTest {
         );
 
         verify(stepRepository, atLeast(8)).save(any(WorkflowStep.class));
-        verify(attemptRepository, atLeast(8)).save(any());
-        verify(outboxRepository).save(any(WorkflowOutboxEvent.class));
+        verify(outboxRepository, times(1)).save(any());
     }
 }

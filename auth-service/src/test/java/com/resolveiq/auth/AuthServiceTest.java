@@ -7,7 +7,6 @@ import static org.mockito.Mockito.*;
 
 import com.resolveiq.auth.application.dto.AuthResponse;
 import com.resolveiq.auth.application.dto.LoginRequest;
-import com.resolveiq.auth.application.dto.RegisterRequest;
 import com.resolveiq.auth.application.dto.TokenRefreshRequest;
 import com.resolveiq.auth.application.service.AuthService;
 import com.resolveiq.auth.application.service.JwtTokenProvider;
