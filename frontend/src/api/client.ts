@@ -1,4 +1,8 @@
-import { Ticket, TicketMessage, AiSuggestion, Citation, Role } from '../types';
+import {
+  Ticket, TicketMessage, AiSuggestion, Citation, Role, TicketQueueResponse, AgentTicketContext,
+  Attachment, KnowledgeDocument, KnowledgeVersion, User, Team, RoutingAgent, RoutingRule, SlaPolicy, ResolvedCase,
+  AnalysisGovernanceSummary, OutboxSummary, SecurityAuditEvent, WorkflowInstance,
+} from '../types';
 
 const API_BASE = '/api/v1';
 
@@ -26,10 +30,8 @@ class ApiClient {
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}, retryAuthentication = true): Promise<T> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
-    };
+    const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
+    if (!(options.body instanceof FormData) && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
@@ -136,6 +138,21 @@ class ApiClient {
     return this.request<Ticket[]>(`/agent/tickets${query}`);
   }
 
+  async searchAgentQueue(params: {
+    scope: 'mine' | 'team' | 'all' | 'sla-risk'; teamId?: string; status?: string; priority?: string;
+    query?: string; sort?: string; direction?: 'asc' | 'desc'; page?: number; size?: number;
+  }): Promise<TicketQueueResponse> {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') query.set(key, String(value));
+    });
+    return this.request<TicketQueueResponse>(`/agent/tickets/queue?${query}`);
+  }
+
+  async getAgentTicketContext(id: string): Promise<AgentTicketContext> {
+    return this.request<AgentTicketContext>(`/agent/tickets/${id}/context`);
+  }
+
   async getAgentTicket(id: string): Promise<Ticket> {
     return this.request<Ticket>(`/agent/tickets/${id}`);
   }
@@ -171,9 +188,58 @@ class ApiClient {
     });
   }
 
+  async assignTicket(ticketId: string, teamId?: string, agentId?: string): Promise<Ticket> {
+    return this.request<Ticket>(`/agent/tickets/${ticketId}/assign`, {
+      method: 'POST', body: JSON.stringify({ teamId: teamId || null, agentId: agentId || null, reason: 'Queue assignment' }),
+    });
+  }
+
+  async listAgentAttachments(ticketId: string): Promise<Attachment[]> {
+    return this.request<Attachment[]>(`/agent/tickets/${ticketId}/attachments`);
+  }
+
+  async uploadAgentAttachment(ticketId: string, file: File): Promise<Attachment> {
+    const body = new FormData(); body.append('file', file);
+    return this.request<Attachment>(`/agent/tickets/${ticketId}/attachments`, { method: 'POST', body });
+  }
+
+  async listCustomerAttachments(ticketId: string): Promise<Attachment[]> {
+    return this.request<Attachment[]>(`/customer/tickets/${ticketId}/attachments`);
+  }
+
+  async uploadCustomerAttachment(ticketId: string, file: File): Promise<Attachment> {
+    const body = new FormData(); body.append('file', file);
+    return this.request<Attachment>(`/customer/tickets/${ticketId}/attachments`, { method: 'POST', body });
+  }
+
+  async downloadAttachment(scope: 'agent' | 'customer', ticketId: string, attachmentId: string, fileName: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/${scope}/tickets/${ticketId}/attachments/${attachmentId}/content`, {
+      headers: this.token ? { Authorization: `Bearer ${this.token}` } : {}, credentials: 'include',
+    });
+    if (!response.ok) throw new Error(`Attachment download failed (${response.status})`);
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a'); link.href = url; link.download = fileName; link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async followTicketEvents(onEvent: () => void, signal: AbortSignal): Promise<void> {
+    const response = await fetch(`${API_BASE}/agent/tickets/stream`, {
+      headers: this.token ? { Authorization: `Bearer ${this.token}`, Accept: 'text/event-stream' } : { Accept: 'text/event-stream' },
+      credentials: 'include', signal,
+    });
+    if (!response.ok || !response.body) throw new Error(`Ticket event stream failed (${response.status})`);
+    const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = '';
+    while (!signal.aborted) {
+      const { value, done } = await reader.read(); if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const frames = buffer.split('\n\n'); buffer = frames.pop() || '';
+      frames.forEach(frame => { if (frame.includes('event:ticket.')) onEvent(); });
+    }
+  }
+
   // Knowledge & Retrieval APIs
-  async listKnowledgeDocuments(): Promise<any[]> {
-    return this.request<any[]>('/knowledge/documents');
+  async listKnowledgeDocuments(): Promise<KnowledgeDocument[]> {
+    return this.request<KnowledgeDocument[]>('/knowledge/articles');
   }
 
   async searchKnowledge(queryText: string, topK: number = 5): Promise<{ citations: Citation[] }> {
@@ -183,9 +249,92 @@ class ApiClient {
     });
   }
 
+  async createKnowledgeDocument(data: { title: string; category: string; product?: string; language?: string; content: string; summary?: string }): Promise<KnowledgeDocument> {
+    return this.request<KnowledgeDocument>('/knowledge/articles', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async listKnowledgeVersions(documentId: string): Promise<KnowledgeVersion[]> {
+    return this.request<KnowledgeVersion[]>(`/knowledge/articles/${documentId}/versions`);
+  }
+
+  async createKnowledgeVersion(documentId: string, content: string, summary?: string): Promise<KnowledgeVersion> {
+    return this.request<KnowledgeVersion>(`/knowledge/articles/${documentId}/versions`, {
+      method: 'POST', body: JSON.stringify({ content, summary }),
+    });
+  }
+
+  async submitKnowledgeVersion(documentId: string, versionId: string): Promise<KnowledgeVersion> {
+    return this.request<KnowledgeVersion>(`/knowledge/articles/${documentId}/versions/${versionId}/submit`, { method: 'POST' });
+  }
+
+  async publishKnowledgeVersion(documentId: string, versionId: string, note?: string): Promise<KnowledgeDocument> {
+    return this.request<KnowledgeDocument>(`/knowledge/articles/${documentId}/versions/${versionId}/publish`, {
+      method: 'POST', body: JSON.stringify({ note }),
+    });
+  }
+
+  async rejectKnowledgeVersion(documentId: string, versionId: string, note: string): Promise<KnowledgeVersion> {
+    return this.request<KnowledgeVersion>(`/knowledge/articles/${documentId}/versions/${versionId}/reject`, {
+      method: 'POST', body: JSON.stringify({ note }),
+    });
+  }
+
+  async rollbackKnowledgeVersion(documentId: string, versionId: string): Promise<KnowledgeDocument> {
+    return this.request<KnowledgeDocument>(`/knowledge/articles/${documentId}/rollback/${versionId}`, {
+      method: 'POST', body: JSON.stringify({ note: 'Rollback approved in Knowledge Console' }),
+    });
+  }
+
+  async archiveKnowledgeDocument(documentId: string): Promise<KnowledgeDocument> {
+    return this.request<KnowledgeDocument>(`/knowledge/articles/${documentId}/archive`, { method: 'POST' });
+  }
+  async listResolvedCases(): Promise<ResolvedCase[]> { return this.request<ResolvedCase[]>('/knowledge/resolved-cases'); }
+
+  async getDirectoryUser(userId: string): Promise<User> {
+    return normalizeUser(await this.request<User & { userId?: string }>(`/directory/users/${userId}`));
+  }
+  async listTeams(): Promise<Team[]> { return this.request<Team[]>('/routing/teams'); }
+  async listRoutingAgents(): Promise<RoutingAgent[]> { return this.request<RoutingAgent[]>('/routing/agents'); }
+  async listRoutingRules(): Promise<RoutingRule[]> { return this.request<RoutingRule[]>('/routing/rules'); }
+  async listSlaPolicies(): Promise<SlaPolicy[]> { return this.request<SlaPolicy[]>('/routing/sla-policies'); }
+  async setRoutingRuleActive(id: string, active: boolean): Promise<RoutingRule> {
+    return this.request<RoutingRule>(`/routing/rules/${id}/active`, { method: 'PATCH', body: JSON.stringify({ active }) });
+  }
+
+  async listAdminUsers(): Promise<{ items: User[]; page: number; totalElements: number }> {
+    const page = await this.request<{ items: Array<User & { userId?: string }>; page: number; totalElements: number }>('/admin/users?size=100');
+    return { ...page, items: page.items.map(normalizeUser) };
+  }
+
+  async updateUserRoles(userId: string, roles: Role[]): Promise<User> {
+    return normalizeUser(await this.request<User & { userId?: string }>(`/admin/users/${userId}/roles`, {
+      method: 'PATCH', body: JSON.stringify({ roles }),
+    }));
+  }
+
+  async createStaffUser(data: { tenantId: string; email: string; password: string; fullName: string; roles: Role[] }): Promise<User> {
+    return normalizeUser(await this.request<User & { userId?: string }>('/auth/users', { method: 'POST', body: JSON.stringify(data) }));
+  }
+
+  async listSecurityAuditEvents(): Promise<{ content: SecurityAuditEvent[] }> {
+    return this.request('/audit/security-events?size=100');
+  }
+
+  async getAnalysisGovernance(): Promise<AnalysisGovernanceSummary> {
+    return this.request('/analysis/governance/summary');
+  }
+
+  async getTicketOutboxSummary(): Promise<OutboxSummary> {
+    return this.request('/admin/ticket-operations/outbox-summary');
+  }
+
+  async getWorkflowOutboxSummary(): Promise<OutboxSummary> {
+    return this.request('/workflows/operations/outbox-summary');
+  }
+
   // Workflows & DLQ APIs
-  async listFailedWorkflows(): Promise<any[]> {
-    return this.request<any[]>('/workflows/failed');
+  async listFailedWorkflows(): Promise<WorkflowInstance[]> {
+    return this.request<WorkflowInstance[]>('/workflows/failed');
   }
 
   async retryWorkflow(workflowId: string, reason: string): Promise<any> {
@@ -197,3 +346,7 @@ class ApiClient {
 }
 
 export const api = new ApiClient();
+
+function normalizeUser<T extends User & { userId?: string }>(value: T): User {
+  return { ...value, id: value.id || value.userId || '' };
+}

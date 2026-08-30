@@ -17,10 +17,12 @@ import {
   ArrowLeft,
   Loader2,
   PlusCircle,
-  Inbox
+  Inbox,
+  Paperclip,
+  Download
 } from 'lucide-react';
 import { api } from '../api/client';
-import { Ticket, TicketMessage, Citation } from '../types';
+import { Ticket, TicketMessage, Citation, Attachment } from '../types';
 
 interface CustomerPortalProps {
   activeTab?: string;
@@ -55,6 +57,8 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [isLoadingTickets, setIsLoadingTickets] = useState(false);
   const [ticketError, setTicketError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 
   // Help Center search state
   const [helpQuery, setHelpQuery] = useState('');
@@ -89,6 +93,11 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
     }
   }, []);
 
+  const loadAttachments = useCallback(async (ticketId: string) => {
+    try { setAttachments(await api.listCustomerAttachments(ticketId)); }
+    catch { setAttachments([]); }
+  }, []);
+
   useEffect(() => {
     if (currentTab === 'my-tickets') {
       loadTickets();
@@ -98,10 +107,23 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   useEffect(() => {
     if (selectedTicket) {
       loadMessages(selectedTicket.id);
+      loadAttachments(selectedTicket.id);
     } else {
       setMessages([]);
+      setAttachments([]);
     }
-  }, [selectedTicket, loadMessages]);
+  }, [selectedTicket, loadMessages, loadAttachments]);
+
+  const handleAttachment = async (file?: File) => {
+    if (!selectedTicket || !file) return;
+    setIsUploadingAttachment(true); setTicketError(null);
+    try {
+      const uploaded = await api.uploadCustomerAttachment(selectedTicket.id, file);
+      setAttachments(previous => [...previous, uploaded]);
+    } catch (failure) {
+      setTicketError(failure instanceof Error ? failure.message : 'Unable to upload attachment');
+    } finally { setIsUploadingAttachment(false); }
+  };
 
   const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,48 +209,46 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
     }
   ];
 
+  const pageCopy = {
+    create: {
+      eyebrow: 'Customer portal',
+      title: 'How can we help?',
+      description: 'Tell us what happened and we’ll route your request to the right support team.',
+    },
+    'my-tickets': {
+      eyebrow: 'Your support',
+      title: 'My tickets',
+      description: 'Follow active requests and keep every conversation in one place.',
+    },
+    help: {
+      eyebrow: 'Self-service',
+      title: 'Help center',
+      description: 'Find verified answers from ResolveIQ’s approved support knowledge.',
+    },
+  }[currentTab];
+
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6">
-      {/* Header & Sub-Nav */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+    <div className="app-page max-w-6xl">
+      <header className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-DEFAULT">Customer Support Portal</h1>
-          <p className="text-sm text-muted mt-1">Submit support tickets, track active investigations, or browse the Knowledge Center.</p>
+          <span className="eyebrow">{pageCopy.eyebrow}</span>
+          <h1 className="page-title">{pageCopy.title}</h1>
+          <p className="page-description">{pageCopy.description}</p>
         </div>
-        <div className="flex items-center space-x-1.5 bg-surface-muted p-1 rounded-btn border border-border self-start sm:self-auto">
+        {currentTab !== 'create' && (
           <button
             onClick={() => { setTab('create'); setSelectedTicket(null); }}
-            className={`flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-btn transition-colors ${
-              currentTab === 'create' ? 'bg-surface text-primary shadow-sm' : 'text-muted hover:text-DEFAULT'
-            }`}
+            className="btn-primary self-start sm:self-auto"
           >
-            <PlusCircle className="w-3.5 h-3.5" />
-            <span>Create Ticket</span>
+            <PlusCircle className="h-4 w-4" />
+            New ticket
           </button>
-          <button
-            onClick={() => { setTab('my-tickets'); setSelectedTicket(null); }}
-            className={`flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-btn transition-colors ${
-              currentTab === 'my-tickets' ? 'bg-surface text-primary shadow-sm' : 'text-muted hover:text-DEFAULT'
-            }`}
-          >
-            <Inbox className="w-3.5 h-3.5" />
-            <span>My Tickets</span>
-          </button>
-          <button
-            onClick={() => { setTab('help'); setSelectedTicket(null); }}
-            className={`flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-btn transition-colors ${
-              currentTab === 'help' ? 'bg-surface text-primary shadow-sm' : 'text-muted hover:text-DEFAULT'
-            }`}
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>Help Center</span>
-          </button>
-        </div>
-      </div>
+        )}
+      </header>
 
       {ticketError && (
-        <div role="alert" className="p-3.5 bg-danger/10 border border-danger/20 rounded-card text-danger text-xs flex items-center space-x-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        <div role="alert" className="flex items-center gap-2 rounded-card border border-danger/20 bg-danger/10 p-3.5 text-xs text-danger">
+          <AlertCircle className="h-4 w-4 flex-none" />
           <span>{ticketError}</span>
         </div>
       )}
@@ -238,84 +258,83 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       {/* ========================================================================= */}
       {currentTab === 'create' && (
         submittedTicket ? (
-          <div className="bg-surface border border-success/30 rounded-card p-6 shadow-sm space-y-4">
-            <div className="flex items-center space-x-3 text-success">
-              <CheckCircle2 className="w-6 h-6 flex-shrink-0" />
-              <h2 className="text-lg font-semibold">Ticket Created Successfully</h2>
+          <div className="panel mx-auto max-w-3xl p-6 sm:p-8">
+            <div className="grid h-11 w-11 place-items-center rounded-full bg-success/10 text-success">
+              <CheckCircle2 className="h-5 w-5" />
             </div>
-            <p className="text-sm text-muted">
-              Your ticket <span className="font-mono font-bold text-DEFAULT">{submittedTicket.ticketNumber}</span> has been securely logged into the platform with transactional consistency.
+            <h2 className="mt-4 text-xl font-semibold tracking-[-0.02em] text-DEFAULT">Your request is with us</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Ticket <span className="font-mono font-semibold text-DEFAULT">{submittedTicket.ticketNumber}</span> has been created. We’ll keep you updated as it moves through support.
             </p>
-            <div className="p-3.5 bg-surface-muted rounded-card space-y-1.5 text-xs">
+            <div className="mt-6 space-y-2 rounded-card border border-border-subtle bg-surface-muted p-4 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-muted font-medium">Subject:</span>
-                <span className="font-semibold text-DEFAULT">{submittedTicket.subject}</span>
+                <span className="font-medium text-muted">Subject</span>
+                <span className="max-w-[65%] truncate font-semibold text-DEFAULT">{submittedTicket.subject}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted font-medium">Category / Priority:</span>
+                <span className="font-medium text-muted">Category / priority</span>
                 <span className="font-semibold text-DEFAULT">{submittedTicket.category} / {submittedTicket.priority}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted font-medium">Initial Status:</span>
+                <span className="font-medium text-muted">Status</span>
                 <span className="font-semibold text-primary">{submittedTicket.status}</span>
               </div>
             </div>
-            <div className="flex items-center space-x-2 text-xs text-ai font-medium bg-ai-soft px-3.5 py-2.5 rounded-btn">
-              <Clock className="w-4 h-4 animate-spin flex-shrink-0" />
-              <span>AI Triage Pipeline: Analyzing ticket content, classifying urgency, and retrieving knowledge citations...</span>
+            <div className="mt-3 flex items-start gap-2.5 rounded-btn bg-ai-soft px-3.5 py-3 text-xs leading-5 text-ai">
+              <Clock className="mt-0.5 h-4 w-4 flex-none" />
+              <span>We’re reviewing the details and routing your request to the right specialist.</span>
             </div>
-            <div className="flex flex-wrap gap-3 pt-2">
+            <div className="mt-6 flex flex-wrap gap-3">
               <button
                 onClick={() => {
                   setSubmittedTicket(null);
                   setSubject('');
                   setDescription('');
                 }}
-                className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-btn hover:bg-primary-hover transition-colors"
+                className="btn-primary"
               >
-                Submit Another Request
+                Submit another request
               </button>
               <button
                 onClick={() => {
                   setSubmittedTicket(null);
                   setTab('my-tickets');
                 }}
-                className="px-4 py-2 bg-surface border border-border text-DEFAULT text-xs font-semibold rounded-btn hover:bg-surface-muted transition-colors"
+                className="btn-secondary"
               >
-                View My Tickets
+                View my tickets
               </button>
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmitTicket} className="bg-surface border border-border rounded-card p-6 shadow-sm space-y-5">
-            <div>
-              <h2 className="text-base font-semibold text-DEFAULT">Submit a Support Ticket</h2>
-              <p className="text-xs text-muted mt-0.5">Please provide specific details so our intelligent triage pipeline can route your issue immediately.</p>
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <form onSubmit={handleSubmitTicket} className="panel space-y-5 p-5 sm:p-7">
+            <div className="border-b border-border-subtle pb-5">
+              <h2 className="text-base font-semibold text-DEFAULT">Tell us what happened</h2>
+              <p className="mt-1 text-xs leading-5 text-muted">Include the outcome you expected and any useful IDs or error messages.</p>
             </div>
             
             <div>
-              <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
-                Subject <span className="text-danger">*</span>
+              <label className="field-label">
+                Subject <span className="text-danger" aria-hidden="true">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="Brief summary of the issue (e.g. Cannot access payment history)"
-                className="w-full h-10 px-3 rounded-input border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-surface text-DEFAULT"
+                placeholder="For example, I can’t access my payment history"
+                className="form-control h-11"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
-                  Category
-                </label>
+                <label className="field-label">Category</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full h-10 px-3 rounded-input border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-surface text-DEFAULT"
+                  className="form-control h-11"
                 >
                   <option value="BILLING">Billing & Payments</option>
                   <option value="TECHNICAL">Technical Support / SSO</option>
@@ -325,48 +344,69 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
-                  Suggested Action
-                </label>
-                <div className="h-10 px-3 flex items-center text-xs text-muted bg-surface-muted border border-border rounded-input">
-                  Automated routing & triage by ResolveIQ AI
+                <span className="field-label">Routing</span>
+                <div className="flex h-11 items-center rounded-input border border-border-subtle bg-surface-muted px-3.5 text-xs text-muted">
+                  Automatically matched to a support team
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
-                Detailed Description <span className="text-danger">*</span>
+              <label className="field-label">
+                Details <span className="text-danger" aria-hidden="true">*</span>
               </label>
               <textarea
                 required
                 rows={5}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Provide complete details including steps to reproduce, invoice numbers, error codes, and impacted features..."
-                className="w-full p-3 rounded-input border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-surface text-DEFAULT"
+                placeholder="What happened? When did it start? Include any invoice numbers, error codes, or steps we can reproduce."
+                className="form-control min-h-36 resize-y p-3.5 leading-6"
               />
+              <p className="mt-1.5 text-right text-[10px] text-muted">{description.length} characters</p>
             </div>
 
-            <div className="pt-2 flex items-center justify-between">
+            <div className="flex flex-col-reverse gap-3 border-t border-border-subtle pt-5 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
                 onClick={() => setTab('help')}
-                className="text-xs text-primary font-medium hover:underline flex items-center space-x-1"
+                className="btn-ghost justify-start px-0 text-xs text-primary hover:bg-transparent"
               >
-                <HelpCircle className="w-3.5 h-3.5" />
-                <span>Search Knowledge Base before submitting</span>
+                <HelpCircle className="h-3.5 w-3.5" />
+                Search the help center first
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex items-center space-x-2 px-5 py-2.5 bg-primary text-white text-xs font-semibold rounded-btn hover:bg-primary-hover shadow-sm transition-colors disabled:opacity-50"
+                className="btn-primary"
               >
-                {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                <span>{isSubmitting ? 'Submitting Ticket...' : 'Submit Request'}</span>
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                <span>{isSubmitting ? 'Submitting…' : 'Submit request'}</span>
               </button>
             </div>
           </form>
+          <aside className="panel-flat p-5 lg:sticky lg:top-20">
+            <span className="eyebrow">What happens next</span>
+            <ol className="space-y-5">
+              {[
+                ['1', 'We review the details', 'Your request is categorized and checked for urgency.'],
+                ['2', 'A specialist takes ownership', 'We route it to the team best equipped to help.'],
+                ['3', 'You stay in the loop', 'Replies and status changes appear in My tickets.'],
+              ].map(([number, title, copy]) => (
+                <li key={number} className="flex gap-3">
+                  <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-primary-soft text-[10px] font-semibold text-primary">{number}</span>
+                  <div>
+                    <p className="text-xs font-semibold text-DEFAULT">{title}</p>
+                    <p className="mt-1 text-[11px] leading-4 text-muted">{copy}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-5 border-t border-border-subtle pt-4 text-[11px] leading-4 text-muted">
+              Avoid including passwords, full card numbers, or other sensitive credentials.
+            </div>
+          </aside>
+          </div>
         )
       )}
 
@@ -376,66 +416,69 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       {currentTab === 'my-tickets' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-DEFAULT">My Support History</h2>
+            <div>
+              <h2 className="section-title">Support requests</h2>
+              <p className="mt-1 text-[11px] text-muted">{tickets.length} tickets in this workspace</p>
+            </div>
             <button
               onClick={loadTickets}
               disabled={isLoadingTickets}
-              className="inline-flex items-center space-x-1.5 text-xs text-muted hover:text-DEFAULT px-2.5 py-1 rounded-btn hover:bg-surface-muted transition-colors"
+              className="btn-ghost min-h-9 text-xs"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingTickets ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${isLoadingTickets ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
             </button>
           </div>
 
           {selectedTicket ? (
             /* Ticket Conversation View */
-            <div className="bg-surface border border-border rounded-card p-6 shadow-sm space-y-5">
-              <div className="flex items-center justify-between border-b border-border-subtle pb-4">
+            <div className="panel space-y-5 p-5 sm:p-6">
+              <div className="flex flex-col-reverse gap-4 border-b border-border-subtle pb-5 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center space-x-2">
                     <span className="font-mono text-xs font-bold text-DEFAULT">{selectedTicket.ticketNumber}</span>
-                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-surface-muted text-muted border border-border">
-                      {selectedTicket.status}
+                    <span className="status-chip border-border bg-surface-muted text-muted">
+                      {selectedTicket.status.replace(/_/g, ' ')}
                     </span>
-                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                    <span className="status-chip border-primary/20 bg-primary/10 text-primary">
                       {selectedTicket.priority}
                     </span>
                   </div>
-                  <h3 className="text-lg font-semibold text-DEFAULT">{selectedTicket.subject}</h3>
-                  <p className="text-xs text-muted">Created on {new Date(selectedTicket.createdAt).toLocaleString()}</p>
+                  <h3 className="text-lg font-semibold tracking-[-0.02em] text-DEFAULT">{selectedTicket.subject}</h3>
+                  <p className="text-[11px] text-muted">Created {new Date(selectedTicket.createdAt).toLocaleString()}</p>
                 </div>
                 <button
                   onClick={() => setSelectedTicket(null)}
-                  className="inline-flex items-center space-x-1 text-xs text-primary font-semibold hover:underline"
+                  className="btn-ghost min-h-8 self-start px-0 text-xs text-primary hover:bg-transparent"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Back to All Tickets</span>
+                  <span>Back to tickets</span>
                 </button>
               </div>
 
               {/* Initial Ticket Description */}
-              <div className="p-4 bg-surface-muted rounded-card space-y-1.5">
-                <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">Original Request</span>
-                <p className="text-xs text-DEFAULT whitespace-pre-wrap leading-relaxed">{selectedTicket.description}</p>
+              <div className="rounded-card border border-border-subtle bg-surface-muted p-4">
+                <span className="eyebrow mb-1.5 text-muted">Original request</span>
+                <p className="whitespace-pre-wrap text-xs leading-5 text-DEFAULT">{selectedTicket.description}</p>
               </div>
 
               {/* Message Thread */}
               <div className="space-y-3 pt-2">
-                <h4 className="text-xs font-semibold text-muted uppercase tracking-wider">Conversation History</h4>
+                <h4 className="section-title">Conversation</h4>
                 {isLoadingMessages ? (
                   <div className="py-4 text-center text-xs text-muted flex items-center justify-center space-x-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>Loading messages...</span>
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="p-4 text-center text-xs text-muted bg-surface-muted rounded-card">
+                  <div className="rounded-card border border-dashed border-border bg-surface-muted p-6 text-center text-xs text-muted">
                     No replies yet. An agent or automated update will appear here shortly.
                   </div>
                 ) : (
                   messages.map((m) => (
                     <div
                       key={m.id}
-                      className={`p-3.5 rounded-card text-xs space-y-1 border ${
+                      className={`space-y-1 rounded-card border p-3.5 text-xs ${
                         m.senderRole === 'CUSTOMER'
                           ? 'bg-primary/5 border-primary/20 ml-6 text-DEFAULT'
                           : 'bg-surface-muted border-border mr-6 text-DEFAULT'
@@ -453,23 +496,43 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 )}
               </div>
 
+              <div className="space-y-3 border-t border-border-subtle pt-4">
+                <div className="flex items-center justify-between">
+                  <span className="section-title">Attachments</span>
+                  <label className="btn-secondary min-h-9 cursor-pointer px-3 text-xs">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    <span>{isUploadingAttachment ? 'Scanning…' : 'Attach file'}</span>
+                    <input type="file" className="hidden" disabled={isUploadingAttachment}
+                      accept=".pdf,.png,.jpg,.jpeg,.txt,.json" onChange={event => void handleAttachment(event.target.files?.[0])} />
+                  </label>
+                </div>
+                {attachments.length === 0 ? (
+                  <p className="text-xs text-muted">No files attached. Allowed: PDF, PNG, JPEG, TXT, JSON; maximum 10 MiB.</p>
+                ) : attachments.map(attachment => (
+                  <button key={attachment.id}
+                    onClick={() => void api.downloadAttachment('customer', selectedTicket.id, attachment.id, attachment.fileName)}
+                    className="flex w-full items-center justify-between rounded-btn border border-border-subtle bg-surface-muted p-2.5 text-xs hover:border-primary/40">
+                    <span className="flex items-center space-x-2"><Paperclip className="w-3.5 h-3.5 text-primary" /><span>{attachment.fileName}</span></span>
+                    <span className="flex items-center space-x-2 text-success"><span>{attachment.scanStatus}</span><Download className="w-3.5 h-3.5" /></span>
+                  </button>
+                ))}
+              </div>
+
               {/* Reply Box */}
-              <div className="pt-4 border-t border-border-subtle space-y-3">
-                <label className="block text-xs font-semibold text-muted uppercase tracking-wider">
-                  Add Reply to Support Team
-                </label>
+              <div className="space-y-3 border-t border-border-subtle pt-4">
+                <label className="section-title">Reply to support</label>
                 <textarea
                   rows={3}
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Provide additional details or response..."
-                  className="w-full p-3 rounded-input border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-surface text-DEFAULT"
+                  className="form-control min-h-28 resize-y p-3.5 leading-6"
                 />
                 <div className="flex justify-end">
                   <button
                     onClick={handleSendReply}
                     disabled={isSendingReply || !replyText.trim()}
-                    className="inline-flex items-center space-x-2 px-4 py-2 bg-primary text-white text-xs font-semibold rounded-btn hover:bg-primary-hover transition-colors disabled:opacity-50"
+                    className="btn-primary"
                   >
                     {isSendingReply ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                     <span>{isSendingReply ? 'Sending Reply...' : 'Send Reply'}</span>
@@ -481,40 +544,41 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
             /* Ticket Listing Table/Cards */
             <div className="space-y-2.5">
               {isLoadingTickets && (
-                <div className="p-8 text-center text-muted bg-surface border border-border rounded-card text-xs flex items-center justify-center space-x-2">
+                <div className="panel-flat flex items-center justify-center gap-2 p-10 text-center text-xs text-muted">
                   <Loader2 className="w-4 h-4 animate-spin text-primary" />
                   <span>Loading support tickets...</span>
                 </div>
               )}
 
               {!isLoadingTickets && tickets.length === 0 && (
-                <div className="p-10 text-center bg-surface border border-border rounded-card space-y-3">
-                  <div className="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <Inbox className="w-5 h-5" />
+                <div className="panel space-y-3 p-10 text-center">
+                  <div className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-primary/10 text-primary">
+                    <Inbox className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-DEFAULT">No Tickets Found</p>
-                    <p className="text-xs text-muted mt-0.5">You haven't submitted any support requests in this workspace yet.</p>
+                    <p className="text-sm font-semibold text-DEFAULT">No tickets yet</p>
+                    <p className="mt-1 text-xs text-muted">When you submit a request, its progress will appear here.</p>
                   </div>
                   <button
                     onClick={() => setTab('create')}
-                    className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-btn hover:bg-primary-hover transition-colors"
+                    className="btn-primary"
                   >
-                    Create Your First Ticket
+                    Create your first ticket
                   </button>
                 </div>
               )}
 
               {!isLoadingTickets && tickets.map((t) => (
-                <div
+                <button
+                  type="button"
                   key={t.id}
                   onClick={() => setSelectedTicket(t)}
-                  className="p-4 bg-surface border border-border hover:border-primary/50 cursor-pointer rounded-card transition-all flex items-center justify-between group shadow-sm hover:shadow"
+                  className="panel-flat group flex w-full items-center justify-between p-4 text-left transition-[border-color,box-shadow] hover:border-primary/40 hover:shadow-sm"
                 >
                   <div className="space-y-1.5 flex-1 pr-4">
                     <div className="flex items-center space-x-2">
-                      <span className="font-mono text-xs font-bold text-DEFAULT">{t.ticketNumber}</span>
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
+                      <span className="font-mono text-[11px] font-semibold text-DEFAULT">{t.ticketNumber}</span>
+                      <span className={`status-chip ${
                         t.status === 'RESOLVED' || t.status === 'CLOSED'
                           ? 'bg-success/10 text-success border-success/20'
                           : t.status === 'READY_FOR_AGENT' || t.status === 'IN_PROGRESS'
@@ -524,24 +588,24 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                         {t.status.replace(/_/g, ' ')}
                       </span>
                       {t.category && (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-surface-muted text-muted">
+                        <span className="rounded-full bg-surface-muted px-2.5 py-1 text-[10px] font-medium text-muted">
                           {t.category}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm font-medium text-DEFAULT group-hover:text-primary transition-colors line-clamp-1">
+                    <p className="line-clamp-1 text-sm font-medium text-DEFAULT transition-colors group-hover:text-primary">
                       {t.subject}
                     </p>
-                    <p className="text-xs text-muted">
-                      Created on {new Date(t.createdAt).toLocaleDateString()} at {new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <p className="text-[11px] text-muted">
+                      Created {new Date(t.createdAt).toLocaleDateString()} at {new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2 text-xs font-medium text-primary flex-shrink-0">
-                    <MessageSquare className="w-4 h-4" />
-                    <span className="hidden sm:inline">View Details</span>
+                    <MessageSquare className="h-4 w-4" />
+                    <span className="hidden sm:inline">View</span>
                     <ChevronRight className="w-4 h-4 text-muted group-hover:text-primary transition-colors" />
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -553,54 +617,57 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       {/* ========================================================================= */}
       {currentTab === 'help' && (
         <div className="space-y-6">
-          <div className="bg-surface border border-border rounded-card p-6 shadow-sm space-y-4">
+          <section className="panel space-y-5 p-5 sm:p-7">
             <div className="max-w-2xl">
-              <h2 className="text-lg font-bold text-DEFAULT flex items-center space-x-2">
-                <BookOpen className="w-5 h-5 text-primary" />
-                <span>ResolveIQ Self-Service Knowledge Base</span>
+              <h2 className="flex items-center gap-2 text-lg font-semibold tracking-[-0.02em] text-DEFAULT">
+                <BookOpen className="h-5 w-5 text-primary" />
+                <span>What do you need help with?</span>
               </h2>
-              <p className="text-xs text-muted mt-1">
-                Search verified troubleshooting guides, SLA policies, and knowledge articles powered by our hybrid RRF search engine.
+              <p className="mt-1.5 text-xs leading-5 text-muted">
+                Search concise, verified guidance written and approved by our support team.
               </p>
             </div>
 
-            <form onSubmit={(e) => handleHelpSearch(e)} className="flex items-center space-x-2 bg-surface-muted p-1.5 rounded-card border border-border">
-              <Search className="w-4 h-4 text-muted ml-2.5 flex-shrink-0" />
-              <input
-                type="text"
-                value={helpQuery}
-                onChange={(e) => setHelpQuery(e.target.value)}
-                placeholder="Search troubleshooting guides (e.g. invoice dispute, Okta SAML error, webhook HMAC)..."
-                className="flex-1 bg-transparent text-sm focus:outline-none text-DEFAULT px-2 py-1"
-              />
+            <form onSubmit={(e) => handleHelpSearch(e)} className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-muted" />
+                <input
+                  type="search"
+                  value={helpQuery}
+                  onChange={(e) => setHelpQuery(e.target.value)}
+                  placeholder="Search billing, login, integrations, or account access"
+                  aria-label="Search help articles"
+                  className="form-control h-11 pl-10"
+                />
+              </div>
               <button
                 type="submit"
                 disabled={isSearchingHelp || !helpQuery.trim()}
-                className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-btn hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center space-x-1.5 flex-shrink-0"
+                className="btn-primary h-11 flex-none"
               >
-                {isSearchingHelp && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>{isSearchingHelp ? 'Searching...' : 'Search Articles'}</span>
+                {isSearchingHelp && <Loader2 className="h-4 w-4 animate-spin" />}
+                <span>{isSearchingHelp ? 'Searching…' : 'Search articles'}</span>
               </button>
             </form>
 
             {helpError && (
-              <div role="alert" className="p-3 bg-danger/10 text-danger border border-danger/20 rounded-card text-xs">
+              <div role="alert" className="rounded-card border border-danger/20 bg-danger/10 p-3 text-xs text-danger">
                 {helpError}
               </div>
             )}
-          </div>
+          </section>
 
           {/* Search Results Display */}
           {helpResults && (
-            <div className="bg-surface border border-primary/30 rounded-card p-5 space-y-4 shadow-sm">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <h3 className="text-sm font-semibold text-DEFAULT flex items-center space-x-2">
-                  <Search className="w-4 h-4 text-primary" />
-                  <span>Search Results ({helpResults.length} articles found)</span>
+            <section className="panel space-y-4 p-5">
+              <div className="flex items-center justify-between border-b border-border-subtle pb-4">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-DEFAULT">
+                  <Search className="h-4 w-4 text-primary" />
+                  <span>{helpResults.length} matching articles</span>
                 </h3>
                 <button
                   onClick={() => { setHelpResults(null); setSelectedArticle(null); }}
-                  className="text-xs text-muted hover:text-DEFAULT"
+                  className="btn-ghost min-h-8 text-xs"
                 >
                   Clear Results
                 </button>
@@ -608,9 +675,9 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
 
               {selectedArticle ? (
                 /* Full Article Detail Card */
-                <div className="p-4 bg-surface-muted rounded-card space-y-3">
+                <article className="space-y-3 rounded-card border border-border-subtle bg-surface-muted p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-primary uppercase tracking-wider">{selectedArticle.sourceType}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-primary">{selectedArticle.sourceType}</span>
                     <button
                       onClick={() => setSelectedArticle(null)}
                       className="text-xs text-primary font-semibold hover:underline"
@@ -618,11 +685,11 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                       Back to Results
                     </button>
                   </div>
-                  <h4 className="text-base font-bold text-DEFAULT">{selectedArticle.title}</h4>
-                  <div className="text-xs text-DEFAULT leading-relaxed whitespace-pre-wrap p-3 bg-surface rounded-card border border-border">
+                  <h4 className="text-base font-semibold text-DEFAULT">{selectedArticle.title}</h4>
+                  <div className="whitespace-pre-wrap rounded-card border border-border-subtle bg-surface p-4 text-xs leading-5 text-DEFAULT">
                     {selectedArticle.citationText || selectedArticle.snippet}
                   </div>
-                </div>
+                </article>
               ) : helpResults.length === 0 ? (
                 <div className="p-6 text-center text-muted text-xs space-y-2">
                   <p>No verified articles matched your query.</p>
@@ -634,71 +701,73 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2.5">
+                <div className="divide-y divide-border-subtle">
                   {helpResults.map((art, idx) => (
-                    <div
+                    <button
+                      type="button"
                       key={idx}
                       onClick={() => setSelectedArticle(art)}
-                      className="p-3.5 bg-surface border border-border hover:border-primary/50 cursor-pointer rounded-card transition-colors space-y-1"
+                      className="w-full py-4 text-left first:pt-0 last:pb-0"
                     >
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-semibold text-DEFAULT hover:text-primary">{art.title}</h4>
                         {art.confidenceScore !== undefined && (
-                          <span className="text-[10px] font-mono text-muted bg-surface-muted px-2 py-0.5 rounded-full">
-                            Score: {(art.confidenceScore * 100).toFixed(1)}%
+                          <span className="rounded-full bg-primary-soft px-2 py-1 font-mono text-[10px] text-primary">
+                            {(art.confidenceScore * 100).toFixed(1)}% match
                           </span>
                         )}
                       </div>
                       <p className="text-xs text-muted line-clamp-2">{art.snippet || art.citationText}</p>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
-            </div>
+            </section>
           )}
 
           {/* Curated Help Topics */}
           <div>
-            <h3 className="text-sm font-bold text-muted uppercase tracking-wider mb-3">Popular Knowledge Topics</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h3 className="section-title mb-3">Browse popular topics</h3>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {curatedTopics.map((topic, idx) => {
                 const IconComponent = topic.icon;
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={idx}
                     onClick={() => handleHelpSearch(undefined, topic.query)}
-                    className="p-4 bg-surface border border-border hover:border-primary/50 rounded-card transition-all cursor-pointer group shadow-sm hover:shadow space-y-2"
+                    className="panel-flat group space-y-3 p-4 text-left transition-[border-color,box-shadow] hover:border-primary/40 hover:shadow-sm"
                   >
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
-                        <IconComponent className="w-4 h-4" />
+                      <div className="grid h-9 w-9 place-items-center rounded-input bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+                        <IconComponent className="h-4 w-4" />
                       </div>
                       <h4 className="text-sm font-semibold text-DEFAULT group-hover:text-primary transition-colors">
                         {topic.title}
                       </h4>
                     </div>
-                    <p className="text-xs text-muted leading-relaxed">{topic.desc}</p>
-                    <div className="flex items-center space-x-1 text-xs text-primary font-medium pt-1">
-                      <span>Explore articles</span>
+                    <p className="text-xs leading-5 text-muted">{topic.desc}</p>
+                    <div className="flex items-center gap-1 pt-1 text-xs font-medium text-primary">
+                      <span>View guidance</span>
                       <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
           </div>
 
           {/* Still Need Help Banner */}
-          <div className="p-5 bg-surface border border-border rounded-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="panel-flat flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
             <div>
-              <h4 className="text-sm font-bold text-DEFAULT">Can't find what you're looking for?</h4>
-              <p className="text-xs text-muted mt-0.5">Our support team and automated AI triage engine are ready to assist you.</p>
+              <h4 className="text-sm font-semibold text-DEFAULT">Still need help?</h4>
+              <p className="mt-1 text-xs text-muted">Send us the details and our support team will take it from here.</p>
             </div>
             <button
               onClick={() => setTab('create')}
-              className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-btn hover:bg-primary-hover transition-colors flex-shrink-0"
+              className="btn-primary flex-none"
             >
-              Submit a Support Ticket
+              Create a ticket
             </button>
           </div>
         </div>
