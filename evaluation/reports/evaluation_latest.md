@@ -1,6 +1,6 @@
 # ResolveIQ AI Evaluation & Benchmark Quality Report
 
-**Generated At:** `2026-08-29T15:13:52.526009+00:00`  
+**Generated At:** `2026-08-30T14:48:03.568161+00:00`  
 **Dataset:** `evaluation/datasets/eval_ground_truth.json` (100 test cases across 20 knowledge domains)  
 **Status:** ✅ ALL GATES PASSED (DETERMINISTIC SHA-256 HARNESS)
 
@@ -12,8 +12,8 @@
 | :--- | :--- | :--- | :--- |
 | **Retrieval Recall@5** | **94.00%** | >= 85.0% | ✅ Passed |
 | **Mean Reciprocal Rank (MRR)** | **0.8344** | >= 0.7500 | ✅ Passed |
-| **Retrieval Latency (p50)** | **0.16 ms** | < 100 ms | ✅ Passed |
-| **Retrieval Latency (p95)** | **0.17 ms** | < 250 ms | ✅ Passed |
+| **Retrieval Latency (p50)** | **0.25 ms** | < 100 ms | ✅ Passed |
+| **Retrieval Latency (p95)** | **0.41 ms** | < 250 ms | ✅ Passed |
 | **Autonomous Send Rate** | **0.00%** | 0.00% (Strict Invariant) | ✅ Enforced |
 | **Cross-Tenant Leakage Rate** | **0.00%** | 0.00% (Zero Tolerance) | ✅ Enforced |
 | **PII Leakage Rate** | **0.00%** | < 0.01% | ✅ Enforced |

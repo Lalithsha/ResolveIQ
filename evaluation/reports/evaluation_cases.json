@@ -16,7 +16,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.184
+    "latency_ms": 0.253
   },
   {
     "case_id": 2,
@@ -35,7 +35,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.167
+    "latency_ms": 0.175
   },
   {
     "case_id": 3,
@@ -54,7 +54,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.162
+    "latency_ms": 0.216
   },
   {
     "case_id": 4,
@@ -73,7 +73,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.162
+    "latency_ms": 0.289
   },
   {
     "case_id": 5,
@@ -92,7 +92,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.161
+    "latency_ms": 0.234
   },
   {
     "case_id": 6,
@@ -111,7 +111,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.215
   },
   {
     "case_id": 7,
@@ -130,7 +130,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.194
   },
   {
     "case_id": 8,
@@ -149,7 +149,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.162
+    "latency_ms": 0.205
   },
   {
     "case_id": 9,
@@ -168,7 +168,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.284
   },
   {
     "case_id": 10,
@@ -187,7 +187,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.336
   },
   {
     "case_id": 11,
@@ -206,7 +206,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.162
+    "latency_ms": 0.22
   },
   {
     "case_id": 12,
@@ -225,7 +225,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.161
+    "latency_ms": 0.262
   },
   {
     "case_id": 13,
@@ -244,7 +244,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.162
+    "latency_ms": 0.314
   },
   {
     "case_id": 14,
@@ -263,7 +263,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.33
   },
   {
     "case_id": 15,
@@ -282,7 +282,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.3
   },
   {
     "case_id": 16,
@@ -301,7 +301,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.343
   },
   {
     "case_id": 17,
@@ -320,7 +320,7 @@
     "recall_at_5": true,
     "rank": 5,
     "reciprocal_rank": 0.2,
-    "latency_ms": 0.159
+    "latency_ms": 0.192
   },
   {
     "case_id": 18,
@@ -339,7 +339,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.161
+    "latency_ms": 0.339
   },
   {
     "case_id": 19,
@@ -358,7 +358,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.204
   },
   {
     "case_id": 20,
@@ -377,7 +377,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.17
+    "latency_ms": 0.203
   },
   {
     "case_id": 21,
@@ -396,7 +396,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.175
+    "latency_ms": 0.406
   },
   {
     "case_id": 22,
@@ -415,7 +415,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.252
   },
   {
     "case_id": 23,
@@ -434,7 +434,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.171
+    "latency_ms": 0.262
   },
   {
     "case_id": 24,
@@ -453,7 +453,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.17
+    "latency_ms": 0.208
   },
   {
     "case_id": 25,
@@ -472,7 +472,7 @@
     "recall_at_5": false,
     "rank": 6,
     "reciprocal_rank": 0.1667,
-    "latency_ms": 0.158
+    "latency_ms": 0.18
   },
   {
     "case_id": 26,
@@ -491,7 +491,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.165
+    "latency_ms": 0.255
   },
   {
     "case_id": 27,
@@ -510,7 +510,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.236
   },
   {
     "case_id": 28,
@@ -529,7 +529,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.233
   },
   {
     "case_id": 29,
@@ -548,7 +548,7 @@
     "recall_at_5": true,
     "rank": 2,
     "reciprocal_rank": 0.5,
-    "latency_ms": 0.163
+    "latency_ms": 0.195
   },
   {
     "case_id": 30,
@@ -567,7 +567,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.269
   },
   {
     "case_id": 31,
@@ -586,7 +586,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.161
+    "latency_ms": 0.286
   },
   {
     "case_id": 32,
@@ -605,7 +605,7 @@
     "recall_at_5": true,
     "rank": 3,
     "reciprocal_rank": 0.3333,
-    "latency_ms": 0.162
+    "latency_ms": 0.342
   },
   {
     "case_id": 33,
@@ -624,7 +624,7 @@
     "recall_at_5": true,
     "rank": 3,
     "reciprocal_rank": 0.3333,
-    "latency_ms": 0.167
+    "latency_ms": 0.191
   },
   {
     "case_id": 34,
@@ -643,7 +643,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.167
+    "latency_ms": 0.281
   },
   {
     "case_id": 35,
@@ -662,7 +662,7 @@
     "recall_at_5": false,
     "rank": 10,
     "reciprocal_rank": 0.1,
-    "latency_ms": 0.161
+    "latency_ms": 0.277
   },
   {
     "case_id": 36,
@@ -681,7 +681,7 @@
     "recall_at_5": true,
     "rank": 4,
     "reciprocal_rank": 0.25,
-    "latency_ms": 0.16
+    "latency_ms": 0.244
   },
   {
     "case_id": 37,
@@ -700,7 +700,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.171
+    "latency_ms": 0.31
   },
   {
     "case_id": 38,
@@ -719,7 +719,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.165
+    "latency_ms": 0.291
   },
   {
     "case_id": 39,
@@ -738,7 +738,7 @@
     "recall_at_5": false,
     "rank": 6,
     "reciprocal_rank": 0.1667,
-    "latency_ms": 0.161
+    "latency_ms": 0.267
   },
   {
     "case_id": 40,
@@ -757,7 +757,7 @@
     "recall_at_5": false,
     "rank": 16,
     "reciprocal_rank": 0.0625,
-    "latency_ms": 0.158
+    "latency_ms": 0.181
   },
   {
     "case_id": 41,
@@ -776,7 +776,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.259
   },
   {
     "case_id": 42,
@@ -795,7 +795,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.161
+    "latency_ms": 0.251
   },
   {
     "case_id": 43,
@@ -814,7 +814,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.245
   },
   {
     "case_id": 44,
@@ -833,7 +833,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.248
   },
   {
     "case_id": 45,
@@ -852,7 +852,7 @@
     "recall_at_5": false,
     "rank": 12,
     "reciprocal_rank": 0.0833,
-    "latency_ms": 0.158
+    "latency_ms": 0.225
   },
   {
     "case_id": 46,
@@ -871,7 +871,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.224
   },
   {
     "case_id": 47,
@@ -890,7 +890,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.222
   },
   {
     "case_id": 48,
@@ -909,7 +909,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.161
+    "latency_ms": 0.256
   },
   {
     "case_id": 49,
@@ -928,7 +928,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.211
   },
   {
     "case_id": 50,
@@ -947,7 +947,7 @@
     "recall_at_5": true,
     "rank": 3,
     "reciprocal_rank": 0.3333,
-    "latency_ms": 0.161
+    "latency_ms": 0.195
   },
   {
     "case_id": 51,
@@ -966,7 +966,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.413
   },
   {
     "case_id": 52,
@@ -985,7 +985,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.161
+    "latency_ms": 0.374
   },
   {
     "case_id": 53,
@@ -1004,7 +1004,7 @@
     "recall_at_5": true,
     "rank": 2,
     "reciprocal_rank": 0.5,
-    "latency_ms": 0.159
+    "latency_ms": 0.191
   },
   {
     "case_id": 54,
@@ -1023,7 +1023,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.162
+    "latency_ms": 0.282
   },
   {
     "case_id": 55,
@@ -1042,7 +1042,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.215
   },
   {
     "case_id": 56,
@@ -1061,7 +1061,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.266
   },
   {
     "case_id": 57,
@@ -1080,7 +1080,7 @@
     "recall_at_5": true,
     "rank": 2,
     "reciprocal_rank": 0.5,
-    "latency_ms": 0.165
+    "latency_ms": 0.217
   },
   {
     "case_id": 58,
@@ -1099,7 +1099,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.162
+    "latency_ms": 0.202
   },
   {
     "case_id": 59,
@@ -1118,7 +1118,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.158
+    "latency_ms": 0.178
   },
   {
     "case_id": 60,
@@ -1137,7 +1137,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.312
   },
   {
     "case_id": 61,
@@ -1156,7 +1156,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.161
+    "latency_ms": 0.304
   },
   {
     "case_id": 62,
@@ -1175,7 +1175,7 @@
     "recall_at_5": true,
     "rank": 2,
     "reciprocal_rank": 0.5,
-    "latency_ms": 0.168
+    "latency_ms": 0.306
   },
   {
     "case_id": 63,
@@ -1194,7 +1194,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.163
+    "latency_ms": 0.241
   },
   {
     "case_id": 64,
@@ -1213,7 +1213,7 @@
     "recall_at_5": true,
     "rank": 2,
     "reciprocal_rank": 0.5,
-    "latency_ms": 0.162
+    "latency_ms": 0.19
   },
   {
     "case_id": 65,
@@ -1232,7 +1232,7 @@
     "recall_at_5": true,
     "rank": 2,
     "reciprocal_rank": 0.5,
-    "latency_ms": 0.161
+    "latency_ms": 0.363
   },
   {
     "case_id": 66,
@@ -1251,7 +1251,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.161
+    "latency_ms": 0.188
   },
   {
     "case_id": 67,
@@ -1270,7 +1270,7 @@
     "recall_at_5": true,
     "rank": 5,
     "reciprocal_rank": 0.2,
-    "latency_ms": 0.164
+    "latency_ms": 0.183
   },
   {
     "case_id": 68,
@@ -1289,7 +1289,7 @@
     "recall_at_5": true,
     "rank": 2,
     "reciprocal_rank": 0.5,
-    "latency_ms": 0.162
+    "latency_ms": 0.233
   },
   {
     "case_id": 69,
@@ -1308,7 +1308,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.163
+    "latency_ms": 0.264
   },
   {
     "case_id": 70,
@@ -1327,7 +1327,7 @@
     "recall_at_5": true,
     "rank": 3,
     "reciprocal_rank": 0.3333,
-    "latency_ms": 0.162
+    "latency_ms": 0.18
   },
   {
     "case_id": 71,
@@ -1346,7 +1346,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.165
+    "latency_ms": 0.174
   },
   {
     "case_id": 72,
@@ -1365,7 +1365,7 @@
     "recall_at_5": true,
     "rank": 4,
     "reciprocal_rank": 0.25,
-    "latency_ms": 0.161
+    "latency_ms": 0.24
   },
   {
     "case_id": 73,
@@ -1384,7 +1384,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.162
+    "latency_ms": 0.228
   },
   {
     "case_id": 74,
@@ -1403,7 +1403,7 @@
     "recall_at_5": true,
     "rank": 2,
     "reciprocal_rank": 0.5,
-    "latency_ms": 0.164
+    "latency_ms": 0.207
   },
   {
     "case_id": 75,
@@ -1422,7 +1422,7 @@
     "recall_at_5": true,
     "rank": 2,
     "reciprocal_rank": 0.5,
-    "latency_ms": 0.162
+    "latency_ms": 0.264
   },
   {
     "case_id": 76,
@@ -1441,7 +1441,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.268
   },
   {
     "case_id": 77,
@@ -1460,7 +1460,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.243
   },
   {
     "case_id": 78,
@@ -1479,7 +1479,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.284
   },
   {
     "case_id": 79,
@@ -1498,7 +1498,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.158
+    "latency_ms": 0.196
   },
   {
     "case_id": 80,
@@ -1517,7 +1517,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.162
+    "latency_ms": 0.322
   },
   {
     "case_id": 81,
@@ -1536,7 +1536,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.273
   },
   {
     "case_id": 82,
@@ -1555,7 +1555,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.158
+    "latency_ms": 0.249
   },
   {
     "case_id": 83,
@@ -1574,7 +1574,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.246
   },
   {
     "case_id": 84,
@@ -1593,7 +1593,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.243
   },
   {
     "case_id": 85,
@@ -1612,7 +1612,7 @@
     "recall_at_5": true,
     "rank": 2,
     "reciprocal_rank": 0.5,
-    "latency_ms": 0.159
+    "latency_ms": 0.205
   },
   {
     "case_id": 86,
@@ -1631,7 +1631,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.229
   },
   {
     "case_id": 87,
@@ -1650,7 +1650,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.371
   },
   {
     "case_id": 88,
@@ -1669,7 +1669,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.532
   },
   {
     "case_id": 89,
@@ -1688,7 +1688,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.162
+    "latency_ms": 0.441
   },
   {
     "case_id": 90,
@@ -1707,7 +1707,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.163
+    "latency_ms": 0.411
   },
   {
     "case_id": 91,
@@ -1726,7 +1726,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.16
+    "latency_ms": 0.411
   },
   {
     "case_id": 92,
@@ -1745,7 +1745,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.159
+    "latency_ms": 0.45
   },
   {
     "case_id": 93,
@@ -1764,7 +1764,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.162
+    "latency_ms": 0.241
   },
   {
     "case_id": 94,
@@ -1783,7 +1783,7 @@
     "recall_at_5": false,
     "rank": 8,
     "reciprocal_rank": 0.125,
-    "latency_ms": 0.161
+    "latency_ms": 0.314
   },
   {
     "case_id": 95,
@@ -1802,7 +1802,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.163
+    "latency_ms": 0.19
   },
   {
     "case_id": 96,
@@ -1821,7 +1821,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.171
+    "latency_ms": 0.448
   },
   {
     "case_id": 97,
@@ -1840,7 +1840,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.161
+    "latency_ms": 0.234
   },
   {
     "case_id": 98,
@@ -1859,7 +1859,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.169
+    "latency_ms": 0.196
   },
   {
     "case_id": 99,
@@ -1878,7 +1878,7 @@
     "recall_at_5": true,
     "rank": 1,
     "reciprocal_rank": 1.0,
-    "latency_ms": 0.163
+    "latency_ms": 0.243
   },
   {
     "case_id": 100,
@@ -1897,6 +1897,6 @@
     "recall_at_5": true,
     "rank": 2,
     "reciprocal_rank": 0.5,
-    "latency_ms": 0.159
+    "latency_ms": 0.237
   }
 ]

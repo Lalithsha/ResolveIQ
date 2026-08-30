@@ -16,7 +16,7 @@ fingerprint() {
 
 build_service() {
   echo "[dev-reload] Compiling ${service_name} and required modules..."
-  ./mvnw -q -pl ":${service_name}" -am package -DskipTests -Djacoco.skip=true
+  ./mvnw -q -pl ":${service_name}" -am package -Dmaven.test.skip=true -Djacoco.skip=true
 }
 
 start_service() {

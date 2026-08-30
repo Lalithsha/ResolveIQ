@@ -2,6 +2,8 @@ package com.resolveiq.contracts.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.resolveiq.contracts.event.EventEnvelope;
+import com.resolveiq.contracts.event.TicketEvents;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
