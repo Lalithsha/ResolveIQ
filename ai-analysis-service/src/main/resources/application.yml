@@ -28,8 +28,18 @@ resolveiq:
     chat-provider: ${RESOLVEIQ_AI_CHAT_PROVIDER:deterministic}
     chat-model: ${RESOLVEIQ_AI_CHAT_MODEL:resolveiq-deterministic-chat-v1}
     base-url: ${RESOLVEIQ_AI_BASE_URL:https://api.openai.com/v1}
+    gemini-base-url: ${RESOLVEIQ_AI_GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
     api-key: ${RESOLVEIQ_AI_API_KEY:}
     ollama-base-url: ${RESOLVEIQ_OLLAMA_BASE_URL:http://localhost:11434}
+    guardrails:
+      max-characters: ${RESOLVEIQ_AI_MAX_CHARACTERS:12000}
+    budget:
+      max-input-tokens: ${RESOLVEIQ_AI_MAX_INPUT_TOKENS:4000}
+      max-output-tokens: ${RESOLVEIQ_AI_MAX_OUTPUT_TOKENS:1000}
+      max-cost-micros: ${RESOLVEIQ_AI_MAX_COST_MICROS:10000}
+    cost:
+      input-per-million-micros: ${RESOLVEIQ_AI_INPUT_COST_PER_MILLION_MICROS:150000}
+      output-per-million-micros: ${RESOLVEIQ_AI_OUTPUT_COST_PER_MILLION_MICROS:600000}
 
 eureka:
   client:

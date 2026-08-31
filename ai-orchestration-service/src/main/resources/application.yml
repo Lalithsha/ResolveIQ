@@ -45,3 +45,30 @@ management:
     web:
       exposure:
         include: health,info,metrics
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      analysis: &dependency-circuit
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 20s
+      routing: *dependency-circuit
+      rag: *dependency-circuit
+  retry:
+    instances:
+      analysis: &dependency-retry
+        max-attempts: 3
+        wait-duration: 250ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+      routing: *dependency-retry
+      rag: *dependency-retry
+  bulkhead:
+    instances:
+      analysis: &dependency-bulkhead
+        max-concurrent-calls: 20
+        max-wait-duration: 0
+      routing: *dependency-bulkhead
+      rag: *dependency-bulkhead

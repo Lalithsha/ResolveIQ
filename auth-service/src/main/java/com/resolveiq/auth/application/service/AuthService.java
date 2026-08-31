@@ -258,6 +258,49 @@ public class AuthService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public AdminUserPageResponse listUsers(UUID tenantId, int page, int size) {
+        org.springframework.data.domain.Page<User> result = userRepository.findByTenantId(
+            tenantId,
+            org.springframework.data.domain.PageRequest.of(Math.max(page, 0), Math.max(1, Math.min(size, 100)),
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "fullName")));
+        return new AdminUserPageResponse(
+            result.getContent().stream().map(this::profile).toList(),
+            result.getNumber(), result.getSize(), result.getTotalElements(), result.getTotalPages());
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfileDto findDirectoryUser(UUID tenantId, UUID userId) {
+        return userRepository.findByIdAndTenantId(userId, tenantId).map(this::profile)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+    @Transactional
+    public UserProfileDto updateRoles(UUID tenantId, UUID targetUserId, UUID operatorId, Set<Role> roles,
+                                      String ipAddress, String userAgent) {
+        if (targetUserId.equals(operatorId) && !roles.contains(Role.ADMIN)) {
+            throw new IllegalArgumentException("Administrators cannot remove their own admin role");
+        }
+        User user = userRepository.findByIdAndTenantId(targetUserId, tenantId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.replaceRoles(roles);
+        userRepository.save(user);
+        recordAudit(tenantId, targetUserId, "USER_ROLES_CHANGED", "SUCCESS", ipAddress, userAgent);
+        return profile(user);
+    }
+
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<SecurityAuditEvent> listAuditEvents(UUID tenantId, int page, int size) {
+        return auditEventRepository.findByTenantId(
+            tenantId,
+            org.springframework.data.domain.PageRequest.of(Math.max(page, 0), Math.max(1, Math.min(size, 100)),
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "occurredAt")));
+    }
+
+    private UserProfileDto profile(User user) {
+        return new UserProfileDto(user.getId(), user.getTenantId(), user.getEmail(), user.getFullName(), user.getRoles());
+    }
+
     private void recordAudit(UUID tenantId, UUID userId, String eventType, String status, String ipAddress, String userAgent) {
         SecurityAuditEvent event = new SecurityAuditEvent(tenantId, userId, eventType, status, ipAddress, userAgent);
         auditEventRepository.save(event);

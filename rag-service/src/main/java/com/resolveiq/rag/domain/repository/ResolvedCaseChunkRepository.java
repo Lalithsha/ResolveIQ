@@ -16,20 +16,47 @@ public interface ResolvedCaseChunkRepository extends JpaRepository<ResolvedCaseC
 
     @Query(value = """
         SELECT rcc.* FROM rag_schema.resolved_case_chunks rcc
+        JOIN rag_schema.resolved_cases rc ON rcc.resolved_case_id = rc.id
         WHERE rcc.tenant_id = :tenantId
-          AND rcc.tsv_content @@ plainto_tsquery('english', :query)
-        ORDER BY ts_rank_cd(rcc.tsv_content, plainto_tsquery('english', :query)) DESC, rcc.id
+          AND (:category IS NULL OR rc.category = :category)
+          AND rcc.tsv_content @@ websearch_to_tsquery('english', :query)
+        ORDER BY ts_rank_cd(rcc.tsv_content, websearch_to_tsquery('english', :query)) DESC, rcc.id
         LIMIT :limit
         """, nativeQuery = true)
     List<ResolvedCaseChunk> searchLexical(
         @Param("tenantId") UUID tenantId,
         @Param("query") String query,
+        @Param("category") String category,
         @Param("limit") int limit
     );
 
     @Query(value = """
         SELECT rcc.* FROM rag_schema.resolved_case_chunks rcc
+        JOIN rag_schema.resolved_cases rc ON rcc.resolved_case_id = rc.id
         WHERE rcc.tenant_id = :tenantId
+          AND (:category IS NULL OR rc.category = :category)
+          AND rcc.tsv_content @@ to_tsquery(
+              'english',
+              replace(plainto_tsquery('english', :query)::text, ' & ', ' | ')
+          )
+        ORDER BY ts_rank_cd(
+            rcc.tsv_content,
+            to_tsquery('english', replace(plainto_tsquery('english', :query)::text, ' & ', ' | '))
+        ) DESC, rcc.id
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<ResolvedCaseChunk> searchLexicalRelaxed(
+        @Param("tenantId") UUID tenantId,
+        @Param("query") String query,
+        @Param("category") String category,
+        @Param("limit") int limit
+    );
+
+    @Query(value = """
+        SELECT rcc.* FROM rag_schema.resolved_case_chunks rcc
+        JOIN rag_schema.resolved_cases rc ON rcc.resolved_case_id = rc.id
+        WHERE rcc.tenant_id = :tenantId
+          AND (:category IS NULL OR rc.category = :category)
           AND rcc.embedding IS NOT NULL
         ORDER BY rcc.embedding <=> cast(:embedding as vector)
         LIMIT :limit
@@ -37,6 +64,7 @@ public interface ResolvedCaseChunkRepository extends JpaRepository<ResolvedCaseC
     List<ResolvedCaseChunk> searchVector(
         @Param("tenantId") UUID tenantId,
         @Param("embedding") String embeddingString,
+        @Param("category") String category,
         @Param("limit") int limit
     );
 

@@ -64,3 +64,52 @@ jobs:
         run: |
           chmod +x scripts/scan-secrets.sh
           ./scripts/scan-secrets.sh
+
+  browser-acceptance:
+    name: Six-Role Browser Acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: [backend-build, frontend-build]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: npm --prefix frontend ci
+
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Start Complete ResolveIQ Stack
+        run: docker compose --profile app up -d --build --wait --wait-timeout 420
+
+      - name: Seed Lifecycle and Demo Data
+        run: ./scripts/seed-data.sh
+
+      - name: Run Role Journeys
+        run: npm --prefix frontend run test:e2e
+
+      - name: Capture Service Logs on Failure
+        if: failure()
+        run: docker compose --profile app logs --no-color --tail=250
+
+      - name: Upload Browser Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Stop Stack
+        if: always()
+        run: docker compose --profile app down --volumes --remove-orphans

@@ -62,11 +62,11 @@ public class WorkflowOutboxPublisherService {
         transactionManager.recordResult(event.getId(), success, errorCode);
     }
 
-    private String resolveTopicForEventType(String eventType) {
+    static String resolveTopicForEventType(String eventType) {
         if (TicketEvents.TICKET_TRIAGE_COMPLETED.equals(eventType)) {
-            return "resolveiq.tickets.triage-completed.v1";
+            return TicketEvents.TICKET_TRIAGE_COMPLETED;
         } else if (TicketEvents.TICKET_TRIAGE_FAILED.equals(eventType)) {
-            return "resolveiq.tickets.triage-failed.v1";
+            return TicketEvents.TICKET_TRIAGE_FAILED;
         }
         return "resolveiq.orchestration.events.v1";
     }

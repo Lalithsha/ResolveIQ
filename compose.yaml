@@ -71,6 +71,11 @@ services:
       - "${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # ============================================================================
   # Application Services (Profile: app)
@@ -92,6 +97,9 @@ services:
       DEV_SERVICE_NAME: discovery-service
     volumes:
       - .:/workspace
+      - /workspace/discovery-service/target
+      - /workspace/common-contracts/target
+      - /workspace/common-security/target
       - maven-cache:/root/.m2
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health | grep -q UP"]
@@ -117,6 +125,9 @@ services:
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
     volumes:
       - .:/workspace
+      - /workspace/api-gateway/target
+      - /workspace/common-contracts/target
+      - /workspace/common-security/target
       - maven-cache:/root/.m2
     depends_on:
       discovery-service:
@@ -144,6 +155,9 @@ services:
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
     volumes:
       - .:/workspace
+      - /workspace/auth-service/target
+      - /workspace/common-contracts/target
+      - /workspace/common-security/target
       - maven-cache:/root/.m2
     depends_on:
       postgres:
@@ -172,13 +186,22 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
+      RESOLVEIQ_MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-resolveiq_minio_dev_access}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-resolveiq_minio_dev_secret_key_12345}
+      RESOLVEIQ_ATTACHMENTS_SCANNER: deterministic
     volumes:
       - .:/workspace
+      - /workspace/ticket-service/target
+      - /workspace/common-contracts/target
+      - /workspace/common-security/target
       - maven-cache:/root/.m2
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      minio:
         condition: service_healthy
       discovery-service:
         condition: service_healthy
@@ -209,6 +232,9 @@ services:
       RESOLVEIQ_SERVICES_RAG_URL: http://rag-service:8086
     volumes:
       - .:/workspace
+      - /workspace/ai-orchestration-service/target
+      - /workspace/common-contracts/target
+      - /workspace/common-security/target
       - maven-cache:/root/.m2
     depends_on:
       postgres:
@@ -246,6 +272,9 @@ services:
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
     volumes:
       - .:/workspace
+      - /workspace/ai-analysis-service/target
+      - /workspace/common-contracts/target
+      - /workspace/common-security/target
       - maven-cache:/root/.m2
     depends_on:
       postgres:
@@ -275,6 +304,9 @@ services:
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
     volumes:
       - .:/workspace
+      - /workspace/routing-service/target
+      - /workspace/common-contracts/target
+      - /workspace/common-security/target
       - maven-cache:/root/.m2
     depends_on:
       postgres:
@@ -304,6 +336,9 @@ services:
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
     volumes:
       - .:/workspace
+      - /workspace/rag-service/target
+      - /workspace/common-contracts/target
+      - /workspace/common-security/target
       - maven-cache:/root/.m2
     depends_on:
       postgres:

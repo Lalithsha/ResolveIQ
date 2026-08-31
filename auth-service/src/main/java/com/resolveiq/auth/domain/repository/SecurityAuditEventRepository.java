@@ -7,4 +7,5 @@ import java.util.UUID;
 
 public interface SecurityAuditEventRepository extends JpaRepository<SecurityAuditEvent, UUID> {
     List<SecurityAuditEvent> findByTenantIdOrderByOccurredAtDesc(UUID tenantId);
+    org.springframework.data.domain.Page<SecurityAuditEvent> findByTenantId(UUID tenantId, org.springframework.data.domain.Pageable pageable);
 }

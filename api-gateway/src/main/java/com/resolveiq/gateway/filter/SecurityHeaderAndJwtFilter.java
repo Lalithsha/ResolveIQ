@@ -120,6 +120,7 @@ public class SecurityHeaderAndJwtFilter implements GlobalFilter, Ordered {
         return path.equals("/api/v1/auth/login")
             || path.equals("/api/v1/auth/register")
             || path.equals("/api/v1/auth/refresh")
+            || path.startsWith("/openapi/")
             || path.startsWith("/actuator")
             || path.startsWith("/favicon.ico");
     }

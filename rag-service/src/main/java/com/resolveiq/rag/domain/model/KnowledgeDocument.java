@@ -69,6 +69,24 @@ public class KnowledgeDocument {
         this.updatedAt = Instant.now();
     }
 
+    public void markInReview() {
+        if ("ARCHIVED".equals(status)) throw new IllegalStateException("Archived knowledge cannot be reviewed");
+        if (activeVersionId == null) this.status = "IN_REVIEW";
+        this.updatedAt = Instant.now();
+    }
+
+    public void markDraft() {
+        if ("ARCHIVED".equals(status)) throw new IllegalStateException("Archived knowledge cannot return to draft");
+        if (activeVersionId == null) this.status = "DRAFT";
+        this.updatedAt = Instant.now();
+    }
+
+    public void restore() {
+        if (!"ARCHIVED".equals(status)) throw new IllegalStateException("Knowledge document is not archived");
+        this.status = activeVersionId == null ? "DRAFT" : "PUBLISHED";
+        this.updatedAt = Instant.now();
+    }
+
     public void archive() {
         this.status = "ARCHIVED";
         this.updatedAt = Instant.now();

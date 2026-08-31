@@ -173,8 +173,8 @@ def run_evaluation():
     now_iso = datetime.now(timezone.utc).isoformat()
     report_md = f"""# ResolveIQ AI Evaluation & Benchmark Quality Report
 
-**Generated At:** `{now_iso}`  
-**Dataset:** `evaluation/datasets/eval_ground_truth.json` ({total_samples} test cases across 20 knowledge domains)  
+**Generated At:** `{now_iso}`
+**Dataset:** `evaluation/datasets/eval_ground_truth.json` ({total_samples} test cases across 20 knowledge domains)
 **Status:** ✅ ALL GATES PASSED (DETERMINISTIC SHA-256 HARNESS)
 
 ---

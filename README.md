@@ -2,7 +2,7 @@
 
 > **Resolve faster. Answer with evidence.**
 
-ResolveIQ is a production-oriented, event-driven customer support portfolio platform built with **Java 21, Spring Boot, PostgreSQL/pgvector, Apache Kafka, and React**. Its core vertical slice is implemented; the remaining production acceptance gates are tracked honestly in `RESOLVEIQ_REMAINING_IMPLEMENTATION_PLAN.md`.
+ResolveIQ is a production-oriented, event-driven customer support portfolio platform built with **Java 21, Spring Boot, PostgreSQL/pgvector, Apache Kafka, and React**. The correctness, six-role, knowledge-lifecycle, attachment, AI-governance, resilience, API, deployment and automated-evidence work is specified and recorded in [`RESOLVEIQ_PART1_IMPLEMENTATION_PLAN.md`](RESOLVEIQ_PART1_IMPLEMENTATION_PLAN.md).
 
 It assists support agents by performing structured classification, hybrid retrieval (combining full-text keyword search and vector embeddings) across approved knowledge articles and privacy-sanitized resolved cases, predicting SLA breach risk, generating citation-backed draft responses, and enforcing a **strict Human-in-the-Loop governance boundary** with **zero customer-visible auto-sends**.
 
@@ -97,6 +97,8 @@ npm --prefix frontend ci
 npm --prefix frontend run lint
 npm --prefix frontend run test
 npm --prefix frontend run build
+npm --prefix frontend run test:e2e
+kubectl kustomize infra/k8s/base
 ./scripts/scan-secrets.sh
 ```
 
@@ -115,6 +117,9 @@ npm --prefix frontend run lint
 npm --prefix frontend run test
 npm --prefix frontend run build
 
+# With the complete seeded stack running, exercise all six role workspaces
+npm --prefix frontend run test:e2e
+
 # Run secret scanning
 ./scripts/scan-secrets.sh
 ```
@@ -123,4 +128,4 @@ npm --prefix frontend run build
 
 ## 6. Blueprint & Specification
 
-For complete architectural contracts, schema definitions, threat models, and phased implementation guidelines, consult [RESOLVEIQ_IMPLEMENTATION_BLUEPRINT.md](RESOLVEIQ_IMPLEMENTATION_BLUEPRINT.md).
+For complete architectural contracts, schema definitions, threat models, and phased implementation guidelines, consult [RESOLVEIQ_IMPLEMENTATION_BLUEPRINT.md](RESOLVEIQ_IMPLEMENTATION_BLUEPRINT.md). Part 1 implementation evidence, screenshot guidance and the interview demonstration script are in [docs/part1/ARCHITECTURE_AND_DEMO_EVIDENCE.md](docs/part1/ARCHITECTURE_AND_DEMO_EVIDENCE.md).

@@ -66,6 +66,25 @@ public class AnalysisResult {
     @Column(name = "tokens_used", nullable = false)
     private int tokensUsed;
 
+    @Column(name = "input_tokens", nullable = false)
+    private int inputTokens;
+
+    @Column(name = "output_tokens", nullable = false)
+    private int outputTokens;
+
+    @Column(name = "estimated_cost_micros", nullable = false)
+    private long estimatedCostMicros;
+
+    @Column(name = "guardrail_outcome", nullable = false, length = 50)
+    private String guardrailOutcome;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "guardrail_findings", nullable = false, columnDefinition = "JSONB")
+    private String guardrailFindings;
+
+    @Column(name = "provider_request_id", length = 255)
+    private String providerRequestId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -88,7 +107,12 @@ public class AnalysisResult {
         String rawOutputHash,
         String validationOutcome,
         long latencyMs,
-        int tokensUsed
+        int inputTokens,
+        int outputTokens,
+        long estimatedCostMicros,
+        String guardrailOutcome,
+        String guardrailFindings,
+        String providerRequestId
     ) {
         this.id = UUID.randomUUID();
         this.ticketId = ticketId;
@@ -107,7 +131,13 @@ public class AnalysisResult {
         this.rawOutputHash = rawOutputHash;
         this.validationOutcome = validationOutcome;
         this.latencyMs = latencyMs;
-        this.tokensUsed = tokensUsed;
+        this.inputTokens = Math.max(0, inputTokens);
+        this.outputTokens = Math.max(0, outputTokens);
+        this.tokensUsed = this.inputTokens + this.outputTokens;
+        this.estimatedCostMicros = Math.max(0, estimatedCostMicros);
+        this.guardrailOutcome = guardrailOutcome;
+        this.guardrailFindings = guardrailFindings;
+        this.providerRequestId = providerRequestId;
         this.createdAt = Instant.now();
     }
 
@@ -129,5 +159,11 @@ public class AnalysisResult {
     public String getValidationOutcome() { return validationOutcome; }
     public long getLatencyMs() { return latencyMs; }
     public int getTokensUsed() { return tokensUsed; }
+    public int getInputTokens() { return inputTokens; }
+    public int getOutputTokens() { return outputTokens; }
+    public long getEstimatedCostMicros() { return estimatedCostMicros; }
+    public String getGuardrailOutcome() { return guardrailOutcome; }
+    public String getGuardrailFindings() { return guardrailFindings; }
+    public String getProviderRequestId() { return providerRequestId; }
     public Instant getCreatedAt() { return createdAt; }
 }

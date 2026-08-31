@@ -44,6 +44,10 @@ class TicketServiceTest {
 
     private ObjectMapper objectMapper;
     private TicketService ticketService;
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+    @Mock
+    private StaffTeamMembershipRepository membershipRepository;
 
     @BeforeEach
     void setUp() {
@@ -57,7 +61,9 @@ class TicketServiceTest {
             feedbackRepository,
             outboxRepository,
             idempotencyRepository,
-            objectMapper
+            objectMapper,
+            eventPublisher,
+            membershipRepository
         );
         lenient().when(ticketRepository.getNextTicketSequenceVal()).thenReturn(100001L);
         lenient().when(idempotencyRepository.claim(any(), any(), any(), anyString(), anyString(), anyString(), any(), any()))
@@ -162,6 +168,10 @@ class TicketServiceTest {
             TicketStatus.NEW,
             TicketPriority.HIGH,
             "BILLING",
+            null,
+            null,
+            null,
+            null,
             "WEB",
             null,
             null,

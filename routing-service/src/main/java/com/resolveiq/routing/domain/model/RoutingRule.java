@@ -61,4 +61,8 @@ public class RoutingRule {
     public int getPriorityOrder() { return priorityOrder; }
     public boolean isActive() { return active; }
     public Instant getCreatedAt() { return createdAt; }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
 }

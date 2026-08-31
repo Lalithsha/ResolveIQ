@@ -20,6 +20,7 @@ public class HybridRetrievalService {
     private final RetrievalRunRepository retrievalRunRepository;
     private final CitationRecordRepository citationRecordRepository;
     private final EmbeddingPort embeddingPort;
+    private final QueryRewriteService queryRewriteService;
 
     public HybridRetrievalService(
         KnowledgeChunkRepository knowledgeChunkRepository,
@@ -28,7 +29,8 @@ public class HybridRetrievalService {
         ResolvedCaseRepository resolvedCaseRepository,
         RetrievalRunRepository retrievalRunRepository,
         CitationRecordRepository citationRecordRepository,
-        EmbeddingPort embeddingPort
+        EmbeddingPort embeddingPort,
+        QueryRewriteService queryRewriteService
     ) {
         this.knowledgeChunkRepository = knowledgeChunkRepository;
         this.resolvedCaseChunkRepository = resolvedCaseChunkRepository;
@@ -37,15 +39,38 @@ public class HybridRetrievalService {
         this.retrievalRunRepository = retrievalRunRepository;
         this.citationRecordRepository = citationRecordRepository;
         this.embeddingPort = embeddingPort;
+        this.queryRewriteService = queryRewriteService;
     }
 
     @Transactional
     public RetrievalResultDto searchHybrid(UUID tenantId, UUID ticketId, String queryText, String strategy, int topK) {
+        return searchHybrid(tenantId, ticketId, queryText, strategy, topK, null, null, null, null);
+    }
+
+    @Transactional
+    public RetrievalResultDto searchHybrid(
+        UUID tenantId,
+        UUID ticketId,
+        String queryText,
+        String strategy,
+        int topK,
+        String category,
+        String product,
+        String language,
+        Set<String> sourceTypes
+    ) {
         long startTime = System.currentTimeMillis();
-        int limit = topK > 0 ? topK : 5;
+        int limit = Math.max(1, Math.min(topK > 0 ? topK : 5, 20));
+        String rewrittenQuery = queryRewriteService.rewrite(queryText);
+        String normalizedCategory = normalizeFilter(category);
+        String normalizedProduct = normalizeFilter(product);
+        String normalizedLanguage = normalizeFilter(language);
+        Set<String> normalizedSources = normalizeSources(sourceTypes);
+        boolean includeKnowledge = normalizedSources.isEmpty() || normalizedSources.contains("KNOWLEDGE_ARTICLE");
+        boolean includeResolvedCases = normalizedSources.isEmpty() || normalizedSources.contains("RESOLVED_CASE");
 
         // 1. Generate query embedding ONCE
-        float[] queryEmbedding = embeddingPort.embed(queryText);
+        float[] queryEmbedding = embeddingPort.embed(rewrittenQuery);
         if (queryEmbedding == null || queryEmbedding.length != embeddingPort.getDimension()) {
             throw new IllegalStateException("Query embedding dimension does not match configured provider");
         }
@@ -60,10 +85,23 @@ public class HybridRetrievalService {
         List<ResolvedCaseChunk> rcLexical = new ArrayList<>();
         List<ResolvedCaseChunk> rcVector = new ArrayList<>();
 
-        kbLexical = knowledgeChunkRepository.searchLexical(tenantId, queryText, 50);
-        kbVector = knowledgeChunkRepository.searchVector(tenantId, embeddingStr, 50);
-        rcLexical = resolvedCaseChunkRepository.searchLexical(tenantId, queryText, 30);
-        rcVector = resolvedCaseChunkRepository.searchVector(tenantId, embeddingStr, 30);
+        if (includeKnowledge) {
+            kbLexical = knowledgeChunkRepository.searchLexical(
+                tenantId, rewrittenQuery, normalizedCategory, normalizedProduct, normalizedLanguage, 50);
+            if (kbLexical.isEmpty()) {
+                kbLexical = knowledgeChunkRepository.searchLexicalRelaxed(
+                    tenantId, rewrittenQuery, normalizedCategory, normalizedProduct, normalizedLanguage, 50);
+            }
+            kbVector = knowledgeChunkRepository.searchVector(
+                tenantId, embeddingStr, normalizedCategory, normalizedProduct, normalizedLanguage, 50);
+        }
+        if (includeResolvedCases) {
+            rcLexical = resolvedCaseChunkRepository.searchLexical(tenantId, rewrittenQuery, normalizedCategory, 30);
+            if (rcLexical.isEmpty()) {
+                rcLexical = resolvedCaseChunkRepository.searchLexicalRelaxed(tenantId, rewrittenQuery, normalizedCategory, 30);
+            }
+            rcVector = resolvedCaseChunkRepository.searchVector(tenantId, embeddingStr, normalizedCategory, 30);
+        }
 
         // 3. Reciprocal Rank Fusion (RRF k=60)
         Map<UUID, CandidateScore> fusedCandidates = new HashMap<>();
@@ -112,7 +150,7 @@ public class HybridRetrievalService {
         RetrievalRun run = new RetrievalRun(
             ticketId != null ? ticketId : UUID.randomUUID(),
             tenantId,
-            queryText,
+            rewrittenQuery,
             strategy != null ? strategy : "HYBRID_RRF",
             limit,
             durationMs
@@ -155,11 +193,28 @@ public class HybridRetrievalService {
 
         return new RetrievalResultDto(
             run.getId(),
-            queryText,
+            rewrittenQuery,
             strategy != null ? strategy : "HYBRID_RRF",
             durationMs,
             citations
         );
+    }
+
+    private String normalizeFilter(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private Set<String> normalizeSources(Set<String> sourceTypes) {
+        if (sourceTypes == null || sourceTypes.isEmpty()) return Set.of();
+        Set<String> allowed = Set.of("KNOWLEDGE_ARTICLE", "RESOLVED_CASE");
+        Set<String> normalized = new HashSet<>();
+        for (String sourceType : sourceTypes) {
+            if (sourceType == null) continue;
+            String value = sourceType.trim().toUpperCase(Locale.ROOT);
+            if (!allowed.contains(value)) throw new IllegalArgumentException("Unsupported retrieval source type: " + sourceType);
+            normalized.add(value);
+        }
+        return normalized;
     }
 
     private String formatVector(float[] vector) {

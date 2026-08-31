@@ -7,4 +7,6 @@ import java.util.UUID;
 
 public interface RoutingRuleRepository extends JpaRepository<RoutingRule, UUID> {
     List<RoutingRule> findByTenantIdAndActiveTrueOrderByPriorityOrderAsc(UUID tenantId);
+    List<RoutingRule> findByTenantIdOrderByPriorityOrderAsc(UUID tenantId);
+    java.util.Optional<RoutingRule> findByIdAndTenantId(UUID id, UUID tenantId);
 }

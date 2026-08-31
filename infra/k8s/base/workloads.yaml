@@ -1,0 +1,336 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discovery-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: discovery-service }
+  template:
+    metadata:
+      labels: { app: discovery-service }
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/replace-me/resolveiq-discovery-service:1.0.0
+          ports: [{ name: http, containerPort: 8761 }]
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 768Mi }
+          readinessProbe: &discovery-probe
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe: *discovery-probe
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: discovery-service
+spec:
+  selector: { app: discovery-service }
+  ports: [{ name: http, port: 8761, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: api-gateway }
+  template:
+    metadata:
+      labels: { app: api-gateway }
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/replace-me/resolveiq-api-gateway:1.0.0
+          ports: [{ name: http, containerPort: 8080 }]
+          envFrom:
+            - configMapRef: { name: resolveiq-runtime }
+            - secretRef: { name: resolveiq-runtime-secrets }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 768Mi }
+          readinessProbe: &app-probe
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe: *app-probe
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+spec:
+  selector: { app: api-gateway }
+  ports: [{ name: http, port: 8080, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: auth-service }
+  template:
+    metadata:
+      labels: { app: auth-service }
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/replace-me/resolveiq-auth-service:1.0.0
+          ports: [{ name: http, containerPort: 8081 }]
+          envFrom:
+            - configMapRef: { name: resolveiq-runtime }
+            - secretRef: { name: resolveiq-runtime-secrets }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 768Mi }
+          readinessProbe:
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+spec:
+  selector: { app: auth-service }
+  ports: [{ name: http, port: 8081, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticket-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: ticket-service }
+  template:
+    metadata:
+      labels: { app: ticket-service }
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/replace-me/resolveiq-ticket-service:1.0.0
+          ports: [{ name: http, containerPort: 8082 }]
+          envFrom:
+            - configMapRef: { name: resolveiq-runtime }
+            - secretRef: { name: resolveiq-runtime-secrets }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 768Mi }
+          readinessProbe:
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticket-service
+spec:
+  selector: { app: ticket-service }
+  ports: [{ name: http, port: 8082, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-orchestration-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: ai-orchestration-service }
+  template:
+    metadata:
+      labels: { app: ai-orchestration-service }
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/replace-me/resolveiq-ai-orchestration-service:1.0.0
+          ports: [{ name: http, containerPort: 8083 }]
+          envFrom:
+            - configMapRef: { name: resolveiq-runtime }
+            - secretRef: { name: resolveiq-runtime-secrets }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 768Mi }
+          readinessProbe:
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-orchestration-service
+spec:
+  selector: { app: ai-orchestration-service }
+  ports: [{ name: http, port: 8083, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-analysis-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: ai-analysis-service }
+  template:
+    metadata:
+      labels: { app: ai-analysis-service }
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/replace-me/resolveiq-ai-analysis-service:1.0.0
+          ports: [{ name: http, containerPort: 8084 }]
+          envFrom:
+            - configMapRef: { name: resolveiq-runtime }
+            - secretRef: { name: resolveiq-runtime-secrets }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 768Mi }
+          readinessProbe:
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-analysis-service
+spec:
+  selector: { app: ai-analysis-service }
+  ports: [{ name: http, port: 8084, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: routing-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: routing-service }
+  template:
+    metadata:
+      labels: { app: routing-service }
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/replace-me/resolveiq-routing-service:1.0.0
+          ports: [{ name: http, containerPort: 8085 }]
+          envFrom:
+            - configMapRef: { name: resolveiq-runtime }
+            - secretRef: { name: resolveiq-runtime-secrets }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 768Mi }
+          readinessProbe:
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: routing-service
+spec:
+  selector: { app: routing-service }
+  ports: [{ name: http, port: 8085, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: rag-service }
+  template:
+    metadata:
+      labels: { app: rag-service }
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/replace-me/resolveiq-rag-service:1.0.0
+          ports: [{ name: http, containerPort: 8086 }]
+          envFrom:
+            - configMapRef: { name: resolveiq-runtime }
+            - secretRef: { name: resolveiq-runtime-secrets }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 768Mi }
+          readinessProbe:
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-service
+spec:
+  selector: { app: rag-service }
+  ports: [{ name: http, port: 8086, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: frontend }
+  template:
+    metadata:
+      labels: { app: frontend }
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/replace-me/resolveiq-frontend:1.0.0
+          ports: [{ name: http, containerPort: 80 }]
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 250m, memory: 192Mi }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector: { app: frontend }
+  ports: [{ name: http, port: 80, targetPort: http }]

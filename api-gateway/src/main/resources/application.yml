@@ -7,15 +7,57 @@ spring:
   cloud:
     gateway:
       routes:
+        - id: auth-openapi-route
+          uri: lb://auth-service
+          predicates:
+            - Path=/openapi/auth
+          filters:
+            - SetPath=/v3/api-docs
+
+        - id: ticket-openapi-route
+          uri: lb://ticket-service
+          predicates:
+            - Path=/openapi/ticket
+          filters:
+            - SetPath=/v3/api-docs
+
+        - id: orchestration-openapi-route
+          uri: lb://ai-orchestration-service
+          predicates:
+            - Path=/openapi/orchestration
+          filters:
+            - SetPath=/v3/api-docs
+
+        - id: analysis-openapi-route
+          uri: lb://ai-analysis-service
+          predicates:
+            - Path=/openapi/analysis
+          filters:
+            - SetPath=/v3/api-docs
+
+        - id: routing-openapi-route
+          uri: lb://routing-service
+          predicates:
+            - Path=/openapi/routing
+          filters:
+            - SetPath=/v3/api-docs
+
+        - id: rag-openapi-route
+          uri: lb://rag-service
+          predicates:
+            - Path=/openapi/rag
+          filters:
+            - SetPath=/v3/api-docs
+
         - id: auth-service-route
           uri: lb://auth-service
           predicates:
-            - Path=/api/v1/auth/**
+            - Path=/api/v1/auth/**, /api/v1/directory/**, /api/v1/admin/users/**, /api/v1/audit/security-events
 
         - id: ticket-service-route
           uri: lb://ticket-service
           predicates:
-            - Path=/api/v1/tickets/**, /api/v1/customer/tickets/**, /api/v1/agent/**
+            - Path=/api/v1/tickets/**, /api/v1/customer/tickets/**, /api/v1/agent/**, /api/v1/admin/ticket-operations/**
 
         - id: rag-service-route
           uri: lb://rag-service

@@ -1,0 +1,106 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: api-gateway }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: api-gateway }
+  minReplicas: 2
+  maxReplicas: 6
+  behavior:
+    scaleDown: { stabilizationWindowSeconds: 300 }
+    scaleUp: { stabilizationWindowSeconds: 30 }
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: auth-service }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: auth-service }
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: ticket-service }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: ticket-service }
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: ai-orchestration-service }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: ai-orchestration-service }
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: ai-analysis-service }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: ai-analysis-service }
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: routing-service }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: routing-service }
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: rag-service }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: rag-service }
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: frontend }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: frontend }
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }

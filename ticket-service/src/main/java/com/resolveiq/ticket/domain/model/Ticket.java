@@ -46,6 +46,18 @@ public class Ticket {
     @Column(length = 100)
     private String category;
 
+    @Column(length = 100)
+    private String intent;
+
+    @Column(length = 30)
+    private String sentiment;
+
+    @Column(length = 30)
+    private String urgency;
+
+    @Column(name = "triage_confidence")
+    private Double triageConfidence;
+
     @Column(nullable = false, length = 50)
     private String channel;
 
@@ -121,6 +133,10 @@ public class Ticket {
     public TicketStatus getStatus() { return status; }
     public TicketPriority getPriority() { return priority; }
     public String getCategory() { return category; }
+    public String getIntent() { return intent; }
+    public String getSentiment() { return sentiment; }
+    public String getUrgency() { return urgency; }
+    public Double getTriageConfidence() { return triageConfidence; }
     public String getChannel() { return channel; }
     public UUID getSlaPolicyId() { return slaPolicyId; }
     public Instant getFirstResponseDueAt() { return firstResponseDueAt; }
@@ -152,9 +168,14 @@ public class Ticket {
         this.updatedAt = Instant.now();
     }
 
-    public void updateTriageResult(String aiTriageStatus, String category, UUID suggestionId, UUID teamId, UUID agentId) {
+    public void updateTriageResult(String aiTriageStatus, String category, String intent, String sentiment,
+                                   String urgency, Double confidence, UUID suggestionId, UUID teamId, UUID agentId) {
         this.aiTriageStatus = aiTriageStatus;
         if (category != null) this.category = category;
+        if (intent != null) this.intent = intent;
+        if (sentiment != null) this.sentiment = sentiment;
+        if (urgency != null) this.urgency = urgency;
+        if (confidence != null) this.triageConfidence = confidence;
         if (suggestionId != null) this.latestSuggestionId = suggestionId;
         if (teamId != null) this.teamId = teamId;
         if (agentId != null) this.assignedAgentId = agentId;
@@ -164,6 +185,10 @@ public class Ticket {
             transitionTo(TicketStatus.TRIAGE_FAILED);
         }
         this.updatedAt = Instant.now();
+    }
+
+    public void updateTriageResult(String aiTriageStatus, String category, UUID suggestionId, UUID teamId, UUID agentId) {
+        updateTriageResult(aiTriageStatus, category, null, null, null, null, suggestionId, teamId, agentId);
     }
 
     public void setSlaDeadlines(UUID slaPolicyId, Instant firstResponseDueAt, Instant resolutionDueAt) {

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -31,10 +32,11 @@ public class ServiceSecurityAutoConfiguration {
         return http.csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/health", "/actuator/info", "/error").permitAll()
+                .requestMatchers("/actuator/health", "/actuator/info", "/error", "/v3/api-docs/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/admin/**").hasAnyRole("ADMIN", "AUDITOR")
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/customer/**").hasAnyRole("CUSTOMER", "ADMIN")
-                .requestMatchers("/api/v1/agent/**").hasAnyRole("AGENT", "ADMIN")
+                .requestMatchers("/api/v1/agent/**").hasAnyRole("AGENT", "TEAM_LEAD", "ADMIN", "AUDITOR")
                 .requestMatchers("/api/v1/knowledge/**").hasAnyRole("KNOWLEDGE_MANAGER", "ADMIN")
                 .anyRequest().authenticated())
             .exceptionHandling(errors -> errors

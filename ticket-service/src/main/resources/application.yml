@@ -34,6 +34,26 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "com.resolveiq.contracts.*"
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+
+resolveiq:
+  attachments:
+    enabled: ${RESOLVEIQ_ATTACHMENTS_ENABLED:true}
+    storage: ${RESOLVEIQ_ATTACHMENTS_STORAGE:minio}
+    scanner: ${RESOLVEIQ_ATTACHMENTS_SCANNER:deterministic}
+    max-bytes: ${RESOLVEIQ_ATTACHMENTS_MAX_BYTES:10485760}
+    max-files-per-ticket: ${RESOLVEIQ_ATTACHMENTS_MAX_FILES:5}
+    minio:
+      endpoint: ${RESOLVEIQ_MINIO_ENDPOINT:http://localhost:9000}
+      access-key: ${MINIO_ACCESS_KEY:resolveiq_minio_dev_access}
+      secret-key: ${MINIO_SECRET_KEY:resolveiq_minio_dev_secret_key_12345}
+      bucket: ${RESOLVEIQ_MINIO_BUCKET:resolveiq-attachments}
+    clamav:
+      host: ${RESOLVEIQ_CLAMAV_HOST:localhost}
+      port: ${RESOLVEIQ_CLAMAV_PORT:3310}
 
 eureka:
   client:

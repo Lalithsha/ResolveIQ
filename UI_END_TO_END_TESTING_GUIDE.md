@@ -39,7 +39,7 @@ Open these URLs:
 | API gateway health | `http://localhost:18080/actuator/health` | JSON containing `"status":"UP"`                    |
 | Service discovery  | `http://localhost:8761`                  | Eureka dashboard                                   |
 | Kafka console      | `http://localhost:8090`                  | Redpanda Console                                   |
-| MinIO console      | `http://localhost:9001`                  | MinIO login page; attachment UI is not implemented |
+| MinIO console      | `http://localhost:9001`                  | MinIO login page; clean ticket attachments are stored here |
 
 
 If startup fails with `port is already allocated`, run `docker compose --profile app down` without `-v`, then use the conflict-free command above. Never add `-v` unless you intentionally want to delete local ResolveIQ data.
@@ -52,7 +52,9 @@ Run this once after the schemas have been created and all backend services are h
 ./scripts/seed-data.sh
 ```
 
-The seed contains only fictional data. Repeated execution is not part of this test because some generated routing/SLA fixtures may be duplicated.
+The seed contains only fictional data and uses deterministic identifiers so it can be rerun safely. Relational fixtures are upserted, and knowledge articles are created/published through the authenticated lifecycle API instead of inserting incomplete chunks directly.
+
+The seed command verifies lifecycle indexing and deterministic embeddings for local knowledge. If Help Center search returns zero results after a reset, rerun `./scripts/seed-data.sh`, confirm that lifecycle ingestion completes, and treat any remaining zero-result response as a defect.
 
 ### Demo accounts
 
@@ -66,6 +68,7 @@ All seeded accounts use the fictional password `ResolveIQ2026!`.
 | Marcus Vance  | `marcus.vance@resolveiq.local`  | TEAM_LEAD         | Current role/navigation limitation      |
 | Elena Rostova | `elena.rostova@resolveiq.local` | KNOWLEDGE_MANAGER | Hybrid knowledge search                 |
 | David Kross   | `admin@resolveiq.local`         | ADMIN             | Governance shell and role restrictions  |
+| Priya Nair    | `auditor@resolveiq.local`       | AUDITOR           | Read-only evidence and governance        |
 
 
 Use a private/incognito browser window when changing personas, or click the sign-out icon before the next login.
@@ -92,8 +95,8 @@ Expected: access tokens remain in memory, the refresh session is cookie-backed, 
 ### 4.2 Customer self-registration
 
 1. Sign out.
-2. Click **Need a customer account? Register**.
-3. Confirm the form changes to **Create customer account**.
+2. Click **Create account**.
+3. Confirm the heading changes to **Create your account**.
 4. Enter a fictional full name, a unique email such as `ui.customer.01@example.test`, and a password of 12–128 characters.
 5. Click **Create account**.
 6. Confirm the user is signed in and sees the Customer navigation.
@@ -105,7 +108,7 @@ Expected: public registration creates only a `CUSTOMER`; it cannot create an age
 
 1. Login successfully.
 2. Refresh the browser tab.
-3. Confirm **Loading secure workspace…** appears briefly and the authenticated workspace returns without another login.
+3. Confirm **Preparing your workspace…** appears briefly and the authenticated workspace returns without another login.
 4. Click the sign-out icon in the top-right corner.
 5. Refresh again.
 
@@ -113,7 +116,7 @@ Expected: refresh restores a valid session before logout; after logout the login
 
 ### 4.4 Global controls
 
-1. Confirm the navbar shows `ResolveIQ`, `v1.0-alpha`, user name, role selector, notification icon, and sign-out icon.
+1. Confirm the navbar shows `ResolveIQ`, `Alpha`, user name, role selector, notification icon, and sign-out icon.
 2. Confirm the role selector lists only the roles returned for the current account.
 3. Click the notification bell.
 
@@ -164,7 +167,7 @@ Expected: the reply is persisted as a public customer message and is visible aft
 1. Select **Help Center** in the sidebar or the customer portal sub-navigation.
 2. Enter `duplicate charge invoice billing dispute` and click **Search Articles**.
 3. Confirm a loading state appears, followed by a real result count.
-4. Confirm the seeded payment-dispute article appears when the retrieval service is healthy and indexed.
+4. Confirm the seeded payment-dispute article **Payment Reconciliation & Duplicate Charge Handling** appears when the retrieval service is healthy and indexed.
 5. Open a result and confirm its title, source type, text snippet, and optional confidence score are displayed.
 6. Click **Back to Results**, then **Clear Results**.
 7. Click the **Billing & Invoice Disputes** popular topic and confirm it runs a pre-filled search.
@@ -184,19 +187,20 @@ Expected: searches call the hybrid knowledge retrieval API. Curated topic cards 
 
 
 
-## 6. Agent journey — API-backed core with static context panels
+## 6. Agent journey — fully API-backed workspace
 
 Login as `sarah.chen@resolveiq.local` after completing the customer flow. The seeded ticket `RIQ-2026-000412` is also assigned to this agent and can be used if a new ticket is not yet available.
 
 ### 6.1 Load the queue and AI suggestion
 
 1. Select **My Queue**.
-2. Confirm a real ticket loads automatically.
-3. Confirm the ticket number, priority, subject, and customer description correspond to the selected backend ticket.
-4. Confirm the response composer contains the persisted AI suggestion when one exists.
-5. Confirm **Approve & Send** is visible but no message is sent automatically.
-
-Important distinction: the customer/team labels, SLA countdown text, AI classification badges, `94% confidence`, citation cards, and similar-case card are currently hardcoded presentation examples. The selected ticket and composer suggestion are API-backed; those context widgets are `DEMO-ONLY` until wired to their persisted fields.
+2. Confirm the paginated queue lists only tickets assigned to Sarah and does not auto-open an unauthorized ticket.
+3. Select two different rows and confirm the center panel changes to the chosen persisted ticket.
+4. Use search, priority, status and sort controls; confirm the list and total count update.
+5. Confirm ticket number, priority, status, customer, team/assignee, first-response SLA, messages and attachments correspond to the selected backend ticket.
+6. Confirm classification badges, confidence, provider/prompt metadata, citations and similar cases show persisted values or an explicit `No ...` state—never sample values.
+7. Confirm the response composer contains the persisted AI suggestion when one exists.
+8. Confirm **Approve & Send** is visible but no message is sent automatically.
 
 ### 6.2 Accept feedback
 
@@ -248,94 +252,110 @@ Expected: ResolveIQ records feedback if needed, creates the agent’s public mes
 
 | Sidebar item     | Current behavior                                            | Result classification |
 | ---------------- | ----------------------------------------------------------- | --------------------- |
-| My Queue         | Loads the real agent ticket endpoint and first ticket       | API-BACKED            |
-| Team Queue       | Renders the same agent workspace; no distinct filtered list | LIMITATION            |
-| SLA Risk         | Renders the same agent workspace; no live risk dashboard    | LIMITATION            |
+| My Queue         | Selectable, filterable assigned-ticket queue                | API-BACKED            |
+| Team Queue       | Team-scoped selectable queue                                | API-BACKED            |
+| SLA Risk         | Deadline-sorted at-risk queue within authorized scope       | API-BACKED            |
 | Knowledge Search | Opens the real hybrid retrieval screen                      | API-BACKED search     |
 
+### 6.7 Secure attachment exchange
 
-Current limitation: there is no selectable queue list in the agent workspace; it automatically opens the first returned ticket.
+1. Open an owned ticket and click **Attach**.
+2. Upload a small `.txt`, `.json`, `.png`, `.jpg`, or `.pdf` file containing only fictional data.
+3. Confirm **Scanning…** appears and the clean attachment is listed with status `CLEAN`.
+4. Click the attachment and confirm the downloaded SHA/content matches the original.
+5. Attempt an unsupported executable/archive and confirm it is rejected without adding a row.
+6. Use the standard EICAR test string only in an isolated local test file; confirm the upload returns a malware rejection and is not downloadable.
+
+Expected: the server normalizes the name, validates size/type/magic bytes, computes SHA-256, scans before storage, generates the object key, and authorizes list/download through tenant and ticket scope.
 
 ## 7. Knowledge Manager journey
 
 Login as `elena.rostova@resolveiq.local`.
 
-### 7.1 Hybrid lexical/vector retrieval
+### 7.1 Article lifecycle
 
-1. Select **Articles & Chunks**.
-2. Enter `duplicate charge payment authorization refund` in the search field.
-3. Click **Search Index**.
-4. Confirm the loading indicator appears.
-5. Confirm a result references the payment-reconciliation article or its relevant snippet.
-6. Confirm each returned row shows a title, snippet, and score.
-7. Click **Clear Results**.
-8. Search for a nonsense phrase and confirm either an empty result state or low/nonmatching results—not a fabricated success.
+1. Select **Articles & Chunks** and confirm the heading is **Knowledge lifecycle**.
+2. Click **New article**. Create `UI lifecycle payment guide` in `BILLING`, add a product, summary and unique safe troubleshooting content.
+3. Click **Save draft** and confirm the article/version is `DRAFT` with no active version.
+4. In a separate Customer Help Center search, confirm the unique draft text is not returned.
+5. Click **Submit for review**, then **Publish**. Confirm the version becomes `PUBLISHED` and its ID is displayed as active.
+6. Open **Vector Indexes**, search the unique text and confirm the published article is returned with title, snippet and RRF score.
+7. Return to the lifecycle, click **New version**, save different unique content, submit and publish it.
+8. Confirm version 1 is `SUPERSEDED`, version 2 is `PUBLISHED`, and only version 2 participates as the active version.
+9. Click **Rollback** on version 1. Confirm version 1 becomes active again and retrieval follows the rolled-back content.
+10. Create another draft, submit it, click **Reject**, enter a required actionable note and confirm `REJECTED` plus the persisted review note.
+11. Click **Archive** and confirm the document is excluded from retrieval while its history remains visible.
 
-Expected: the request uses tenant-filtered PostgreSQL lexical and pgvector retrieval with reciprocal-rank fusion.
+Expected: indexing finishes before the active version changes; unpublished, rejected, superseded and archived content is excluded from normal retrieval.
 
-### 7.2 Knowledge controls and navigation coverage
-
-
-| Control           | Current behavior                              | Result classification |
-| ----------------- | --------------------------------------------- | --------------------- |
-| Search Index      | Calls the real retrieval API                  | API-BACKED            |
-| Clear Results     | Clears current UI results                     | UI-BACKED             |
-| New Article       | Displays an informational browser alert only  | DEMO-ONLY             |
-| Article cards     | Static sample cards, not loaded from list API | DEMO-ONLY             |
-| Articles & Chunks | Displays Knowledge Console                    | PARTIAL               |
-| Sanitized Cases   | Displays the same Knowledge Console           | LIMITATION            |
-| Vector Indexes    | Displays the same Knowledge Console           | LIMITATION            |
+### 7.2 Retrieval and navigation coverage
 
 
-Do not claim article authoring, version publishing, sanitized-case approval, or vector-index administration through the UI yet. Backend endpoints may exist, but these controls are not connected.
+| Control           | Current behavior                                        | Result classification |
+| ----------------- | ------------------------------------------------------- | --------------------- |
+| New article       | Creates persisted draft/version history                 | API-BACKED            |
+| Review controls   | Submit, publish, reject with note, supersede and rollback | API-BACKED            |
+| Archive           | Removes article from retrieval without deleting history | API-BACKED            |
+| Articles & Chunks | Loads persisted documents and lifecycle versions         | API-BACKED            |
+| Sanitized Cases   | Lists only approved privacy-sanitized resolved cases     | API-BACKED            |
+| Vector Indexes    | Runs metadata-aware lexical/vector RRF retrieval         | API-BACKED            |
+
+
+Use `duplicate charge invoice billing dispute credit card` as the long-query regression. It must return **Payment Reconciliation & Duplicate Charge Handling** after the lifecycle seed completes.
 
 ## 8. Administrator journey
 
 Login as `admin@resolveiq.local`.
 
-### 8.1 Governance screen
+### 8.1 Operations and governance
 
-1. Select **Operations Overview**.
-2. Confirm the page heading is **AI Governance & Operations**.
-3. Confirm the warning explicitly states that metric cards are demonstration targets.
-4. Inspect Recall@5, MRR, Auto-Send Rate, and Kafka Outbox Lag.
+1. Select **Overview** and confirm the heading is **Operations overview**.
+2. Confirm tenant users, active routing rules, AI invocations, ticket/workflow outbox pending/dead totals, security events and failed-workflow count come from APIs.
+3. If a data source is unavailable, confirm the UI says `Unavailable` instead of displaying a sample number.
+4. If a real failed workflow exists, click **Retry** and confirm it disappears only after the replay command is accepted. Do not manufacture a failure solely for this manual smoke test.
+5. Select **AI governance** and verify totals, valid-output rate, guardrail blocks, estimated cost and recent sanitized model traces.
+6. Confirm raw provider output, API keys and unredacted sensitive input are absent.
 
-Expected: these cards are `DEMO-ONLY`; they are not loaded from live metric APIs.
+### 8.2 Routing and user administration
 
-### 8.2 Failed-workflow replay control
-
-1. Locate **Dead-Letter Queue (DLQ) & Failed Workflows**.
-2. Observe the displayed workflow `wf-8a9b2c1d`.
-3. Click **Retry Workflow**.
-
-Expected current result: the row is static and its identifier is not a real UUID, so the API should return a visible error. A success must not be recorded unless the table is first connected to `listFailedWorkflows()` and supplies a real persisted workflow UUID.
+1. Select **Teams & routing** and confirm persisted teams, capacities, rules and SLA policies are listed.
+2. Toggle one routing rule inactive, refresh, and confirm the state persists. Restore its original state and refresh again.
+3. Select **Users & roles** and create a fictional staff user with a 12+ character temporary password and a non-customer role.
+4. Confirm the new user appears in the tenant list.
+5. Change that user's primary role and confirm readback after refresh.
+6. Confirm the current administrator cannot change their own role from this table.
 
 ### 8.3 Administrator navigation coverage
 
 
-| Sidebar item         | Current behavior                         | Result classification  |
-| -------------------- | ---------------------------------------- | ---------------------- |
-| Operations Overview  | Governance demonstration page            | DEMO/PARTIAL           |
-| All Tickets          | Falls through to Agent Workspace         | LIMITATION             |
-| Teams & Routing      | Falls through to Agent Workspace         | LIMITATION             |
-| Knowledge Base       | Opens Knowledge Console with real search | API-BACKED search only |
-| AI Governance & Eval | Governance demonstration page            | DEMO/PARTIAL           |
-| System Settings      | Falls through to Agent Workspace         | LIMITATION             |
+| Sidebar item     | Current behavior                                      | Result classification |
+| ---------------- | ----------------------------------------------------- | --------------------- |
+| Overview         | Persisted operations, outbox and workflow state       | API-BACKED            |
+| All Tickets      | Tenant-wide selectable queue and assignment controls | API-BACKED            |
+| Teams & Routing  | Teams, rules, SLA policies and persisted rule toggle  | API-BACKED            |
+| Knowledge Base   | Full knowledge lifecycle with administrator authority | API-BACKED            |
+| AI Governance    | Persisted sanitized usage/guardrail/cost traces       | API-BACKED            |
+| Users & Roles    | Tenant staff creation and audited role changes        | API-BACKED            |
 
 
-The model-invocation table is static demonstration data. User administration, live routing configuration, live metrics, audit search, and system settings do not currently have connected UI screens.
+Every displayed row must be persisted or explicitly empty/unavailable. A successful admin mutation must survive browser refresh.
 
-## 9. Team Lead and unsupported-role checks
+## 9. Team Lead and Auditor journeys
 
 Login as `marcus.vance@resolveiq.local`.
 
-1. Confirm authentication succeeds with the `TEAM_LEAD` role.
-2. Inspect the sidebar.
-3. Click each available item.
+1. Confirm authentication succeeds with only the `TEAM_LEAD` role.
+2. Open **Team queue** and verify only Marcus's authorized team is selectable.
+3. Select a ticket and assign/reassign its team or agent. Refresh and confirm persistence.
+4. Open **SLA risk** and confirm the authorized at-risk projection and SLA ordering.
+5. Open **Knowledge** and confirm retrieval works without knowledge-publication controls.
 
-Current result: `TEAM_LEAD` has no dedicated sidebar case and falls into the administrator-style navigation, while the content renderer usually falls into Agent Workspace. This is a known navigation mismatch and must be recorded as `LIMITATION`, not passed as a completed team-lead workflow.
+Sign out and login as `auditor@resolveiq.local`.
 
-`AUDITOR` exists in frontend types but has no seeded account and no dedicated UI. Auditor testing is therefore `NOT AVAILABLE`.
+1. Confirm the distinct sidebar contains **Security audit**, **Ticket evidence**, **Workflow audit**, and **AI governance**.
+2. Confirm security events, all-tenant ticket evidence, workflows and sanitized model traces load from APIs.
+3. Confirm assignment, retry, routing-toggle, user-creation, role-change, knowledge-publication, feedback and send controls are absent.
+4. Use an API client for one auditor mutation request and confirm backend `403`; hidden UI alone is not authorization proof.
 
 ## 10. Authorization-negative tests through the UI
 
@@ -373,23 +393,17 @@ Perform these only after the development stack was built once.
 
 Changes to `common-contracts` or `common-security` intentionally trigger all watching backend services. Changes to Compose, Dockerfiles, ports, container environment variables, or frontend dependencies still require a rebuild.
 
-## 12. Features that cannot currently be fully tested through UI
+## 12. Honest UI boundary after Part 1
 
-The following must remain open backlog items even if their backend schemas or partial endpoints exist:
+The Part 1 role workflows, queues, attachments, lifecycle, routing, governance and audit views are API-backed. These items remain outside the current UI and must not be claimed:
 
-- ticket attachments and MinIO upload/download;
-- password reset;
-- full agent-side message timeline rendering (the customer timeline is implemented);
-- selectable agent/team queues and assignment controls;
-- live SLA-risk dashboard;
-- article authoring and version publishing;
-- sanitized resolved-case approval;
-- vector-index administration;
-- real failed-workflow list and replay selection;
-- live governance/evaluation/trace metrics;
-- administrator user, team, routing-rule, and settings screens;
-- notification center;
-- dedicated Team Lead and Auditor experiences.
+- password reset/recovery;
+- notification-center behavior behind the bell icon;
+- creating/editing routing rules, teams or SLA policies (administrators can inspect and activate/deactivate rules);
+- approving a sanitized resolved case through the UI (approved cases are listed and used for retrieval);
+- a manual vector repair button (the authenticated reindex endpoint and lifecycle seed command provide operational repair);
+- synthetic creation of failed workflows for the replay screen;
+- recording the final portfolio demonstration video.
 
 
 
@@ -412,9 +426,15 @@ Copy this table into an issue or test report and fill it during execution.
 | AGENT-03     | Edited feedback                               | Agent             |        |                    |
 | AGENT-04     | Rejected feedback with reason                 | Agent             |        |                    |
 | AGENT-05     | Approve/send and WAITING_ON_CUSTOMER          | Agent/Customer    |        |                    |
-| RAG-01       | Hybrid search returns payment article         | Knowledge Manager |        |                    |
-| ADMIN-01     | Governance static/live distinction            | Admin             |        |                    |
-| ADMIN-02     | Invalid static replay surfaces error          | Admin             |        |                    |
+| AGENT-06     | Select/filter/sort/paginate authorized queue  | Agent             |        |                    |
+| FILE-01      | Clean attachment upload and download          | Customer/Agent    |        |                    |
+| FILE-02      | Unsafe and unsupported attachment rejection   | Customer/Agent    |        |                    |
+| RAG-01       | Long-query search returns payment article     | Customer/KM       |        |                    |
+| RAG-02       | Draft/publish/supersede/rollback/archive      | Knowledge Manager |        |                    |
+| LEAD-01      | Team queue, SLA scope and assignment          | Team Lead         |        |                    |
+| ADMIN-01     | Persisted overview/outbox/governance          | Admin             |        |                    |
+| ADMIN-02     | Routing toggle and user/role mutation         | Admin             |        |                    |
+| AUDIT-01     | Read-only evidence journey and mutation 403   | Auditor           |        |                    |
 | RBAC-01      | Role selector exposes only assigned roles     | All               |        |                    |
 | ISOLATION-01 | Customer ticket lists remain isolated         | Two customers     |        |                    |
 | DEV-01       | Frontend HMR                                  | Developer         |        |                    |
@@ -439,4 +459,3 @@ Relevant container logs:
 Screenshot/video:
 Severity:
 ```
-

@@ -10,6 +10,7 @@ import com.resolveiq.ticket.domain.model.*;
 import com.resolveiq.ticket.domain.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
 import java.util.List;
@@ -27,6 +28,8 @@ public class TicketService {
     private final OutboxEventRepository outboxRepository;
     private final IdempotencyKeyRepository idempotencyRepository;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
+    private final StaffTeamMembershipRepository membershipRepository;
 
     private static final String CREATE_TICKET_OPERATION = "CREATE_TICKET";
 
@@ -38,7 +41,9 @@ public class TicketService {
         SuggestionFeedbackRepository feedbackRepository,
         OutboxEventRepository outboxRepository,
         IdempotencyKeyRepository idempotencyRepository,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        ApplicationEventPublisher eventPublisher,
+        StaffTeamMembershipRepository membershipRepository
     ) {
         this.ticketRepository = ticketRepository;
         this.messageRepository = messageRepository;
@@ -48,6 +53,8 @@ public class TicketService {
         this.outboxRepository = outboxRepository;
         this.idempotencyRepository = idempotencyRepository;
         this.objectMapper = objectMapper;
+        this.eventPublisher = eventPublisher;
+        this.membershipRepository = membershipRepository;
     }
 
     private String computeRequestHash(CreateTicketRequest request) {
@@ -132,6 +139,7 @@ public class TicketService {
             request.language()
         );
         ticketRepository.save(ticket);
+        publish("ticket.created", ticket);
 
         TicketStatusHistory history = new TicketStatusHistory(
             ticket.getId(),
@@ -244,6 +252,7 @@ public class TicketService {
         );
 
         saveOutboxEvent("ticket", ticket.getId(), TicketEvents.TICKET_MESSAGE_ADDED, envelope);
+        publish("ticket.message.added", ticket);
 
         return TicketMessageResponse.fromEntity(message);
     }
@@ -253,8 +262,17 @@ public class TicketService {
         Ticket ticket = ticketRepository.findByIdAndTenantId(ticketId, tenantId)
             .orElseThrow(() -> new IllegalArgumentException("Ticket not found with id: " + ticketId));
 
+        if (request.agentId() != null && request.teamId() == null) {
+            throw new IllegalArgumentException("An agent assignment requires a team");
+        }
+        if (request.agentId() != null && !membershipRepository.existsByTenantIdAndUserIdAndTeamIdAndActiveTrue(
+            tenantId, request.agentId(), request.teamId())) {
+            throw new IllegalArgumentException("The selected agent is not an active member of the selected team");
+        }
+
         ticket.assign(request.teamId(), request.agentId());
         ticketRepository.save(ticket);
+        publish("ticket.assigned", ticket);
 
         TicketEvents.TicketAssignedPayload payload = new TicketEvents.TicketAssignedPayload(
             ticket.getId(),
@@ -290,6 +308,7 @@ public class TicketService {
         TicketStatus oldStatus = ticket.getStatus();
         ticket.transitionTo(request.status());
         ticketRepository.save(ticket);
+        publish("ticket.updated", ticket);
 
         TicketStatusHistory history = new TicketStatusHistory(
             ticket.getId(),
@@ -452,6 +471,22 @@ public class TicketService {
             .stream().map(AiSuggestionResponse::fromEntity).toList();
     }
 
+    @Transactional(readOnly = true)
+    public void assertStaffCanRead(TicketResponse ticket, UUID actorId, java.util.Set<String> roles) {
+        if (roles.contains("ADMIN") || roles.contains("AUDITOR")) return;
+        if ((roles.contains("AGENT") || roles.contains("TEAM_LEAD")) && (actorId.equals(ticket.assignedAgentId()) ||
+            (ticket.teamId() != null && membershipRepository.existsByTenantIdAndUserIdAndTeamIdAndActiveTrue(
+                ticket.tenantId(), actorId, ticket.teamId())))) return;
+        throw new SecurityException("Ticket is outside the authorized queue");
+    }
+
+    @Transactional(readOnly = true)
+    public void assertTeamAccess(UUID tenantId, UUID actorId, UUID teamId) {
+        if (teamId == null || !membershipRepository.existsByTenantIdAndUserIdAndTeamIdAndActiveTrue(tenantId, actorId, teamId)) {
+            throw new SecurityException("Team is outside the authorized scope");
+        }
+    }
+
     private void saveOutboxEvent(String aggregateType, UUID aggregateId, String eventType, Object envelope) {
         try {
             String jsonPayload = objectMapper.writeValueAsString(envelope);
@@ -465,5 +500,9 @@ public class TicketService {
     private org.springframework.data.domain.Pageable page(int page, int size) {
         if (page < 0) throw new IllegalArgumentException("Page must be non-negative");
         return org.springframework.data.domain.PageRequest.of(page, Math.max(1, Math.min(size, 100)));
+    }
+
+    private void publish(String eventType, Ticket ticket) {
+        eventPublisher.publishEvent(new TicketChangedEvent(eventType, TicketResponse.fromEntity(ticket)));
     }
 }

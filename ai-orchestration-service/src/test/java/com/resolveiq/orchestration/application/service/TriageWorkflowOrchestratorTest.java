@@ -63,7 +63,8 @@ class TriageWorkflowOrchestratorTest {
             new RestTemplateBuilder(),
             objectMapper,
             persistence,
-            new JwtService("fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345", "resolveiq-auth", "resolveiq-api")
+            new JwtService("fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345", "resolveiq-auth", "resolveiq-api"),
+            new ResilientDependencyExecutor()
         ) {
             @Override protected AnalysisResultDto callAnalysisService(UUID ticketId, UUID tenantId, String subject, String description, String channel) {
                 return new AnalysisResultDto("BILLING", "refund_request", "NEGATIVE", "HIGH");

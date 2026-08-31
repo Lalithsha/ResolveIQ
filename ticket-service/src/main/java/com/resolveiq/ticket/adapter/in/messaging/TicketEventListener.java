@@ -11,6 +11,9 @@ import com.resolveiq.ticket.domain.repository.ProcessedEventRepository;
 import com.resolveiq.ticket.domain.repository.TicketRepository;
 import com.resolveiq.ticket.domain.repository.TicketStatusHistoryRepository;
 import com.resolveiq.ticket.domain.model.TicketStatusHistory;
+import com.resolveiq.ticket.application.dto.TicketResponse;
+import com.resolveiq.ticket.application.service.TicketChangedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -30,19 +33,22 @@ public class TicketEventListener {
     private final ProcessedEventRepository processedEventRepository;
     private final ObjectMapper objectMapper;
     private final TicketStatusHistoryRepository historyRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public TicketEventListener(
         TicketRepository ticketRepository,
         AiSuggestionRepository suggestionRepository,
         ProcessedEventRepository processedEventRepository,
         ObjectMapper objectMapper,
-        TicketStatusHistoryRepository historyRepository
+        TicketStatusHistoryRepository historyRepository,
+        ApplicationEventPublisher eventPublisher
     ) {
         this.ticketRepository = ticketRepository;
         this.suggestionRepository = suggestionRepository;
         this.processedEventRepository = processedEventRepository;
         this.objectMapper = objectMapper;
         this.historyRepository = historyRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @KafkaListener(topics = { TicketEvents.TICKET_TRIAGE_COMPLETED, TicketEvents.TICKET_TRIAGE_FAILED }, groupId = CONSUMER_GROUP)
@@ -76,6 +82,10 @@ public class TicketEventListener {
                 if (TicketEvents.TICKET_TRIAGE_COMPLETED.equals(eventType)) {
                     String previousStatus = ticket.getStatus().name();
                     String category = payload.has("category") ? payload.get("category").asText() : null;
+                    String intent = payload.hasNonNull("intent") ? payload.get("intent").asText() : null;
+                    String sentiment = payload.hasNonNull("sentiment") ? payload.get("sentiment").asText() : null;
+                    String urgency = payload.hasNonNull("urgency") ? payload.get("urgency").asText() : null;
+                    Double confidence = payload.hasNonNull("confidence") ? payload.get("confidence").asDouble() : null;
                     UUID teamId = payload.has("assignedTeamId") && !payload.get("assignedTeamId").isNull()
                         ? UUID.fromString(payload.get("assignedTeamId").asText())
                         : null;
@@ -106,9 +116,11 @@ public class TicketEventListener {
                         ));
                     }
 
-                    ticket.updateTriageResult("SUCCESS", category, suggestionId, teamId, agentId);
+                    ticket.updateTriageResult("SUCCESS", category, intent, sentiment, urgency, confidence,
+                        suggestionId, teamId, agentId);
                     ticket.setSlaDeadlines(slaPolicyId, firstDue, resolutionDue);
                     ticketRepository.save(ticket);
+                    eventPublisher.publishEvent(new TicketChangedEvent("ticket.triage.completed", TicketResponse.fromEntity(ticket)));
                     if (!previousStatus.equals(ticket.getStatus().name())) {
                         historyRepository.save(new TicketStatusHistory(ticketId, previousStatus, ticket.getStatus().name(),
                             new UUID(0, 0), "AI triage completed"));
@@ -117,6 +129,7 @@ public class TicketEventListener {
                     String previousStatus = ticket.getStatus().name();
                     ticket.updateTriageResult("FAILED", null, null, null, null);
                     ticketRepository.save(ticket);
+                    eventPublisher.publishEvent(new TicketChangedEvent("ticket.updated", TicketResponse.fromEntity(ticket)));
                     if (!previousStatus.equals(ticket.getStatus().name())) {
                         historyRepository.save(new TicketStatusHistory(ticketId, previousStatus, ticket.getStatus().name(),
                             new UUID(0, 0), "AI triage failed"));

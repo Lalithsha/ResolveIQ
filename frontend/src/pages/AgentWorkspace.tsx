@@ -46,19 +46,23 @@ export const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({ activeTab = 'my-
   }, [activeTab, role]);
   const canAssign = role === 'TEAM_LEAD' || role === 'ADMIN';
   const readOnly = role === 'AUDITOR';
+  const ownTeamId = agents.find(agent => agent.id === user?.id)?.teamId;
+  const accessibleTeams = role === 'ADMIN' || role === 'AUDITOR'
+    ? teams : teams.filter(team => team.id === ownTeamId);
 
   useEffect(() => {
     Promise.all([api.listTeams(), api.listRoutingAgents()])
       .then(([teamData, agentData]) => {
         setTeams(teamData); setAgents(agentData);
         const ownTeam = agentData.find(agent => agent.id === user?.id)?.teamId;
-        setSelectedTeam(previous => previous || ownTeam || teamData[0]?.id || '');
+        const allowedDefault = role === 'ADMIN' || role === 'AUDITOR' ? teamData[0]?.id : ownTeam;
+        setSelectedTeam(previous => previous || allowedDefault || '');
       })
       .catch(failure => setStatusMessage(failure instanceof Error ? failure.message : 'Unable to load routing directory'));
-  }, [user?.id]);
+  }, [role, user?.id]);
 
   const loadQueue = useCallback(async (keepSelection = true) => {
-    if ((scope === 'team' || scope === 'sla-risk') && role !== 'ADMIN' && role !== 'AUDITOR' && !selectedTeam && teams.length > 0) return;
+    if ((scope === 'team' || scope === 'sla-risk') && role !== 'ADMIN' && role !== 'AUDITOR' && !selectedTeam) return;
     setLoadingQueue(true);
     try {
       const result = await api.searchAgentQueue({
@@ -72,7 +76,7 @@ export const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({ activeTab = 'my-
       setQueue(EMPTY_PAGE); setSelectedId(null);
       setStatusMessage(failure instanceof Error ? failure.message : 'Unable to load ticket queue');
     } finally { setLoadingQueue(false); }
-  }, [scope, selectedTeam, status, priority, search, sort, page, role, teams.length]);
+  }, [scope, selectedTeam, status, priority, search, sort, page, role]);
 
   useEffect(() => { void loadQueue(false); }, [loadQueue]);
   useEffect(() => {
@@ -157,7 +161,7 @@ export const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({ activeTab = 'my-
         <div className="flex items-center justify-between"><span className="text-sm font-bold flex items-center gap-2">{scope === 'team' ? <Users className="w-4 h-4" /> : <Inbox className="w-4 h-4" />} Queue</span><button aria-label="Refresh queue" onClick={() => void loadQueue(true)}><RefreshCw className={`w-4 h-4 text-muted ${loadingQueue ? 'animate-spin' : ''}`} /></button></div>
         <div className="relative"><Search className="w-3.5 h-3.5 text-muted absolute left-2.5 top-2.5" /><input value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} placeholder="Search tickets" className="w-full pl-8 pr-2 py-2 text-xs bg-surface-muted border border-border rounded-input" /></div>
         <div className="grid grid-cols-2 gap-2"><select value={priority} onChange={event => { setPriority(event.target.value); setPage(0); }} className="text-xs bg-surface border border-border rounded-input px-2 py-1.5"><option value="">All priorities</option>{(['LOW','MEDIUM','HIGH','CRITICAL'] as TicketPriority[]).map(value => <option key={value}>{value}</option>)}</select><select value={status} onChange={event => { setStatus(event.target.value); setPage(0); }} className="text-xs bg-surface border border-border rounded-input px-2 py-1.5"><option value="">All statuses</option>{(['NEW','READY_FOR_AGENT','IN_PROGRESS','WAITING_ON_CUSTOMER','RESOLVED','TRIAGE_FAILED'] as TicketStatus[]).map(value => <option key={value}>{value}</option>)}</select></div>
-        {(scope === 'team' || scope === 'sla-risk') && teams.length > 0 && <select value={selectedTeam} onChange={event => { setSelectedTeam(event.target.value); setPage(0); }} className="w-full text-xs bg-surface border border-border rounded-input px-2 py-1.5">{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select>}
+        {(scope === 'team' || scope === 'sla-risk') && accessibleTeams.length > 0 && <select value={selectedTeam} onChange={event => { setSelectedTeam(event.target.value); setPage(0); }} className="w-full text-xs bg-surface border border-border rounded-input px-2 py-1.5">{accessibleTeams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select>}
         <select value={sort} onChange={event => setSort(event.target.value)} className="w-full text-xs bg-surface border border-border rounded-input px-2 py-1.5"><option value="createdAt">Newest first</option><option value="updatedAt">Recently updated</option><option value="firstResponseDueAt">SLA deadline</option><option value="priority">Priority</option></select>
       </div>
       <div className="flex-1 overflow-y-auto divide-y divide-border-subtle">{loadingQueue && <div className="p-8 text-xs text-muted text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" />Loading queue…</div>}{!loadingQueue && queue.items.length === 0 && <div className="p-8 text-xs text-muted text-center">No authorized tickets match these filters.</div>}{queue.items.map(ticket => <button key={ticket.id} onClick={() => setSelectedId(ticket.id)} className={`w-full text-left p-3 space-y-1 hover:bg-surface-muted ${selectedId === ticket.id ? 'bg-primary-soft border-l-2 border-primary' : ''}`}><div className="flex items-center justify-between"><span className="font-mono text-[11px] font-bold">{ticket.ticketNumber}</span><span className={`text-[10px] font-bold ${ticket.priority === 'CRITICAL' || ticket.priority === 'HIGH' ? 'text-danger' : 'text-muted'}`}>{ticket.priority}</span></div><p className="text-xs font-semibold line-clamp-2">{ticket.subject}</p><div className="flex justify-between text-[10px] text-muted"><span>{ticket.status.replace(/_/g, ' ')}</span><span>{slaLabel(ticket.firstResponseDueAt)}</span></div></button>)}</div>

@@ -15,7 +15,8 @@ VALUES
   ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000001', 'sarah.chen@resolveiq.local', 'sarah.chen@resolveiq.local', '$2a$10$idQEPDOdriw/Gfbfew3fFu2RGVaUdL1hO8ta9P55hfrNRK2FH5j2u', 'Sarah Chen', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000001', 'marcus.vance@resolveiq.local', 'marcus.vance@resolveiq.local', '$2a$10$idQEPDOdriw/Gfbfew3fFu2RGVaUdL1hO8ta9P55hfrNRK2FH5j2u', 'Marcus Vance', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   ('44444444-4444-4444-4444-444444444444', '00000000-0000-0000-0000-000000000001', 'elena.rostova@resolveiq.local', 'elena.rostova@resolveiq.local', '$2a$10$idQEPDOdriw/Gfbfew3fFu2RGVaUdL1hO8ta9P55hfrNRK2FH5j2u', 'Elena Rostova', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('55555555-5555-5555-5555-555555555555', '00000000-0000-0000-0000-000000000001', 'admin@resolveiq.local', 'admin@resolveiq.local', '$2a$10$idQEPDOdriw/Gfbfew3fFu2RGVaUdL1hO8ta9P55hfrNRK2FH5j2u', 'David Kross', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  ('55555555-5555-5555-5555-555555555555', '00000000-0000-0000-0000-000000000001', 'admin@resolveiq.local', 'admin@resolveiq.local', '$2a$10$idQEPDOdriw/Gfbfew3fFu2RGVaUdL1hO8ta9P55hfrNRK2FH5j2u', 'David Kross', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('66666666-6666-6666-6666-666666666666', '00000000-0000-0000-0000-000000000001', 'auditor@resolveiq.local', 'auditor@resolveiq.local', '$2a$10$idQEPDOdriw/Gfbfew3fFu2RGVaUdL1hO8ta9P55hfrNRK2FH5j2u', 'Priya Nair', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT (id) DO NOTHING;
 
 -- User Roles Map
@@ -24,7 +25,8 @@ INSERT INTO auth_schema.user_roles_map (user_id, role_name) VALUES
   ('22222222-2222-2222-2222-222222222222', 'AGENT'),
   ('33333333-3333-3333-3333-333333333333', 'TEAM_LEAD'),
   ('44444444-4444-4444-4444-444444444444', 'KNOWLEDGE_MANAGER'),
-  ('55555555-5555-5555-5555-555555555555', 'ADMIN')
+  ('55555555-5555-5555-5555-555555555555', 'ADMIN'),
+  ('66666666-6666-6666-6666-666666666666', 'AUDITOR')
 ON CONFLICT (user_id, role_name) DO NOTHING;
 
 -- 3. Teams & Routing
@@ -37,46 +39,45 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO routing_schema.agents (id, tenant_id, team_id, name, email, status, active_ticket_count, created_at, updated_at)
 VALUES
-  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Sarah Chen', 'sarah.chen@resolveiq.local', 'ONLINE', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Sarah Chen', 'sarah.chen@resolveiq.local', 'ONLINE', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Marcus Vance', 'marcus.vance@resolveiq.local', 'ONLINE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT (id) DO NOTHING;
+
+-- Ticket-service access projection of routing team membership.
+INSERT INTO ticket_schema.staff_team_memberships (id, tenant_id, user_id, team_id, role, active, updated_at)
+VALUES
+  ('a1111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'AGENT', TRUE, CURRENT_TIMESTAMP),
+  ('a3333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'TEAM_LEAD', TRUE, CURRENT_TIMESTAMP)
+ON CONFLICT (tenant_id, user_id, team_id) DO UPDATE SET active = TRUE, role = EXCLUDED.role, updated_at = CURRENT_TIMESTAMP;
 
 -- Routing Rules
 INSERT INTO routing_schema.routing_rules (id, tenant_id, name, version, conditions, target_team_id, priority_order, active, created_at)
 VALUES
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'Billing Category Rule', 'v1.0', '{"category": "BILLING"}', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 1, TRUE, CURRENT_TIMESTAMP),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'SSO Auth Rule', 'v1.0', '{"intent": "authentication_issue"}', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 2, TRUE, CURRENT_TIMESTAMP),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'Delivery Rule', 'v1.0', '{"category": "DELIVERY"}', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 3, TRUE, CURRENT_TIMESTAMP)
-ON CONFLICT (id) DO NOTHING;
+  ('71000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Billing Category Rule', 'v1.0', '{"category": "BILLING"}', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 1, TRUE, CURRENT_TIMESTAMP),
+  ('71000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'SSO Auth Rule', 'v1.0', '{"intent": "authentication_issue"}', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 2, TRUE, CURRENT_TIMESTAMP),
+  ('71000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'Delivery Rule', 'v1.0', '{"category": "DELIVERY"}', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 3, TRUE, CURRENT_TIMESTAMP)
+ON CONFLICT (tenant_id, name, version) DO UPDATE SET
+  conditions = EXCLUDED.conditions,
+  target_team_id = EXCLUDED.target_team_id,
+  priority_order = EXCLUDED.priority_order,
+  active = EXCLUDED.active;
 
 -- SLA Policies
 INSERT INTO routing_schema.sla_policies (id, tenant_id, name, priority, first_response_target_minutes, resolution_target_minutes, business_hours_only, created_at)
 VALUES
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'Critical SLA Policy', 'CRITICAL', 60, 240, FALSE, CURRENT_TIMESTAMP),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'High SLA Policy', 'HIGH', 120, 480, TRUE, CURRENT_TIMESTAMP),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'Medium SLA Policy', 'MEDIUM', 240, 1440, TRUE, CURRENT_TIMESTAMP),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'Low SLA Policy', 'LOW', 480, 2880, TRUE, CURRENT_TIMESTAMP)
-ON CONFLICT (id) DO NOTHING;
+  ('72000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Critical SLA Policy', 'CRITICAL', 60, 240, FALSE, CURRENT_TIMESTAMP),
+  ('72000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'High SLA Policy', 'HIGH', 120, 480, TRUE, CURRENT_TIMESTAMP),
+  ('72000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'Medium SLA Policy', 'MEDIUM', 240, 1440, TRUE, CURRENT_TIMESTAMP),
+  ('72000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', 'Low SLA Policy', 'LOW', 480, 2880, TRUE, CURRENT_TIMESTAMP)
+ON CONFLICT (tenant_id, priority) DO UPDATE SET
+  name = EXCLUDED.name,
+  first_response_target_minutes = EXCLUDED.first_response_target_minutes,
+  resolution_target_minutes = EXCLUDED.resolution_target_minutes,
+  business_hours_only = EXCLUDED.business_hours_only;
 
--- 4. Knowledge Base Documents & Chunks
-INSERT INTO rag_schema.knowledge_documents (id, tenant_id, title, category, product, language, status, active_version_id, created_at, updated_at)
-VALUES
-  ('dddddddd-dddd-dddd-dddd-dddddddddddd', '00000000-0000-0000-0000-000000000001', 'Payment Reconciliation & Duplicate Charge Handling', 'BILLING', 'Billing Core', 'en', 'PUBLISHED', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO rag_schema.knowledge_versions (id, document_id, version_number, content, summary, published_by_user_id, published_at, created_at)
-VALUES
-  ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 1, 
-   'When a customer reports duplicate charges on their account or a gateway timeout occurs, follow these steps: 1. Locate the transaction in Stripe/Adyen dashboard. 2. Verify authorization status. If two charges exist with identical amounts within 5 minutes, initiate a refund for the duplicate transaction. 3. Update customer invoice status to Paid. 4. Reply to customer confirming refund transaction ID and bank clearance estimate (3-5 business days).',
-   'Standard operating procedure for double charge refund & invoice reconciliation.',
-   '44444444-4444-4444-4444-444444444444', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO rag_schema.knowledge_chunks (id, tenant_id, document_id, version_id, chunk_index, content, content_hash, embedding_model, created_at)
-VALUES
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 0,
-   'When a customer reports duplicate charges on their account or a gateway timeout occurs, verify authorization status in payment processor and initiate refund for duplicate transaction within 3-5 business days.',
-   'hash_kb_104_0', 'mock-embedding-v1', CURRENT_TIMESTAMP)
-ON CONFLICT (id) DO NOTHING;
+-- 4. Knowledge is intentionally not inserted with SQL. scripts/seed-data.sh
+-- authenticates as a knowledge manager and drives draft -> review -> publish,
+-- which is the same ingestion/indexing boundary used by the product.
 
 -- 5. Seed Tickets
 INSERT INTO ticket_schema.tickets (id, ticket_number, tenant_id, customer_id, team_id, assigned_agent_id, subject, description, language, status, priority, category, channel, ai_triage_status, created_at, updated_at)
@@ -88,14 +89,14 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO ticket_schema.ticket_messages (id, ticket_id, tenant_id, sender_id, sender_role, content, is_internal, created_at)
 VALUES
-  (gen_random_uuid(), 'ffffffff-ffff-ffff-ffff-ffffffffffff', '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'CUSTOMER',
+  ('73000000-0000-0000-0000-000000000001', 'ffffffff-ffff-ffff-ffff-ffffffffffff', '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'CUSTOMER',
    'I noticed my credit card was charged twice for invoice #INV-9812. The dashboard shows payment pending and my account is locked out of premium features. Please fix this immediately.',
    FALSE, CURRENT_TIMESTAMP)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO ticket_schema.ai_suggestions (id, ticket_id, tenant_id, suggested_response, confidence_score, model_name, prompt_version, citations, status, created_at)
 VALUES
-  (gen_random_uuid(), 'ffffffff-ffff-ffff-ffff-ffffffffffff', '00000000-0000-0000-0000-000000000001',
+  ('74000000-0000-0000-0000-000000000001', 'ffffffff-ffff-ffff-ffff-ffffffffffff', '00000000-0000-0000-0000-000000000001',
    'Hello Alex, thank you for contacting support. I have verified your account and identified that the payment retry mechanism encountered a temporary gateway timeout. I have manually triggered a balance reconciliation and your invoice status has now updated to Paid. Please let us know if you need any additional assistance.',
    0.94, 'mock-chat-v1', 'triage-v1.0',
    '[{"source": "KB-104: Payment Reconciliation", "snippet": "When a gateway timeout causes duplicate pending records, reconcile balance from payment processor..."}]',

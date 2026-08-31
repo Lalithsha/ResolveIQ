@@ -107,4 +107,14 @@ public class User {
         this.passwordHash = passwordHash;
         this.updatedAt = Instant.now();
     }
+
+    public void replaceRoles(Set<Role> replacement) {
+        if (replacement == null || replacement.isEmpty()) throw new IllegalArgumentException("At least one role is required");
+        if (replacement.contains(Role.CUSTOMER) && replacement.size() > 1) {
+            throw new IllegalArgumentException("Customer role cannot be combined with staff roles");
+        }
+        this.roles.clear();
+        this.roles.addAll(replacement);
+        this.updatedAt = Instant.now();
+    }
 }

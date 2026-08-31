@@ -4,6 +4,10 @@ import com.resolveiq.routing.application.dto.*;
 import com.resolveiq.routing.application.service.RoutingEngineService;
 import com.resolveiq.routing.domain.model.RoutingRule;
 import com.resolveiq.routing.domain.model.Team;
+import com.resolveiq.routing.domain.model.Agent;
+import com.resolveiq.routing.domain.model.SlaPolicy;
+import com.resolveiq.routing.domain.repository.AgentRepository;
+import com.resolveiq.routing.domain.repository.SlaPolicyRepository;
 import com.resolveiq.routing.domain.repository.RoutingRuleRepository;
 import com.resolveiq.routing.domain.repository.TeamRepository;
 import jakarta.validation.Valid;
@@ -21,15 +25,21 @@ public class RoutingController {
     private final RoutingEngineService routingEngineService;
     private final TeamRepository teamRepository;
     private final RoutingRuleRepository ruleRepository;
+    private final AgentRepository agentRepository;
+    private final SlaPolicyRepository slaPolicyRepository;
 
     public RoutingController(
         RoutingEngineService routingEngineService,
         TeamRepository teamRepository,
-        RoutingRuleRepository ruleRepository
+        RoutingRuleRepository ruleRepository,
+        AgentRepository agentRepository,
+        SlaPolicyRepository slaPolicyRepository
     ) {
         this.routingEngineService = routingEngineService;
         this.teamRepository = teamRepository;
         this.ruleRepository = ruleRepository;
+        this.agentRepository = agentRepository;
+        this.slaPolicyRepository = slaPolicyRepository;
     }
 
     @PostMapping("/decide")
@@ -45,9 +55,28 @@ public class RoutingController {
     }
 
     @GetMapping("/teams")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('AGENT','TEAM_LEAD','KNOWLEDGE_MANAGER','ADMIN','AUDITOR')")
     public ResponseEntity<List<Team>> listTeams(@RequestHeader(value = "X-Tenant-Id") UUID tenantId) {
         List<Team> teams = teamRepository.findByTenantId(tenantId);
         return ResponseEntity.ok(teams);
+    }
+
+    @GetMapping("/agents")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('AGENT','TEAM_LEAD','KNOWLEDGE_MANAGER','ADMIN','AUDITOR')")
+    public ResponseEntity<List<Agent>> listAgents(@RequestHeader(value = "X-Tenant-Id") UUID tenantId) {
+        return ResponseEntity.ok(agentRepository.findByTenantId(tenantId));
+    }
+
+    @GetMapping("/rules")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('TEAM_LEAD','ADMIN','AUDITOR')")
+    public ResponseEntity<List<RoutingRule>> listRules(@RequestHeader(value = "X-Tenant-Id") UUID tenantId) {
+        return ResponseEntity.ok(ruleRepository.findByTenantIdOrderByPriorityOrderAsc(tenantId));
+    }
+
+    @GetMapping("/sla-policies")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('AGENT','TEAM_LEAD','ADMIN','AUDITOR')")
+    public ResponseEntity<List<SlaPolicy>> listSlaPolicies(@RequestHeader(value = "X-Tenant-Id") UUID tenantId) {
+        return ResponseEntity.ok(slaPolicyRepository.findByTenantId(tenantId));
     }
 
     @PostMapping("/teams")
@@ -78,5 +107,19 @@ public class RoutingController {
         );
         ruleRepository.save(rule);
         return ResponseEntity.status(HttpStatus.CREATED).body(rule);
+    }
+
+    @PatchMapping("/rules/{id}/active")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<RoutingRule> setRuleActive(
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId,
+        @PathVariable UUID id,
+        @RequestBody java.util.Map<String, Boolean> body
+    ) {
+        RoutingRule rule = ruleRepository.findByIdAndTenantId(id, tenantId)
+            .orElseThrow(() -> new IllegalArgumentException("Routing rule not found"));
+        if (!body.containsKey("active")) throw new IllegalArgumentException("active is required");
+        rule.setActive(Boolean.TRUE.equals(body.get("active")));
+        return ResponseEntity.ok(ruleRepository.save(rule));
     }
 }

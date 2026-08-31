@@ -5,6 +5,7 @@ import com.resolveiq.orchestration.domain.model.WorkflowInstance;
 import com.resolveiq.orchestration.domain.model.WorkflowStep;
 import com.resolveiq.orchestration.domain.repository.WorkflowInstanceRepository;
 import com.resolveiq.orchestration.domain.repository.WorkflowStepRepository;
+import com.resolveiq.orchestration.domain.repository.WorkflowOutboxRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/workflows")
+@org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ADMIN','AUDITOR')")
 public class WorkflowController {
 
     private static final Logger log = LoggerFactory.getLogger(WorkflowController.class);
@@ -23,15 +25,27 @@ public class WorkflowController {
     private final WorkflowInstanceRepository instanceRepository;
     private final WorkflowStepRepository stepRepository;
     private final TriageWorkflowOrchestrator orchestrator;
+    private final WorkflowOutboxRepository outboxRepository;
 
     public WorkflowController(
         WorkflowInstanceRepository instanceRepository,
         WorkflowStepRepository stepRepository,
-        TriageWorkflowOrchestrator orchestrator
+        TriageWorkflowOrchestrator orchestrator,
+        WorkflowOutboxRepository outboxRepository
     ) {
         this.instanceRepository = instanceRepository;
         this.stepRepository = stepRepository;
         this.orchestrator = orchestrator;
+        this.outboxRepository = outboxRepository;
+    }
+
+    @GetMapping("/operations/outbox-summary")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ADMIN','AUDITOR')")
+    public ResponseEntity<Map<String, Long>> outboxSummary(@RequestHeader("X-Tenant-Id") UUID tenantId) {
+        Map<String, Long> result = new java.util.LinkedHashMap<>(Map.of("PENDING", 0L, "RETRY", 0L, "DEAD", 0L, "PUBLISHED", 0L));
+        outboxRepository.countByStatusForTenant(tenantId)
+            .forEach(row -> result.put(String.valueOf(row[0]), ((Number) row[1]).longValue()));
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/ticket/{ticketId}")

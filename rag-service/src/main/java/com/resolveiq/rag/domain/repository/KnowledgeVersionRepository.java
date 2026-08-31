@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface KnowledgeVersionRepository extends JpaRepository<KnowledgeVersion, UUID> {
     List<KnowledgeVersion> findByDocumentIdOrderByVersionNumberDesc(UUID documentId);
     Optional<KnowledgeVersion> findTopByDocumentIdOrderByVersionNumberDesc(UUID documentId);
+    Optional<KnowledgeVersion> findByIdAndDocumentId(UUID id, UUID documentId);
+    boolean existsByDocumentIdAndStatusIn(UUID documentId, java.util.Collection<String> statuses);
 }

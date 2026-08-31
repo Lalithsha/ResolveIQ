@@ -28,6 +28,7 @@ public class TriageWorkflowOrchestrator {
     private final ObjectMapper objectMapper;
     private final WorkflowPersistenceService persistence;
     private final JwtService jwtService;
+    private final ResilientDependencyExecutor dependencyExecutor;
 
     @Value("${resolveiq.services.analysis-url:http://localhost:8084}")
     private String analysisUrl = "http://localhost:8084";
@@ -42,7 +43,8 @@ public class TriageWorkflowOrchestrator {
         RestTemplateBuilder restTemplateBuilder,
         ObjectMapper objectMapper,
         WorkflowPersistenceService persistence,
-        JwtService jwtService
+        JwtService jwtService,
+        ResilientDependencyExecutor dependencyExecutor
     ) {
         this.restTemplate = restTemplateBuilder
             .setConnectTimeout(Duration.ofSeconds(3))
@@ -51,6 +53,7 @@ public class TriageWorkflowOrchestrator {
         this.objectMapper = objectMapper;
         this.persistence = persistence;
         this.jwtService = jwtService;
+        this.dependencyExecutor = dependencyExecutor;
     }
 
     public void executeTriageWorkflow(
@@ -183,7 +186,8 @@ public class TriageWorkflowOrchestrator {
             headers.setBearerAuth(jwtService.serviceToken("ai-orchestration-service", tenantId));
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
-            ResponseEntity<JsonNode> resp = restTemplate.postForEntity(analysisUrl + "/api/v1/analysis/classify", entity, JsonNode.class);
+            ResponseEntity<JsonNode> resp = dependencyExecutor.analysis(() ->
+                restTemplate.postForEntity(analysisUrl + "/api/v1/analysis/classify", entity, JsonNode.class));
             if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
                 JsonNode b = resp.getBody();
                 String category = b.hasNonNull("category") ? b.get("category").asText() : "GENERAL";
@@ -213,7 +217,8 @@ public class TriageWorkflowOrchestrator {
             headers.setBearerAuth(jwtService.serviceToken("ai-orchestration-service", tenantId));
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
-            ResponseEntity<JsonNode> resp = restTemplate.postForEntity(routingUrl + "/api/v1/routing/decide", entity, JsonNode.class);
+            ResponseEntity<JsonNode> resp = dependencyExecutor.routing(() ->
+                restTemplate.postForEntity(routingUrl + "/api/v1/routing/decide", entity, JsonNode.class));
             if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
                 JsonNode b = resp.getBody();
                 UUID teamId = b.hasNonNull("targetTeamId") ? UUID.fromString(b.get("targetTeamId").asText()) : null;
@@ -243,7 +248,8 @@ public class TriageWorkflowOrchestrator {
             headers.setBearerAuth(jwtService.serviceToken("ai-orchestration-service", tenantId));
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
-            ResponseEntity<JsonNode> resp = restTemplate.postForEntity(ragUrl + "/api/v1/retrieval/search", entity, JsonNode.class);
+            ResponseEntity<JsonNode> resp = dependencyExecutor.rag(() ->
+                restTemplate.postForEntity(ragUrl + "/api/v1/retrieval/search", entity, JsonNode.class));
             if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
                 JsonNode b = resp.getBody();
                 List<String> citationTexts = new ArrayList<>();

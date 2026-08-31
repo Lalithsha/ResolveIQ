@@ -10,7 +10,7 @@ target/
 *.rar
 build/
 dist/
-out/
+/out/
 .gradle/
 
 # Node & Frontend
@@ -25,6 +25,8 @@ pnpm-debug.log*
 *.tsbuildinfo
 frontend/dist/
 frontend/node_modules/
+frontend/playwright-report/
+frontend/test-results/
 .turbo/
 
 # Environment and Secrets

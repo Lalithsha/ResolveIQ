@@ -31,7 +31,11 @@ public class RetrievalController {
             request.ticketId(),
             request.queryText(),
             request.strategy(),
-            topK
+            topK,
+            request.category(),
+            request.product(),
+            request.language(),
+            request.sourceTypes()
         );
         return ResponseEntity.ok(result);
     }

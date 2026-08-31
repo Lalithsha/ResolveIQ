@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: resolveiq
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 11m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "65"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [resolveiq.example.com]
+      secretName: resolveiq-tls
+  rules:
+    - host: resolveiq.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: frontend, port: { name: http } }

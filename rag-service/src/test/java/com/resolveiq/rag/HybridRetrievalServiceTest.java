@@ -8,6 +8,7 @@ import com.resolveiq.rag.adapter.out.ai.MockEmbeddingAdapter;
 import com.resolveiq.rag.application.dto.CitationDto;
 import com.resolveiq.rag.application.dto.RetrievalResultDto;
 import com.resolveiq.rag.application.service.HybridRetrievalService;
+import com.resolveiq.rag.application.service.QueryRewriteService;
 import com.resolveiq.rag.domain.model.KnowledgeChunk;
 import com.resolveiq.rag.domain.model.KnowledgeDocument;
 import com.resolveiq.rag.domain.model.ResolvedCase;
@@ -54,7 +55,8 @@ class HybridRetrievalServiceTest {
             resolvedCaseRepository,
             retrievalRunRepository,
             citationRecordRepository,
-            embeddingAdapter
+            embeddingAdapter,
+            new QueryRewriteService()
         );
     }
 
@@ -101,10 +103,10 @@ class HybridRetrievalServiceTest {
             "mock-embedding-v1"
         );
 
-        when(knowledgeChunkRepository.searchLexical(tenantId, "duplicate charge on card", 50)).thenReturn(List.of(chunk1));
-        when(knowledgeChunkRepository.searchVector(eq(tenantId), anyString(), eq(50))).thenReturn(List.of(chunk1));
-        when(resolvedCaseChunkRepository.searchLexical(tenantId, "duplicate charge on card", 30)).thenReturn(List.of(caseChunk));
-        when(resolvedCaseChunkRepository.searchVector(eq(tenantId), anyString(), eq(30))).thenReturn(List.of(caseChunk));
+        when(knowledgeChunkRepository.searchLexical(tenantId, "duplicate charge on card", null, null, null, 50)).thenReturn(List.of(chunk1));
+        when(knowledgeChunkRepository.searchVector(eq(tenantId), anyString(), isNull(), isNull(), isNull(), eq(50))).thenReturn(List.of(chunk1));
+        when(resolvedCaseChunkRepository.searchLexical(tenantId, "duplicate charge on card", null, 30)).thenReturn(List.of(caseChunk));
+        when(resolvedCaseChunkRepository.searchVector(eq(tenantId), anyString(), isNull(), eq(30))).thenReturn(List.of(caseChunk));
 
         RetrievalResultDto result = retrievalService.searchHybrid(
             tenantId,
@@ -123,5 +125,41 @@ class HybridRetrievalServiceTest {
         assertThat(topCitation.score()).isGreaterThan(0.0);
 
         verify(retrievalRunRepository, times(1)).save(any(RetrievalRun.class));
+    }
+
+    @Test
+    @DisplayName("Should fall back to relaxed lexical matching for natural-language Help Center queries")
+    void testNaturalLanguageQueryUsesRelaxedLexicalFallback() {
+        UUID tenantId = UUID.randomUUID();
+        UUID ticketId = UUID.randomUUID();
+        UUID docId = UUID.randomUUID();
+        UUID versionId = UUID.randomUUID();
+        String query = "duplicate charge invoice billing dispute credit card";
+
+        KnowledgeDocument doc = new KnowledgeDocument(docId, tenantId, "Payment Reconciliation", "BILLING", "Core", "en");
+        when(documentRepository.findByIdAndTenantId(docId, tenantId)).thenReturn(Optional.of(doc));
+
+        KnowledgeChunk chunk = new KnowledgeChunk(
+            tenantId,
+            docId,
+            versionId,
+            0,
+            "When a customer reports a duplicate credit card charge or invoice billing dispute.",
+            "hash-natural-language",
+            "mock-embedding-v1"
+        );
+
+        when(knowledgeChunkRepository.searchLexical(tenantId, query, null, null, null, 50)).thenReturn(List.of());
+        when(knowledgeChunkRepository.searchLexicalRelaxed(tenantId, query, null, null, null, 50)).thenReturn(List.of(chunk));
+        when(knowledgeChunkRepository.searchVector(eq(tenantId), anyString(), isNull(), isNull(), isNull(), eq(50))).thenReturn(List.of());
+        when(resolvedCaseChunkRepository.searchLexical(tenantId, query, null, 30)).thenReturn(List.of());
+        when(resolvedCaseChunkRepository.searchLexicalRelaxed(tenantId, query, null, 30)).thenReturn(List.of());
+        when(resolvedCaseChunkRepository.searchVector(eq(tenantId), anyString(), isNull(), eq(30))).thenReturn(List.of());
+
+        RetrievalResultDto result = retrievalService.searchHybrid(tenantId, ticketId, query, "HYBRID_RRF", 5);
+
+        assertThat(result.citations()).hasSize(1);
+        assertThat(result.citations().get(0).citationText()).contains("duplicate credit card charge");
+        verify(knowledgeChunkRepository).searchLexicalRelaxed(tenantId, query, null, null, null, 50);
     }
 }
