@@ -1,11 +1,11 @@
 # ResolveIQ Part 2 Differentiated Features Implementation Plan
 
-> **Status:** Reviewed implementation specification (2026-09-10); implementation gates remain unverified
+> **Status:** Implemented in part through `835ed93`; five-commit review found blocking security, correctness and integration gaps. Part 2 is NOT accepted.
 > **Baseline:** Part 1 completion was previously recorded; Phase 0 must revalidate the current checkout and deployment before relying on it
 > **Scope:** All five differentiated features defined in `RESOLVEIQ_BEYOND_PARITY_ROADMAP.md`
 > **Primary stack:** Java 21, Spring Boot, Kafka, PostgreSQL/pgvector, MinIO, React and TypeScript
 > **Execution rule:** Deliver one independently demonstrable vertical slice at a time. Do not begin the next feature while the current feature's required gate is red.
-> **Required review decisions:** Section 22 is part of the implementation contract, not optional future work. It resolves dependencies, security boundaries and acceptance details for sections 5–20.
+> **Required review decisions:** Sections 22–23 are mandatory. Section 23 records the implementation audit, remediation order and objective completion gates; existing code or passing mock tests alone do not satisfy them.
 
 ## 1. Product outcome
 
@@ -1375,3 +1375,198 @@ Load tests record hardware, dataset sizes, concurrency, duration, warmup and p50
 Roll out by tenant flag to fictional test tenants first. Distinguish disabling new admissions from draining already-approved deliveries, reconciling uncertain actions and deleting data; emergency execution pause must block unsent actions without discarding reconciliation. Provider keys and approval history must survive application rollback. Use expand/backfill/validate/contract migrations, retaining old read compatibility until verification finishes.
 
 Part 2 acceptance means all five bounded slices above work end to end. It does not mean real money movement, real identity-provider integration, every messaging channel, legal certification or untested semantic/media capability. Keep these exclusions visible in the README and showcase evidence when implementation is complete.
+
+## 23. Five-commit audit, remediation backlog and acceptance contract
+
+### 23.1 Audit baseline and honest status
+
+This section records the review of the following commits, ending at `835ed93`. Recheck HEAD and any later changes before implementation; this is not a claim that the baseline is safe to deploy. Earlier sections remain the product specification. Where this section clarifies acceptance, follow the stricter requirement rather than weakening the original gate.
+
+| Commit | Delivered structure | Not accepted because |
+|---|---|---|
+| `157283b` | Contracts, permissions, incident models/APIs/UI | Permission enforcement, tenant checks, real detector, approved publication and recovery incomplete |
+| `edea6af` | Action registry, digest, policies, simulated ledgers, UI | Approval/ownership gaps; synchronous transaction rather than durable execution; incomplete recovery |
+| `004ab79` | Conversation storage, email adapter, identity/linking/handoff UI | Challenge disclosure, missing ownership checks, spoofable threading, non-durable delivery |
+| `75c05ed` | Evidence models/APIs/UI and extraction adapters | Text-decoded binary storage, simulated media findings, missing quarantine/worker/index lifecycle |
+| `835ed93` | Outcome records, scores, candidate/release UI | Hardcoded evaluation, metadata-only activation, unverified source eligibility and lifecycle gaps |
+
+Previous review evidence: 8 targeted Phase 0/1 tests, 30 targeted action/channel tests, and subsequently 46 targeted evidence/flywheel backend tests plus 2 frontend tests passed in their respective review runs. These were not one complete acceptance run. Coverage instrumentation was disabled in the later runs due to local JDK/JaCoCo incompatibility. Do not turn these counts into a completion percentage. No real-media, full security, browser E2E, load or crash-recovery acceptance was established.
+
+Use status `MISSING`, `PARTIAL`, `IMPLEMENTED_UNVERIFIED`, `PASS`, `FAIL` or `BLOCKED_EXTERNAL` for each gate. Default every item below to `PARTIAL` or `MISSING`; nothing is accepted merely because its commit says “E2E.” Required gates marked blocked still prevent whole-Part-2 acceptance.
+
+### 23.2 Execution order and implementation discipline
+
+Work in this order; preserve completed useful code instead of replacing all modules:
+
+1. **R0 — Security containment and acceptance harness:** fix shared authentication/authorization, deny unsafe commands, remove fabricated successful results, establish tests that reproduce the reported defects.
+2. **R1 — Incident correctness:** finish Phase 1 detector/publication/recovery before extending downstream incident use.
+3. **R2 — Action durability:** independently durable provider simulator, execution workflow, policy and financial concurrency.
+4. **R3 — Channel continuity:** mailbox proof, canonical message path, threading and reliable delivery.
+5. **R4 — Real evidence pipeline:** binary storage, scanning, consent, actual tooling, authorized retrieval and deletion.
+6. **R5 — Verified outcomes and real releases:** lifecycle integration, evidence-derived eligibility, actual evaluation and real activation.
+7. **R6 — Cross-feature acceptance:** migration, restore, multi-replica faults, performance, UI journeys and documentation.
+
+For each work item: write a failing regression test; implement domain/service changes; add migration and integration proof; wire gateway/OpenAPI/client/UI; run negative and recovery scenarios; record commands/artifacts; only then mark its gate passed. No external call inside a database transaction. Do not run real refunds, send mail to real customers, destroy data volumes or deploy publicly for these tests. Use fictional isolated tenants and providers. Do not commit/push without user authorization.
+
+Create an implementation evidence directory such as `verification/part2/` containing a manifest with commit SHA, dirty state, UTC run time, Java/Node/container versions, dataset hash, provider modes, environment resources, command exit codes and report locations. Never store credentials or raw personal data in evidence. Generated reports should be ignored or summarized according to repository conventions; small sanitized acceptance summaries can be committed with approval.
+
+### 23.3 R0 — Close authorization and integrity gaps first
+
+**Affected code:** `common-security` filters/principal/templates, auth refresh flow, gateway rules, all Part 2 controllers and owning application services.
+
+- **SEC-01: Enforce operation permissions.** Replace broad role-only mutation access with method-specific checks and application-service authorization. Auditors are read-only; Customers cannot confirm incidents, publish updates, execute actions, merge conversations, assign agents or resolve staff tickets. Team Lead/Admin labels do not substitute for explicit sensitive permissions. Remove fallback fabricated principals/default tenant IDs; missing validated identity fails closed.
+- **SEC-02: Authorize the source object.** Introduce shared application ports/helpers for `requireTicketAccess`, `requireCustomerOwnership` and `requireStaffTeamAccess`, backed by ticket-service decisions. Verify actor, tenant, ticket, team and allowed operation. Evidence/action services call a narrow internal authorization contract; never read ticket tables directly. Resolve parent-child relationships in scoped queries: an update must belong to the supplied incident, a message to its conversation and an artifact to an authorized ticket. Add composite tenant constraints where local ownership permits.
+- **SEC-03: Persist recent authentication correctly.** Carry immutable original authentication time through refresh-token rotation; implement a separately verified step-up attestation. Missing/stale time rejects sensitive approval. Recheck current grants/revocation before sensitive execution; no authorization from cached browser claims alone. Use the five-minute step-up validity from section 22, not the current 15-minute bypass-prone check.
+- **SEC-04: Enforce flags and service scope.** Implement tenant-backed flags defaulting off, used in backend commands and frontend capability responses. Preserve reads/reconciliation/deletion during pause. Service tokens carry permitted purpose and audience; `SYSTEM` is not a human approval. Deny unknown tenant public keys rather than falling back to a default tenant.
+- **SEC-05: Remove misleading outputs.** Until real implementations land, return explicit `UNAVAILABLE`/`SIMULATED` states for media and evaluation. Never report fabricated confidence, transcript, coordinates, installed tool versions or passing evaluation metrics. UI must display limitations; feature completion remains blocked.
+
+**Gate G0:** exercise every Part 2 route through the real gateway/security chain with six roles, two tenants and two different customers in one tenant. For every forbidden operation expect `403` or non-enumerating `404`, zero changed business rows, zero outbound delivery and zero provider effect. Include forged headers, absent JWT, stale permission, switched team, guessed IDs and mismatched parent IDs. Run the same owning-service tests without gateway to prove backend enforcement. All negative cases must pass; no percentage tolerance for unauthorized access.
+
+### 23.4 R1 — Incident Radar remediation
+
+**Affected code:** `IncidentService`, incident controllers/repositories/models, `TicketSimilarityService`, orchestration consumers/scheduler and Incident Radar/customer UI.
+
+1. Replace category-only grouping of the last 200 rows with the configured time-bounded detector in sections 6/22. Filter timestamps in the database, checkpoint batches and count distinct customers. Remove hardcoded baseline `2.0`, link score `0.88` and inferred confidence. Persist actual algorithm inputs/scores and baseline provenance.
+2. Wire the RAG similarity port into detection; use a ticket-specific index and real embedding provider for semantic acceptance. Add tenant/component metadata, incompatibility checks, cold-start handling, overlap deduplication, dismissal cooldown and recurrence handling. Keep orchestration scheduling in orchestration-service, ticket incident writes in ticket-service.
+3. Trigger on creation/update events plus recovery scans. Add leased/fenced jobs and unique active-cluster keys; two replicas cannot create duplicate proposals. New matching tickets extend an existing cluster rather than disappearing because its hash already exists.
+4. Scope unlink to the tenant/incident and recompute customer impact when the last active link is removed. Allow reviewed relink without losing historical links. Respect severity filters and bounded pagination.
+5. Keep proposals/internal summaries hidden from customers. Only an approved, published customer-safe update can supply banner content. Bind approval to incident severity/version, content hash and recipient snapshot; validate update-parent relationship. Prevent unapproved audience expansion; apply opt-out/eligibility removals at delivery.
+6. Move fan-out into durable outbox/delivery jobs outside the incident transaction. Add persisted retries/status and recovery UI. Resolve incidents without bulk ticket closure; enqueue idempotent follow-up messages.
+
+**Gate G1:** section 22 clustering thresholds (precision >=0.90, recall >=0.80) pass on a versioned holdout with at least three outage clusters and unrelated controls. Use 8 distinct customers/10 tickets within 15 minutes for the default trigger; 9 tickets, 7 customers, old tickets and incompatible symptoms must not trigger under that configuration. A separate documented cold-start fixture verifies its special rule. Twenty simultaneous detector invocations across two replicas produce one proposal for the same active cluster. A draft/proposed incident exposes no customer banner. Adding a recipient after approval never sends without new approval. Concurrent publish/replay produces one logical portal delivery per approved recipient. Record actual semantic-provider/model IDs.
+
+### 23.5 R2 — Resolution action remediation
+
+**Affected code:** `ResolutionActionService`, action policy/digest/registry, provider adapters, action repositories/migrations and `ResolutionActionsCard`.
+
+1. Bind proposal to a real accessible ticket and its verified customer/account. Validate the payment/account belongs to that customer; a valid tenant-local payment reference alone is insufficient. Persist proposer ID, actor authorization decision and source verification references. Derive policy facts from authoritative sources, not AI rationale or request assertions.
+2. Enforce complete approval requirements, two distinct approvers where required and proposer exclusion for high-risk actions. Missing authentication time is a denial. Canonical digest includes every material field described in section 22; maintain serialization property tests. Return conflicts on stale version, not optional concurrency enforcement.
+3. Separate HTTP command transaction, execution worker and reconciliation worker. Execute endpoint durably records intent and returns `202` with a queryable workflow ID; it does not synchronously call the provider. Worker claims use a lease/fencing token and bounded retries. Persist intent/provider key before network I/O; execute/reconcile outside transactions; commit result/outbox afterward.
+4. Bind client idempotency keys to actor, command, proposal and normalized request hash. Same key/same command returns original result; changed proposal/input returns `409`. Derive a separate stable provider operation key server-side. Reserve duplicate-payment business keys and per-actor/tenant daily budgets under lock. Do not treat a new proposal or changed reason as a new refundable business event.
+5. Put payment/identity simulators behind independently durable provider processes or a separate committed store/API boundary. They must survive independently of orchestration transaction rollback. Implement accepted-then-timeout, delayed lookup, expired deduplication, provider rejection, changing version and fraud hold. Port adapter conformance requires conditional state validation at mutation.
+6. Implement reconciliation/retry/manual-review commands and workers for every nonterminal status, not just enum constants. Uncertain execution cannot be retried without sufficient provider evidence; manual resolution records proof and operator authorization. Unsupported compensation remains explicitly non-compensatable. Sensitive state transitions and reconciliation persistence cannot silently swallow audit/database failures.
+
+**Gate G2:** both refund and unlock work end to end with real HTTP calls to the simulator. Twenty concurrent executes, followed by 100 replayed commands/events and an orchestration restart, yield exactly one business effect for the intended operation. Crash after provider acceptance but before local result commit must recover to reconciled success without a second effect. Unknown/expired-provider-key cases stay blocked in manual review. Wrong customer, pending authorization, fraud hold, exceeded balance/budget, stale state, expired approval, reused key with changed input, missing permission and proposer-as-high-risk-approver all fail with zero effect. Required public APIs/UI expose honest pending/unknown/final states. No simulator-only result is described as real financial integration.
+
+### 23.6 R3 — Omnichannel remediation
+
+**Affected code:** `OmnichannelService`, channel controllers/adapter, identity model/challenge flow, canonical message writer and timeline UI.
+
+1. Remove challenge code from API responses/logs. Deliver only through an isolated local mailbox simulator UI or the configured email adapter. Bind hashed single-use challenge to tenant, requesting authenticated customer and exact address; reject reassignment of an already-linked foreign identity without a separate authorized recovery workflow. Preserve expiry and enforce attempt counters in a transaction that is not rolled back by the rejection exception. Rate-limit requests/verification; challenge renewal cannot bypass global limits.
+2. Validate conversation ownership for customer reads, message sends, consent and handoff. Staff mutations require team access and permission. Only authorized staff can assign/merge/split; validate the assigned agent belongs to the tenant/team and has capacity. Do not transfer ownership, verification or approvals through a merge.
+3. Treat sender identity, provider signature and thread reference as distinct checks. A guessed subject ticket ID never establishes permission; reject/quarantine cross-owner references. Use configured tenant-channel routing bound to authenticated provider input. Require stable provider event/message IDs; do not generate random IDs to accept malformed retryable webhook input.
+4. Keep one canonical ticket-message writer for existing portal APIs and channel APIs. Emit normal ticket-created/message events when email intake is promoted so triage actually runs. Existing migrated tickets and newly created portal tickets must both acquire conversations/metadata. Add idempotent command and logical-message keys beyond webhook event IDs.
+5. Replace memory-only email send with durable simulator mailbox/idempotency storage. Add delivery job/receipt state machines, retries, bounce handling, `DELIVERY_UNKNOWN` reconciliation, late callback ordering and per-message approval/content binding. Never send inside the message DB transaction. Internal notes cannot enter the outbound query or payload.
+6. Make merge/split affect the visible timeline using preserved provenance associations; simply setting `MERGED` is insufficient. Keep internal visibility and participant permissions on every message. Handoff summary must cite actual persisted steps/actions/messages, not hardcoded claims; queue/assignment state is authoritative and failure-recoverable.
+
+**Gate G3:** customer A cannot claim customer B's mailbox with request-response information, nor inject into B's conversation using a subject reference. Challenge code is absent from API/log captures; expiry, single use, wrong requester and rate limits pass. One message delivered under 100 duplicate events and distinct event IDs sharing a message ID produces one canonical message. Outbound repeated keys survive simulator/application restart without duplicate logical delivery. Browser journey covers email intake -> mailbox verification -> portal continuation -> internal note -> email reply -> handoff -> assignment, plus merge/split history. No internal note or foreign-customer content appears in outbound payloads or timelines.
+
+### 23.7 R4 — Replace evidence scaffolding with a real pipeline
+
+**Affected code:** `EvidenceService`, `EvidenceController`, extraction adapters, ticket attachment service, object storage, analysis worker, RAG evidence projection and `EvidenceLabCard`.
+
+1. Return public evidence ownership to ticket-service as specified in section 22 route table. Authorize ticket/customer/staff access before creating an upload or reading artifacts. Narrow analysis APIs to authenticated service job operations. Customers may not change another customer's consent or delete their evidence; original access follows explicit owner/staff rules and durable audit.
+2. Store immutable bytes in MinIO, not `new String(bytes, UTF_8)` database fields. Persist byte checksum, generated safe object key, size and content type. Download original bytes through authenticated streaming/range endpoints; assert exact checksum round trip. Existing corrupted text-stored binary data must be marked unrecoverable and require reupload, never silently presented as intact. Do not silently delete existing rows.
+3. Integrate actual malware scanning, magic-byte validation and quarantine before processing. Reject archives/unsupported input and enforce all section 22 admission limits before expensive work. Consent defaults off; no pipeline is scheduled without explicit active consent. Clean nonconsented attachments still support authorized attachment exchange.
+4. Implement asynchronous leased/fenced jobs with per-stage persisted outputs, content/consent generation and cancellation checks. Reprocessing requires current consent and live source state. Prevent update-consent from resurrecting tombstones. Add outbox events, DLQ/replay, worker profile/deployment and independent resource/network limits.
+5. Replace fake adapters with actual Tesseract OCR, PDF parsing, FFmpeg frame/audio extraction and a configured transcription engine. Fixed executable arguments, bounded scratch disk/time/memory and no parser network. Version information is measured from installed tools. Never infer error location from filename or always emit the golden timestamp. Provide an explicit unsupported state when tooling is absent.
+6. Extract sensitive regions locally, then sanitize each returned modality. Redact pixels/audio segments as well as text; OCR regex replacement is not image redaction. If safe whole-media redaction is unsupported, forbid external media transfer. Apply secret/PII review to observations and redaction metadata too; do not store original sensitive values in location strings.
+7. Index permitted sanitized chunks in a ticket-scoped RAG source with artifact/page/time citations. Authorization/retention generation is checked at retrieval; nothing automatically becomes public knowledge. Wire actual page/frame/timestamp previews and playback, not textual claims of a generated preview.
+8. Implement tombstone-first deletion across MinIO, metadata, derived objects, RAG chunks and caches. Late events/workers must not resurrect artifacts. Retention cleanup is scheduled and observed; backup restore reapplies tombstones before serving reads.
+
+**Gate G4:** actual-byte corpus of at least 10 screenshots, 10 PDFs, 10 text/log/CSV/HAR files and 5 audio/video files plus a separate malicious corpus. Include a negative recording without any SAML failure and another with failure at a different timestamp. Required exact error-code extraction >=90% on annotated supported fixtures; page references must be correct and required video failure timestamps within ±3 seconds. A negative file must not invent a transcript/error/failure chapter. Every seeded sensitive value in the finite safety corpus is absent from external payloads, redacted previews and retrieval results; record missed detections as failures, not a universal redaction guarantee. Original byte checksums match 100%. Scan rejection, consent-off/revocation, worker crash, deletion-during-indexing and cross-customer/tenant attempts all pass. Verify real RAG search retrieves the expected permitted evidence and cannot retrieve tombstoned/foreign evidence.
+
+### 23.8 R5 — Verified outcomes and genuine knowledge activation
+
+**Affected code:** resolution service/controllers/score/repeat detector; current ticket status transition writer; flywheel candidate/evaluation/release service; existing knowledge publication service; agent/customer/knowledge UI.
+
+1. Centralize every `RESOLVED` transition through one application boundary that atomically creates an attempt with exact approved reply, action and article-version references. Wire existing agent resolve controls and legacy endpoints to it; exposing a new unused API is insufficient. Enforce staff permission and customer ownership. Preserve existing ticket enum and terminal closed-ticket rules.
+2. Accept feedback against resolution-attempt ID and expected version with idempotency. A stale browser cannot modify a newer attempt. Store revisions while maintaining one current response; enforce state transitions and cancel pending closure when reopened/partly/no/new activity. Explicit reopen records the negative signal; a later Yes must not erase a prior confirmed repeat/reopen from eligibility calculations.
+3. Implement scheduled closure and confirmation-expiry jobs with leases and revalidation of open actions/messages/disputes. No response is unknown, not success. Closed tickets require an explicit new linked follow-up command. Wire repeat detector to normal ticket events plus recovery scan; confirmed repeat signals update scores, uncertain ones enter review.
+4. Derive scores, distinct eligible customers and candidate source references server-side from versioned outcome projections. Request fields cannot assert eligibility. Require five distinct verified successful customers, completed seven-day observation windows, source permission/consent and no disqualifying repeat/reopen. Persist source-case associations and invalidate candidates when source facts change. Use test clock advancement rather than waiting seven real days.
+5. Replace email/token-only sanitization with the specified sensitive-data checks and human review. Scan title, content, citations and metadata. Store review findings and acknowledgment; uncertain data is blocked. Raw drafts do not enter retrieval. Approved sanitized content receives an immutable hash.
+6. Replace hardcoded evaluation constants with an asynchronous evaluation runner invoking actual baseline/proposed RAG retrieval over frozen isolated corpus generations. Persist dataset hash, query/case IDs, expected relevance, returned ranks, latency, safety outcomes, model/config/corpus/source hashes and final metrics computed from those rows. At least 50 holdout cases and all section 22.7 thresholds are mandatory. Failed/incomplete runs never authorize release.
+7. Connect releases to real knowledge document/version IDs and indexed chunks. One shared publication application service enforces reviewed content, completed matching evaluation, human approval and expected current version for every legacy/new publish route. Atomic active-version swap plus outbox/cache invalidation makes searches use the selected generation. Do not create a random document ID as a substitute for publishing an actual document.
+8. Rollback requires an existing permitted previously approved target, reason, authorization and expected active version. Invalid/foreign/stale targets fail without changing the current release. Rollback must change actual retrieval results, not just metadata rows. Concurrent release/rollback has one winner; immutable history and old generations permit recovery.
+9. Reconcile dashboards from attempt cohorts with completed observation windows, feedback coverage and watermark. No data yields null/insufficient-data percentages, not success or failure zeroes. Reopen/repeat exclusion, cost unknowns and first-contact semantics follow section 22.7. Add filters and bounded queries instead of scanning all tenants in memory.
+
+**Gate G5:** existing agent UI resolves a real ticket and creates one attempt; duplicate resolve/feedback requests are idempotent. Yes/Partly/No/no-response/reopen/new-attempt/stale-feedback/closed-follow-up all pass with persisted state readback. Test-clock jobs perform safe closure and expiry; new activity prevents closure. A caller-supplied score of 100 and customer count of 999 cannot make an unsupported candidate eligible. A degraded candidate must fail evaluation. A valid candidate passes Recall@5 >=0.85, MRR >=0.75, no baseline regression, no worse answerable zero-result rate, all safety cases and <=1.2x baseline p95 retrieval latency; targeted gap improves. Search through the public application API changes after release and returns to prior behavior after rollback. Legacy publish bypass, source deletion during evaluation, concurrent activation and invalid rollback target fail safely. Dashboard values match independent SQL-derived expected totals exactly on a fixed fixture cohort.
+
+### 23.9 Benchmark protocol and objective release thresholds
+
+These are local engineering acceptance targets, not real-world accuracy/availability guarantees. Use a declared benchmark environment with pinned image/tool/model versions and record CPU/RAM allocation. Do not compare results from different hardware/configurations or tune the holdout after failures. If the laptop cannot support the declared load, report that limitation and run on a documented suitable environment; do not quietly lower thresholds and claim the same gate passed.
+
+| Gate | Required measurement | Pass condition |
+|---|---|---|
+| Security G0 | Full route/role/tenant/customer matrix | 100% expected denials; zero unauthorized reads, writes, sends or provider effects |
+| Incident G1 | Frozen labeled outage holdout | Precision >=0.90; recall >=0.80; all threshold/negative fixtures correct |
+| Action G2 | 20 concurrent requests, 100 replays, crash injection | One intended business effect; changed-input key reuse rejected; uncertain results not retried unsafely |
+| Channel G3 | Duplicate/reordered inbox/outbox and identity attacks | One logical message; correct destination/visibility; no mailbox claim without proof |
+| Evidence G4 | Actual-byte extraction + safety corpus | >=90% required error extraction; correct pages; timestamp ±3s; zero seeded secret leaks; exact original checksums |
+| Knowledge G5 | >=50 held-out real retrieval cases | Recall/MRR/safety/latency gates above; degraded candidate blocked; real activation/rollback observed |
+| Correctness | Critical state-machine/idempotency/authorization tests | 100% pass, no skipped mandatory cases |
+| Coverage | New Part 2 domain/application logic under compatible Java 21 instrumentation | >=85% line and >=80% branch; critical failure cases required regardless of coverage |
+| Frontend | Build, lint, component tests and live Playwright journeys | All pass; no uncaught errors or unexpected failed requests; no mocked acceptance API responses |
+| Accessibility | New flows at desktop/mobile + keyboard | No serious/critical automated findings; keyboard completion and visible focus verified |
+| Migration/recovery | Populated Part 1 upgrade, interrupted backfill and restore | No lost messages/visibility/owners; repeatable backfill; restored tombstones enforced before traffic |
+
+**Performance protocol:** use at least 1,000 tickets across two tenants for the small portfolio benchmark, including normal/unrelated data. Warm APIs for two minutes; measure ten minutes with 20 concurrent API clients. Run a separate 10-webhook/second ten-minute burst with duplicates included and report the unique-message count. Report p50/p95/p99, 5xx rate, throttles, CPU/RAM and queue-age curves. Exclude deliberately induced dependency outages from the steady-state latency run but report them separately. Expected policy rejections are not server errors.
+
+- Inbound portal/email acknowledgement p95 <1 second; action durable admission p95 <500 ms; unexpected 5xx rate <1% under declared steady load, with zero lost accepted commands.
+- Incident proposal appears <=2 minutes after default threshold crossing; approved fan-out starts <=30 seconds after commit. Measure event-to-visible-result, not controller-only time.
+- At least 20 document jobs and 5 bounded media jobs: screenshot/PDF/log p95 <=60 seconds and media p95 <=180 seconds under documented worker concurrency. Cold model/tool startup is reported separately. Do not time the canned adapters.
+- Outcome dashboard watermark lag <=5 minutes; demonstrate backlog recovery after a two-minute consumer outage within five minutes of restoration at the declared test load.
+- Tombstone denies new authenticated content/retrieval requests immediately after commit. Physical cleanup finishes <=24 hours under normal dependencies; failure produces alerts and remains inaccessible. Accelerated test clocks prove retention without requiring a day-long test.
+- Portfolio restore drill target: RPO <=15 minutes and RTO <=60 minutes using declared backup/object-store procedure. Measure last recoverable write and time until verified safe service, not merely database process startup. These do not replace a separately agreed production RPO/RTO.
+
+Coverage, latency or accuracy targets cannot compensate for a safety failure. A 99% security pass rate is a failed release. Conversely, these finite fixture results must not be advertised as guaranteed real-world model accuracy.
+
+### 23.10 Whole-Part-2 acceptance workflow
+
+Run against a clean isolated seed AND a populated Part 1 upgrade. Use the same checked-out SHA for backend/frontend/fixtures and record every enabled feature flag. Do not delete the developer's existing volumes.
+
+1. Create tenant A/B, two customers in A, all six staff/customer role templates, explicit grants and simulator accounts. Enable flags only for A initially; confirm B is gated and isolated.
+2. Submit signed email into restricted intake, obtain mailbox challenge outside the requesting API response, verify ownership and continue the same conversation in portal. Confirm normal triage events and canonical message IDs.
+3. Upload actual screenshot/PDF/log/video bytes with consent. Observe quarantine/scan/job progress, correct source coordinates and redacted playback. Search evidence through authorized retrieval; customer B-in-A and tenant B cannot read it.
+4. Cross the incident fixture threshold; observe one proposal with measured evidence. Confirm, draft, approve and publish. Only approved affected customers see customer-safe content. Add a late customer to prove audience expansion requires new approval.
+5. Propose a verified duplicate-settled-charge refund and, separately, an account unlock. Perform the required approvals, execute, simulate accepted-then-timeout and restart orchestration. Observe one effect and eventual reconciliation, or honest manual review for unresolved ambiguity.
+6. Agent sends a confirmed result through the approved channel; internal notes remain private. Request and assign handoff. Verify source-linked summary, message deduplication, merge/split and delivery history.
+7. Resolve through existing agent UI. Exercise Yes and a separate No/reopen case. Advance test clock and introduce repeat contact/new messages to verify eligibility/closure rules, then create enough independently verified successful cases for learning.
+8. Draft a source-derived candidate, sanitize/review and run real evaluation. Demonstrate one deliberate regression blocked and a valid improvement accepted. Human publishes; search shows the new version. Roll back; search and citations use the old approved version.
+9. Revoke an evidence consent/grant, delete a source while its indexing/evaluation job is running and replay old events. No derivative resurfaces and stale release approval is rejected.
+10. Audit the chain using correlation IDs: actors, source ownership, approvals, message/provider effects, exact evaluation dataset/results and publication versions. Compare dashboards with independently derived totals.
+
+Required live Playwright suites should be grouped by feature and role, with the integrated chain split into stable journeys sharing explicit fixtures. Each journey must assert network result, persisted readback and visible state. Negative tests inspect absence of side effects, not just a red toast. Screenshots are supporting evidence, never a substitute for assertions.
+
+### 23.11 Test commands, required new harnesses and handoff record
+
+Existing commands to run from the repository root (use supported Java 21 and the repository's actual installed dependencies):
+
+```sh
+./mvnw verify
+npm --prefix frontend run build
+npm --prefix frontend run lint
+npm --prefix frontend test
+```
+
+Live browser tests use `npm --prefix frontend run test:e2e` after the documented isolated Compose stack is healthy. Confirm repository configuration/environment requirements before running it. A successful `verify` is insufficient if integration profiles were disabled or tests skipped; enumerate the actual discovered suites and required infrastructure in the run manifest.
+
+**Harnesses to implement, not commands claimed to exist:** add `verification/part2/README.md` and a single entry-point runner that orchestrates G0–G5, migrations, faults, benchmark and E2E, reusing existing repository runners wherever possible. It must exit nonzero on any missing prerequisite, failed/skipped required suite, placeholder provider used for real-capability gates, or missing report. Produce a machine-readable JSON summary with one record per gate: status, commit, command, dataset/provider versions, measured/required values and evidence paths. Separate fast unit tests from required heavier acceptance jobs without making the latter optional for release.
+
+For model/media evaluation, artifacts must contain per-case actual output as well as aggregate scores. For security, store route/actor/expected/actual result and side-effect assertions. For faults, record injection point, durable state before/after and provider-operation counts. For migration/restore, capture source/target row counts, checksums, ownership/visibility invariants and elapsed recovery measurements.
+
+Implementation agent must fill this checklist only with linked evidence:
+
+- [ ] G0: authorization, flags, step-up and service scope accepted.
+- [ ] G1: real incident detector, safe publication and recovery accepted.
+- [ ] G2: both durable actions, budgets, approvals and ambiguous-result recovery accepted.
+- [ ] G3: genuine mailbox proof, canonical continuity and durable delivery accepted.
+- [ ] G4: actual media extraction, secure bytes/consent/retrieval/deletion accepted.
+- [ ] G5: real outcomes, source-derived eligibility, measured evaluation and actual release/rollback accepted.
+- [ ] Whole-system security/fault/migration/restore/performance/accessibility gates accepted.
+- [ ] Integrated live workflow passes on fresh and upgraded data.
+- [ ] UI testing guide includes purpose, prerequisites, exact steps, expected outcome, negative case and reset instructions for every feature.
+- [ ] README, OpenAPI, events, deployment manifests, runbooks and known limitations match the measured implementation.
+- [ ] No mandatory gate skipped, no fabricated results presented as measured, no unresolved critical/high-severity finding.
+
+Final handoff must say what passed, what remains, the exact SHA tested, provider/simulator limits and where evidence lives. Do not report “Part 2 completed” until every required checkbox has objective proof. If new high-severity findings emerge during testing, add regression cases and remediation items here rather than treating this audit as an exhaustive guarantee.

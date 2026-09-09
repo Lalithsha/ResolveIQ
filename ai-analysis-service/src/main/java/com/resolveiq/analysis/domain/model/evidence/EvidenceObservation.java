@@ -1,6 +1,8 @@
 package com.resolveiq.analysis.domain.model.evidence;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -33,7 +35,8 @@ public class EvidenceObservation {
     @Column(name = "confidence", nullable = false)
     private double confidence;
 
-    @Column(name = "source_coordinates", columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "source_coordinates", columnDefinition = "JSONB")
     private String sourceCoordinates;
 
     @Column(name = "created_at", nullable = false)

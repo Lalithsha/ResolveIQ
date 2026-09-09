@@ -1,6 +1,8 @@
 package com.resolveiq.analysis.domain.model.evidence;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -45,7 +47,8 @@ public class EvidenceJob {
     @Column(name = "lease_expires_at")
     private Instant leaseExpiresAt;
 
-    @Column(name = "tool_versions", columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "tool_versions", columnDefinition = "JSONB")
     private String toolVersions;
 
     @Column(name = "original_object_key")
