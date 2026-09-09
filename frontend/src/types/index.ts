@@ -212,3 +212,73 @@ export interface ActiveCustomerIncident {
   latestCustomerMessage?: string;
   publishedAt?: string;
 }
+
+export interface PolicyDecisionDto {
+  decision: 'ALLOWED_IMMEDIATE' | 'REQUIRES_APPROVAL' | 'DENIED';
+  matchedRules: string[];
+  requiredPermissions: string[];
+  requiredApprovalCount: number;
+  financialLimitCents?: number | null;
+  reasonCodes: string[];
+  evaluatedAt: string;
+}
+
+export interface ActionApprovalDto {
+  id: string;
+  actorId: string;
+  actorRole: string;
+  decision: string;
+  approvedDigest: string;
+  authenticationTime?: string;
+  comment?: string;
+  createdAt: string;
+}
+
+export interface ActionReconciliationDto {
+  id: string;
+  status: 'RECONCILED' | 'MISMATCH_MANUAL_REVIEW';
+  expectedState: Record<string, any>;
+  observedState: Record<string, any>;
+  notes?: string;
+  reconciledAt: string;
+}
+
+export interface ActionProposalResponse {
+  id: string;
+  tenantId: string;
+  ticketId: string;
+  actionType: 'REFUND_DUPLICATE_CHARGE' | 'UNLOCK_ACCOUNT';
+  status: 'DRAFT' | 'PROPOSED' | 'POLICY_DENIED' | 'AWAITING_APPROVAL' | 'APPROVED' | 'EXECUTING' | 'SUCCEEDED' | 'RECONCILED' | 'REJECTED' | 'EXPIRED' | 'EXECUTION_UNKNOWN' | 'FAILED_RETRYABLE' | 'FAILED_FINAL' | 'MANUAL_REVIEW';
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  input: Record<string, any>;
+  inputHash: string;
+  canonicalDigest: string;
+  canonicalBytes: string;
+  aiRationale?: string;
+  evidenceIds?: string;
+  policyDecision?: PolicyDecisionDto;
+  approvals: ActionApprovalDto[];
+  version: number;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ActionExecutionResponse {
+  executionId: string;
+  proposalId: string;
+  status: string;
+  provider: string;
+  providerReference?: string;
+  sanitizedResponse?: Record<string, any>;
+  errorMessage?: string;
+  reconciliation?: ActionReconciliationDto;
+  startedAt: string;
+  completedAt?: string;
+}
+
+export interface CompensationResponse {
+  isSupported: boolean;
+  status: string;
+  reason: string;
+}

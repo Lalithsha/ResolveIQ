@@ -3,6 +3,7 @@ import {
   Attachment, KnowledgeDocument, KnowledgeVersion, User, Team, RoutingAgent, RoutingRule, SlaPolicy, ResolvedCase,
   AnalysisGovernanceSummary, OutboxSummary, SecurityAuditEvent, WorkflowInstance,
   SupportIncident, IncidentCluster, IncidentUpdate, CustomerImpact, ActiveCustomerIncident,
+  ActionProposalResponse, ActionExecutionResponse, CompensationResponse,
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -414,6 +415,57 @@ class ApiClient {
 
   async getCustomerActiveIncidents(): Promise<ActiveCustomerIncident[]> {
     return this.request<ActiveCustomerIncident[]>('/customer/incidents/active');
+  }
+
+  // Resolution Action APIs
+  async listTicketActions(ticketId: string): Promise<ActionProposalResponse[]> {
+    return this.request<ActionProposalResponse[]>(`/tickets/${ticketId}/resolution-actions`);
+  }
+
+  async proposeResolutionAction(ticketId: string, data: {
+    actionType: string;
+    input: Record<string, any>;
+    aiRationale?: string;
+    evidenceIds?: string;
+  }): Promise<ActionProposalResponse> {
+    return this.request<ActionProposalResponse>(`/tickets/${ticketId}/resolution-actions/propose`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getActionProposal(id: string): Promise<ActionProposalResponse> {
+    return this.request<ActionProposalResponse>(`/resolution-actions/${id}`);
+  }
+
+  async approveAction(id: string, data: { approvedDigest: string; comment?: string }): Promise<ActionProposalResponse> {
+    return this.request<ActionProposalResponse>(`/resolution-actions/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async rejectAction(id: string, data: { reason?: string }): Promise<ActionProposalResponse> {
+    return this.request<ActionProposalResponse>(`/resolution-actions/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async executeAction(id: string, data: { approvedDigest: string; expectedVersion?: number; idempotencyKey?: string }): Promise<ActionExecutionResponse> {
+    const headers: Record<string, string> = {};
+    if (data.idempotencyKey) {
+      headers['Idempotency-Key'] = data.idempotencyKey;
+    }
+    return this.request<ActionExecutionResponse>(`/resolution-actions/${id}/execute`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+  }
+
+  async compensateAction(id: string): Promise<CompensationResponse> {
+    return this.request<CompensationResponse>(`/resolution-actions/${id}/compensate`, { method: 'POST' });
   }
 }
 
