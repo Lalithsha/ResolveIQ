@@ -367,3 +367,59 @@ export interface EmailVerifyResponse {
   message: string;
 }
 
+// Multimodal Evidence Types
+export type EvidencePipelineStatus =
+  | 'QUEUED'
+  | 'EXTRACTING'
+  | 'REDACTING'
+  | 'ANALYZING'
+  | 'READY'
+  | 'PARTIAL'
+  | 'FAILED'
+  | 'BLOCKED_REDACTION'
+  | 'TOMBSTONED';
+
+export interface EvidenceJobResponse {
+  id: string;
+  tenantId: string;
+  ticketId: string;
+  attachmentId: string;
+  fileName: string;
+  mediaType: string;
+  fileSizeBytes: number;
+  pipelineStatus: EvidencePipelineStatus;
+  consentGranted: boolean;
+  retentionClass: string;
+  attempt: number;
+  errorDetails?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EvidenceArtifactResponse {
+  id: string;
+  jobId: string;
+  ticketId: string;
+  artifactType: string;
+  redactedObjectKey: string;
+  pageOrFrame?: number;
+  timestampSeconds?: number;
+  checksumSha256: string;
+  sensitivityClass: string;
+  redactedContent: string;
+  createdAt: string;
+}
+
+export interface EvidenceObservationResponse {
+  id: string;
+  jobId: string;
+  ticketId: string;
+  observationType: string;
+  codeOrKey: string;
+  summary: string;
+  confidence: number;
+  sourceCoordinates?: string;
+  createdAt: string;
+}
+
+

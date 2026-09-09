@@ -6,6 +6,7 @@ import {
   ActionProposalResponse, ActionExecutionResponse, CompensationResponse,
   ChannelType, TimelineResponse, TimelineMessageItem, HandoffResponse, ChannelIdentity,
   CustomerPreferences, EmailChallengeResponse, EmailVerifyResponse,
+  EvidenceJobResponse, EvidenceArtifactResponse, EvidenceObservationResponse,
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -528,6 +529,68 @@ class ApiClient {
     return this.request<CustomerPreferences>('/customer/channel-preferences', {
       method: 'PATCH',
       body: JSON.stringify(prefs),
+    });
+  }
+
+  // Multimodal Support Evidence Lab APIs
+  async listEvidence(ticketId: string): Promise<EvidenceJobResponse[]> {
+    return this.request<EvidenceJobResponse[]>(`/tickets/${ticketId}/evidence`);
+  }
+
+  async uploadEvidence(
+    ticketId: string,
+    data: { fileName: string; mediaType: string; content: number[]; consentGranted: boolean }
+  ): Promise<EvidenceJobResponse> {
+    return this.request<EvidenceJobResponse>(`/tickets/${ticketId}/evidence/uploads`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateEvidenceConsent(
+    ticketId: string,
+    attachmentId: string,
+    consent: boolean
+  ): Promise<EvidenceJobResponse> {
+    return this.request<EvidenceJobResponse>(`/tickets/${ticketId}/evidence/${attachmentId}/consent`, {
+      method: 'POST',
+      body: JSON.stringify({ consent }),
+    });
+  }
+
+  async getEvidenceArtifacts(jobId: string): Promise<EvidenceArtifactResponse[]> {
+    return this.request<EvidenceArtifactResponse[]>(`/evidence/${jobId}/artifacts`);
+  }
+
+  async getEvidenceObservations(jobId: string): Promise<EvidenceObservationResponse[]> {
+    return this.request<EvidenceObservationResponse[]>(`/evidence/${jobId}/observations`);
+  }
+
+  async getEvidenceContent(jobId: string, variant: 'redacted' | 'original', reason?: string): Promise<string> {
+    const params = new URLSearchParams({ variant });
+    if (reason) params.set('reason', reason);
+    const headers: Record<string, string> = {};
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+    const res = await fetch(`${API_BASE}/evidence/${jobId}/content?${params.toString()}`, {
+      headers,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText || `HTTP ${res.status} ${res.statusText}`);
+    }
+    return res.text();
+  }
+
+  async reprocessEvidence(jobId: string): Promise<EvidenceJobResponse> {
+    return this.request<EvidenceJobResponse>(`/evidence/${jobId}/reprocess`, {
+      method: 'POST',
+    });
+  }
+
+  async deleteEvidence(jobId: string): Promise<void> {
+    await this.request<void>(`/evidence/${jobId}`, {
+      method: 'DELETE',
     });
   }
 }

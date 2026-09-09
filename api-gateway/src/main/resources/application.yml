@@ -69,10 +69,10 @@ spring:
           predicates:
             - Path=/api/v1/conversations/**, /api/v1/deliveries/**, /api/v1/customer/channel-identities/**, /api/v1/customer/channel-preferences, /api/v1/customer/communication-consent, /webhooks/v1/email/**
 
-        - id: ticket-evidence-route
-          uri: lb://ticket-service
+        - id: analysis-evidence-route
+          uri: lb://ai-analysis-service
           predicates:
-            - Path=/api/v1/evidence/**, /api/v1/tickets/*/evidence/**
+            - Path=/api/v1/evidence/**, /api/v1/tickets/*/evidence, /api/v1/tickets/*/evidence/**
 
         - id: ticket-resolution-metrics-route
           uri: lb://ticket-service

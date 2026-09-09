@@ -25,6 +25,7 @@ import {
 import { api } from '../api/client';
 import { Ticket, TicketMessage, Citation, Attachment, ActiveCustomerIncident } from '../types';
 import { OmnichannelTimelineCard } from '../components/ticket/OmnichannelTimelineCard';
+import { EvidenceLabCard } from '../components/ticket/EvidenceLabCard';
 
 interface CustomerPortalProps {
   activeTab?: string;
@@ -518,6 +519,13 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 ticketId={selectedTicket.id}
                 isAgent={false}
                 onTicketUpdated={() => loadMessages(selectedTicket.id)}
+              />
+
+              {/* Multimodal Evidence Lab Card */}
+              <EvidenceLabCard
+                ticketId={selectedTicket.id}
+                isAgent={false}
+                onEvidenceUpdated={() => loadMessages(selectedTicket.id)}
               />
 
               {/* Message Thread */}
