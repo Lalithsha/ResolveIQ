@@ -422,4 +422,89 @@ export interface EvidenceObservationResponse {
   createdAt: string;
 }
 
+// Resolution Flywheel & Knowledge Release Gates Types
+export type ResolutionRating = 'YES' | 'PARTLY' | 'NO';
 
+export interface OutcomeItemResponse {
+  id: string;
+  source: string;
+  rating: ResolutionRating;
+  reason?: string;
+  occurredAt: string;
+  weight: number;
+}
+
+export interface ResolutionAttemptResponse {
+  id: string;
+  ticketId: string;
+  attemptNumber: number;
+  resolverId: string;
+  resolvedAt: string;
+  confirmationWindowExpiresAt: string;
+  scheduledClosureAt?: string;
+  status: 'PENDING_CONFIRMATION' | 'CONFIRMED' | 'REOPENED' | 'SUPERSEDED';
+  score: number;
+  scoreFormulaVersion: string;
+  outcomes: OutcomeItemResponse[];
+}
+
+export interface ResolutionMetricsResponse {
+  eligibleAttempts: number;
+  respondedAttempts: number;
+  feedbackCoverage: number;
+  verifiedSuccessRate: number;
+  firstContactResolutionRate: number;
+  averageScore: number;
+}
+
+export type CandidateEligibilityStatus = 'PENDING' | 'ELIGIBLE' | 'APPROVED' | 'RELEASED' | 'REJECTED';
+export type CandidateSanitizationStatus = 'PENDING' | 'SANITIZED' | 'FLAGGED';
+
+export interface KnowledgeCandidateResponse {
+  id: string;
+  title: string;
+  contentDraft: string;
+  sanitizedContent?: string;
+  category: string;
+  eligibilityStatus: CandidateEligibilityStatus;
+  verifiedOutcomeScore: number;
+  distinctSourceCustomers: number;
+  sanitizationStatus: CandidateSanitizationStatus;
+  contentHash?: string;
+  createdAt: string;
+}
+
+export interface EvaluationRunResponse {
+  id: string;
+  candidateId: string;
+  datasetVersion: string;
+  baselineRecallAt5: number;
+  proposedRecallAt5: number;
+  baselineMrr: number;
+  proposedMrr: number;
+  safetyCasesPassed: boolean;
+  latencyP95Ratio: number;
+  gatePassed: boolean;
+  createdAt: string;
+}
+
+export interface KnowledgeReleaseResponse {
+  id: string;
+  candidateId: string;
+  documentId: string;
+  versionNumber: number;
+  status: 'ACTIVE' | 'SUPERSEDED' | 'ROLLED_BACK';
+  evaluationRunId: string;
+  approverId: string;
+  releaseNotes: string;
+  releasedAt: string;
+}
+
+export interface RollbackResponse {
+  id: string;
+  releaseId: string;
+  targetReleaseId?: string;
+  reason: string;
+  performedBy: string;
+  occurredAt: string;
+}

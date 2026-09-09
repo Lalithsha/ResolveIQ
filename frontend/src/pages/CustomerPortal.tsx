@@ -21,9 +21,12 @@ import {
   Paperclip,
   Download,
   Radio,
+  ThumbsUp,
+  ThumbsDown,
+  RotateCcw,
 } from 'lucide-react';
 import { api } from '../api/client';
-import { Ticket, TicketMessage, Citation, Attachment, ActiveCustomerIncident } from '../types';
+import { Ticket, TicketMessage, Citation, Attachment, ActiveCustomerIncident, ResolutionAttemptResponse, ResolutionRating } from '../types';
 import { OmnichannelTimelineCard } from '../components/ticket/OmnichannelTimelineCard';
 import { EvidenceLabCard } from '../components/ticket/EvidenceLabCard';
 
@@ -123,15 +126,79 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
     }
   }, [currentTab, loadTickets]);
 
+  const [resolutionHistory, setResolutionHistory] = useState<ResolutionAttemptResponse[]>([]);
+  const [isSubmittingResolution, setIsSubmittingResolution] = useState(false);
+  const [resolutionReason, setResolutionReason] = useState('');
+  const [resolutionSuccessMsg, setResolutionSuccessMsg] = useState<string | null>(null);
+
+  const loadResolutionHistory = useCallback(async (ticketId: string) => {
+    try {
+      const history = await api.getResolutionHistory(ticketId);
+      setResolutionHistory(history);
+    } catch {
+      setResolutionHistory([]);
+    }
+  }, []);
+
   useEffect(() => {
     if (selectedTicket) {
       loadMessages(selectedTicket.id);
       loadAttachments(selectedTicket.id);
+      loadResolutionHistory(selectedTicket.id);
+      setResolutionSuccessMsg(null);
     } else {
       setMessages([]);
       setAttachments([]);
+      setResolutionHistory([]);
+      setResolutionSuccessMsg(null);
     }
-  }, [selectedTicket, loadMessages, loadAttachments]);
+  }, [selectedTicket, loadMessages, loadAttachments, loadResolutionHistory]);
+
+  const handleResolutionOutcome = async (rating: ResolutionRating) => {
+    if (!selectedTicket) return;
+    setIsSubmittingResolution(true);
+    setTicketError(null);
+    try {
+      await api.submitResolutionOutcome(selectedTicket.id, rating, resolutionReason.trim() || undefined);
+      setResolutionSuccessMsg(
+        rating === 'YES'
+          ? 'Thank you! Resolution confirmed (+100). Ticket is scheduled to automatically close in 24 hours.'
+          : rating === 'PARTLY'
+          ? 'Thank you for your feedback (+20). Ticket has been reopened for specialist follow-up.'
+          : 'Thank you for notifying us (-50 score cap). Ticket has been reopened immediately.'
+      );
+      setResolutionReason('');
+      await loadResolutionHistory(selectedTicket.id);
+      await loadTickets();
+      if (rating === 'YES') {
+        setSelectedTicket({ ...selectedTicket, status: 'RESOLVED' });
+      } else {
+        setSelectedTicket({ ...selectedTicket, status: 'IN_PROGRESS' });
+      }
+    } catch (err: any) {
+      setTicketError(err.message || 'Failed to submit feedback');
+    } finally {
+      setIsSubmittingResolution(false);
+    }
+  };
+
+  const handleReopenTicket = async () => {
+    if (!selectedTicket) return;
+    setIsSubmittingResolution(true);
+    setTicketError(null);
+    try {
+      await api.reopenTicket(selectedTicket.id, resolutionReason.trim() || 'Customer requested ticket reopen');
+      setResolutionSuccessMsg('Ticket reopened successfully. Our support team will follow up.');
+      setResolutionReason('');
+      await loadResolutionHistory(selectedTicket.id);
+      await loadTickets();
+      setSelectedTicket({ ...selectedTicket, status: 'IN_PROGRESS' });
+    } catch (err: any) {
+      setTicketError(err.message || 'Failed to reopen ticket');
+    } finally {
+      setIsSubmittingResolution(false);
+    }
+  };
 
   const handleAttachment = async (file?: File) => {
     if (!selectedTicket || !file) return;
@@ -527,6 +594,108 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 isAgent={false}
                 onEvidenceUpdated={() => loadMessages(selectedTicket.id)}
               />
+
+              {/* Verified Resolution Flywheel Banner & Customer Feedback (Section 22.7) */}
+              {(selectedTicket.status === 'RESOLVED' || resolutionHistory.some(r => r.status === 'PENDING_CONFIRMATION')) && (
+                <div className="rounded-card border-2 border-primary/30 bg-primary/5 p-5 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-5 w-5 text-primary" />
+                        <h4 className="text-sm font-bold text-DEFAULT">Did this solve your problem?</h4>
+                      </div>
+                      <p className="text-xs text-muted">
+                        A support specialist marked this ticket as resolved. Please verify if your issue was successfully fixed.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+                      7-day confirmation window
+                    </span>
+                  </div>
+
+                  {resolutionSuccessMsg && (
+                    <div className="rounded-card border border-success/30 bg-success/10 p-3 text-xs text-success flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 flex-none" />
+                      <span>{resolutionSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={resolutionReason}
+                      onChange={(e) => setResolutionReason(e.target.value)}
+                      placeholder="Optional feedback or explanation (e.g., worked seamlessly, or still seeing error)..."
+                      className="form-control text-xs h-9"
+                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        disabled={isSubmittingResolution}
+                        onClick={() => handleResolutionOutcome('YES')}
+                        className="flex items-center justify-center gap-2 rounded-btn border border-success/30 bg-success/10 px-3 py-2 text-xs font-semibold text-success hover:bg-success/20 transition-colors"
+                      >
+                        <ThumbsUp className="h-4 w-4" />
+                        <span>Yes, Solved (+100)</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isSubmittingResolution}
+                        onClick={() => handleResolutionOutcome('PARTLY')}
+                        className="flex items-center justify-center gap-2 rounded-btn border border-warning/30 bg-warning/10 px-3 py-2 text-xs font-semibold text-warning hover:bg-warning/20 transition-colors"
+                      >
+                        <span>Partially Solved (+20)</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isSubmittingResolution}
+                        onClick={() => handleResolutionOutcome('NO')}
+                        className="flex items-center justify-center gap-2 rounded-btn border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/20 transition-colors"
+                      >
+                        <ThumbsDown className="h-4 w-4" />
+                        <span>No, Still Broken (-50)</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-border-subtle pt-3 text-[11px] text-muted">
+                    <span>Voting "Partially" or "No" reopens this ticket for agent follow-up.</span>
+                    <button
+                      type="button"
+                      disabled={isSubmittingResolution}
+                      onClick={handleReopenTicket}
+                      className="text-primary hover:underline font-semibold flex items-center gap-1"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      <span>Reopen Ticket</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Resolved / Closed Outcome Summary Banner */}
+              {selectedTicket.status !== 'RESOLVED' && resolutionHistory.length > 0 && (
+                <div className="rounded-card border border-border-subtle bg-surface-muted p-3.5 text-xs space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-DEFAULT flex items-center gap-1.5">
+                      <ShieldCheck className="h-4 w-4 text-success" />
+                      <span>Resolution History (Attempt #{resolutionHistory[0].attemptNumber})</span>
+                    </span>
+                    <span className={`status-chip ${
+                      resolutionHistory[0].status === 'CONFIRMED' ? 'bg-success/10 text-success border-success/20' :
+                      resolutionHistory[0].status === 'REOPENED' ? 'bg-warning/10 text-warning border-warning/20' :
+                      'bg-surface text-muted border-border'
+                    }`}>
+                      {resolutionHistory[0].status} (Score: {resolutionHistory[0].score})
+                    </span>
+                  </div>
+                  {resolutionHistory[0].outcomes && resolutionHistory[0].outcomes.length > 0 && (
+                    <p className="text-[11px] text-muted">
+                      Customer feedback: <span className="font-medium text-DEFAULT">"{resolutionHistory[0].outcomes[0].reason || resolutionHistory[0].outcomes[0].rating}"</span>
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Message Thread */}
               <div className="space-y-3 pt-2">

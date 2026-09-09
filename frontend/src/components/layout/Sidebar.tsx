@@ -58,6 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, onSele
           { id: 'articles', label: 'Articles & chunks', icon: BookOpen },
           { id: 'resolved-cases', label: 'Sanitized cases', icon: FileCheck2 },
           { id: 'embeddings', label: 'Vector indexes', icon: Cpu },
+          { id: 'release-flywheel', label: 'Release flywheel', icon: ShieldCheck },
         ];
       case 'ADMIN':
         return [
@@ -66,6 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, onSele
           { id: 'tickets', label: 'All tickets', icon: FolderKanban },
           { id: 'routing', label: 'Teams & routing', icon: Users },
           { id: 'knowledge', label: 'Knowledge base', icon: BookOpen },
+          { id: 'release-flywheel', label: 'Release flywheel', icon: ShieldCheck },
           { id: 'governance', label: 'AI governance', icon: Cpu },
           { id: 'users', label: 'Users & roles', icon: Settings },
         ];

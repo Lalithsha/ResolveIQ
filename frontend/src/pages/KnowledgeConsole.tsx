@@ -2,12 +2,14 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Archive, BookOpen, CheckCircle2, FileCheck2, Loader2, Plus, RotateCcw, Search, Send, XCircle } from 'lucide-react';
 import { api } from '../api/client';
 import { Citation, KnowledgeDocument, KnowledgeVersion, ResolvedCase, Role } from '../types';
+import { KnowledgeReleaseFlywheelCard } from '../components/knowledge/KnowledgeReleaseFlywheelCard';
 
 interface Props { activeTab?: string; role?: Role; }
 
 export const KnowledgeConsole: React.FC<Props> = ({ activeTab = 'articles', role = 'KNOWLEDGE_MANAGER' }) => {
   const searchOnly = activeTab === 'knowledge-search' || activeTab === 'embeddings';
   const resolvedOnly = activeTab === 'resolved-cases';
+  const flywheelOnly = activeTab === 'release-flywheel';
   const readOnly = role === 'AUDITOR';
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [selected, setSelected] = useState<KnowledgeDocument | null>(null);
@@ -97,6 +99,8 @@ export const KnowledgeConsole: React.FC<Props> = ({ activeTab = 'articles', role
   if (searchOnly) return <Shell title="Knowledge search" subtitle="Test tenant-scoped keyword and vector retrieval with metadata filtering and ranked fusion." message={message}>
     <SearchPanel query={query} setQuery={setQuery} searching={searching} results={results} runSearch={runSearch} />
   </Shell>;
+
+  if (flywheelOnly) return <div className="app-page max-w-6xl"><KnowledgeReleaseFlywheelCard role={role} /></div>;
 
   return <Shell title="Knowledge lifecycle" subtitle="Author, review, publish, supersede, archive, and roll back approved support knowledge." message={message}>
     {!readOnly && <div className="flex justify-end"><button onClick={() => { setNewVersionFor(null); setFormOpen(true); }} className="btn-primary"><Plus className="h-4 w-4" />New article</button></div>}

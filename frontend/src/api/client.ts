@@ -7,6 +7,8 @@ import {
   ChannelType, TimelineResponse, TimelineMessageItem, HandoffResponse, ChannelIdentity,
   CustomerPreferences, EmailChallengeResponse, EmailVerifyResponse,
   EvidenceJobResponse, EvidenceArtifactResponse, EvidenceObservationResponse,
+  ResolutionRating, ResolutionAttemptResponse, ResolutionMetricsResponse,
+  KnowledgeCandidateResponse, EvaluationRunResponse, KnowledgeReleaseResponse, RollbackResponse,
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -591,6 +593,87 @@ class ApiClient {
   async deleteEvidence(jobId: string): Promise<void> {
     await this.request<void>(`/evidence/${jobId}`, {
       method: 'DELETE',
+    });
+  }
+
+  // Verified Resolution Flywheel APIs
+  async resolveTicket(ticketId: string, solutionFingerprint?: string): Promise<ResolutionAttemptResponse> {
+    return this.request<ResolutionAttemptResponse>(`/tickets/${ticketId}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify({ solutionFingerprint: solutionFingerprint || 'STANDARD_RESOLUTION' }),
+    });
+  }
+
+  async submitResolutionOutcome(ticketId: string, rating: ResolutionRating, reason?: string): Promise<ResolutionAttemptResponse> {
+    return this.request<ResolutionAttemptResponse>(`/customer/tickets/${ticketId}/resolution-outcome`, {
+      method: 'POST',
+      body: JSON.stringify({ rating, reason }),
+    });
+  }
+
+  async reopenTicket(ticketId: string, reason?: string): Promise<ResolutionAttemptResponse> {
+    return this.request<ResolutionAttemptResponse>(`/customer/tickets/${ticketId}/reopen`, {
+      method: 'POST',
+      body: JSON.stringify({ reason: reason || 'Customer requested ticket reopen' }),
+    });
+  }
+
+  async getResolutionHistory(ticketId: string): Promise<ResolutionAttemptResponse[]> {
+    return this.request<ResolutionAttemptResponse[]>(`/tickets/${ticketId}/resolution`);
+  }
+
+  async getResolutionMetrics(): Promise<ResolutionMetricsResponse> {
+    return this.request<ResolutionMetricsResponse>('/governance/resolution-metrics');
+  }
+
+  // Knowledge Release Flywheel APIs
+  async listKnowledgeCandidates(): Promise<KnowledgeCandidateResponse[]> {
+    return this.request<KnowledgeCandidateResponse[]>('/knowledge/candidates');
+  }
+
+  async getKnowledgeCandidate(id: string): Promise<KnowledgeCandidateResponse> {
+    return this.request<KnowledgeCandidateResponse>(`/knowledge/candidates/${id}`);
+  }
+
+  async createKnowledgeCandidate(data: {
+    title: string;
+    contentDraft: string;
+    category: string;
+    verifiedOutcomeScore: number;
+    distinctSourceCustomers: number;
+  }): Promise<KnowledgeCandidateResponse> {
+    return this.request<KnowledgeCandidateResponse>('/knowledge/candidates', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async sanitizeKnowledgeCandidate(id: string): Promise<KnowledgeCandidateResponse> {
+    return this.request<KnowledgeCandidateResponse>(`/knowledge/candidates/${id}/sanitize`, {
+      method: 'POST',
+    });
+  }
+
+  async runKnowledgeEvaluation(id: string): Promise<EvaluationRunResponse> {
+    return this.request<EvaluationRunResponse>(`/knowledge/candidates/${id}/evaluation-runs`, {
+      method: 'POST',
+    });
+  }
+
+  async getKnowledgeEvaluationRun(id: string): Promise<EvaluationRunResponse> {
+    return this.request<EvaluationRunResponse>(`/knowledge/evaluation-runs/${id}`);
+  }
+
+  async releaseKnowledgeCandidate(id: string): Promise<KnowledgeReleaseResponse> {
+    return this.request<KnowledgeReleaseResponse>(`/knowledge/candidates/${id}/release`, {
+      method: 'POST',
+    });
+  }
+
+  async rollbackKnowledgeRelease(id: string, data: { targetReleaseId?: string; reason: string }): Promise<RollbackResponse> {
+    return this.request<RollbackResponse>(`/knowledge/releases/${id}/rollback`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 }

@@ -19,8 +19,8 @@ const ALLOWED_TABS: Record<Role, string[]> = {
   CUSTOMER: ['create', 'my-tickets', 'help'],
   AGENT: ['my-queue', 'team-queue', 'sla-risk', 'knowledge-search', 'incident-radar'],
   TEAM_LEAD: ['incident-radar', 'team-queue', 'sla-risk', 'knowledge-search'],
-  KNOWLEDGE_MANAGER: ['articles', 'resolved-cases', 'embeddings'],
-  ADMIN: ['overview', 'incident-radar', 'tickets', 'routing', 'knowledge', 'governance', 'users'],
+  KNOWLEDGE_MANAGER: ['articles', 'resolved-cases', 'embeddings', 'release-flywheel'],
+  ADMIN: ['overview', 'incident-radar', 'tickets', 'routing', 'knowledge', 'governance', 'users', 'release-flywheel'],
   AUDITOR: ['audit', 'tickets', 'workflows', 'governance'],
 };
 
@@ -56,6 +56,9 @@ export const App: React.FC = () => {
     }
     if (activeTab === 'incident-radar') {
       return <IncidentRadar role={activeRole} />;
+    }
+    if (activeTab === 'release-flywheel') {
+      return <KnowledgeConsole activeTab={activeTab} role={activeRole} />;
     }
     if (activeRole === 'KNOWLEDGE_MANAGER' || activeTab === 'knowledge-search' || activeTab === 'knowledge') {
       return <KnowledgeConsole activeTab={activeTab} role={activeRole} />;
