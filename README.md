@@ -2,7 +2,7 @@
 
 > **Resolve faster. Answer with evidence.**
 
-ResolveIQ is a production-oriented, event-driven customer support portfolio platform built with **Java 21, Spring Boot, PostgreSQL/pgvector, Apache Kafka, and React**. The correctness, six-role, knowledge-lifecycle, attachment, AI-governance, resilience, API, deployment and automated-evidence work is specified and recorded in [`RESOLVEIQ_PART1_IMPLEMENTATION_PLAN.md`](RESOLVEIQ_PART1_IMPLEMENTATION_PLAN.md).
+ResolveIQ is a production-oriented, event-driven customer support portfolio platform built with **Java 21, Spring Boot, PostgreSQL/pgvector, Apache Kafka, and React**. The correctness, six-role, knowledge-lifecycle, attachment, AI-governance, resilience, API, deployment and automated-evidence work is specified and recorded in [`RESOLVEIQ_PART1_IMPLEMENTATION_PLAN.md`](RESOLVEIQ_PART1_IMPLEMENTATION_PLAN.md). The next differentiated product stage—Incident Radar, controlled resolution actions, omnichannel continuity, multimodal evidence and the verified-resolution knowledge flywheel—is planned in [`RESOLVEIQ_PART2_IMPLEMENTATION_PLAN.md`](RESOLVEIQ_PART2_IMPLEMENTATION_PLAN.md).
 
 It assists support agents by performing structured classification, hybrid retrieval (combining full-text keyword search and vector embeddings) across approved knowledge articles and privacy-sanitized resolved cases, predicting SLA breach risk, generating citation-backed draft responses, and enforcing a **strict Human-in-the-Loop governance boundary** with **zero customer-visible auto-sends**.
 

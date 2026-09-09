@@ -54,6 +54,31 @@ spring:
           predicates:
             - Path=/api/v1/auth/**, /api/v1/directory/**, /api/v1/admin/users/**, /api/v1/audit/security-events
 
+        - id: orchestration-action-route
+          uri: lb://ai-orchestration-service
+          predicates:
+            - Path=/api/v1/tickets/*/resolution-actions/**, /api/v1/resolution-actions/**
+
+        - id: ticket-incident-route
+          uri: lb://ticket-service
+          predicates:
+            - Path=/api/v1/incidents/**, /api/v1/customer/incidents/**
+
+        - id: ticket-conversation-route
+          uri: lb://ticket-service
+          predicates:
+            - Path=/api/v1/conversations/**, /api/v1/deliveries/**, /api/v1/customer/channel-identities/**, /api/v1/customer/channel-preferences, /api/v1/customer/communication-consent, /webhooks/v1/email/**
+
+        - id: ticket-evidence-route
+          uri: lb://ticket-service
+          predicates:
+            - Path=/api/v1/evidence/**, /api/v1/tickets/*/evidence/**
+
+        - id: ticket-resolution-metrics-route
+          uri: lb://ticket-service
+          predicates:
+            - Path=/api/v1/governance/resolution-metrics
+
         - id: ticket-service-route
           uri: lb://ticket-service
           predicates:

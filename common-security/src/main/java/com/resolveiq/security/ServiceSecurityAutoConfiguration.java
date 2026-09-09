@@ -33,11 +33,17 @@ public class ServiceSecurityAutoConfiguration {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/actuator/info", "/error", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/webhooks/v1/email/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/admin/**").hasAnyRole("ADMIN", "AUDITOR")
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/customer/**").hasAnyRole("CUSTOMER", "ADMIN")
                 .requestMatchers("/api/v1/agent/**").hasAnyRole("AGENT", "TEAM_LEAD", "ADMIN", "AUDITOR")
-                .requestMatchers("/api/v1/knowledge/**").hasAnyRole("KNOWLEDGE_MANAGER", "ADMIN")
+                .requestMatchers("/api/v1/knowledge/**").hasAnyRole("KNOWLEDGE_MANAGER", "ADMIN", "AUDITOR")
+                .requestMatchers("/api/v1/incidents/**").hasAnyRole("AGENT", "TEAM_LEAD", "ADMIN", "AUDITOR")
+                .requestMatchers("/api/v1/resolution-actions/**", "/api/v1/tickets/*/resolution-actions/**").hasAnyRole("AGENT", "TEAM_LEAD", "ADMIN", "AUDITOR")
+                .requestMatchers("/api/v1/conversations/**", "/api/v1/deliveries/**").hasAnyRole("AGENT", "TEAM_LEAD", "ADMIN", "AUDITOR", "CUSTOMER")
+                .requestMatchers("/api/v1/evidence/**").hasAnyRole("AGENT", "TEAM_LEAD", "ADMIN", "AUDITOR", "CUSTOMER")
+                .requestMatchers("/api/v1/governance/**").hasAnyRole("ADMIN", "AUDITOR", "TEAM_LEAD")
                 .anyRequest().authenticated())
             .exceptionHandling(errors -> errors
                 .authenticationEntryPoint((request, response, exception) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED))

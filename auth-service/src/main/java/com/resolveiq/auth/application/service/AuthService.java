@@ -86,6 +86,8 @@ public class AuthService {
 
         recordAudit(user.getTenantId(), user.getId(), "LOGIN_SUCCESS", "SUCCESS", ipAddress, userAgent);
 
+        Set<String> permissions = jwtTokenProvider.deriveDefaultPermissions(user.getRoles());
+
         return new AuthResponse(
             accessToken,
             rawRefreshToken,
@@ -95,7 +97,8 @@ public class AuthService {
             user.getTenantId(),
             user.getEmail(),
             user.getFullName(),
-            user.getRoles()
+            user.getRoles(),
+            permissions
         );
     }
 
@@ -143,6 +146,8 @@ public class AuthService {
         );
         refreshTokenRepository.save(refreshToken);
 
+        Set<String> permissions = jwtTokenProvider.deriveDefaultPermissions(user.getRoles());
+
         return new AuthResponse(
             accessToken,
             rawRefreshToken,
@@ -152,7 +157,8 @@ public class AuthService {
             user.getTenantId(),
             user.getEmail(),
             user.getFullName(),
-            user.getRoles()
+            user.getRoles(),
+            permissions
         );
     }
 
@@ -234,7 +240,9 @@ public class AuthService {
         currentToken.revoke(newRefreshToken.getId());
         refreshTokenRepository.save(currentToken);
 
-        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getTenantId(), user.getEmail(), user.getRoles());
+        Instant originalAuthTime = currentToken.getIssuedAt();
+        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getTenantId(), user.getEmail(), user.getRoles(), null, originalAuthTime);
+        Set<String> permissions = jwtTokenProvider.deriveDefaultPermissions(user.getRoles());
 
         recordAudit(user.getTenantId(), user.getId(), "TOKEN_REFRESHED", "SUCCESS", ipAddress, userAgent);
 
@@ -247,7 +255,8 @@ public class AuthService {
             user.getTenantId(),
             user.getEmail(),
             user.getFullName(),
-            user.getRoles()
+            user.getRoles(),
+            permissions
         );
     }
 

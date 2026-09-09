@@ -8,6 +8,7 @@ import {
   Inbox,
   LifeBuoy,
   PlusCircle,
+  Radio,
   Settings,
   ShieldCheck,
   Users,
@@ -47,6 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, onSele
         ];
       case 'TEAM_LEAD':
         return [
+          { id: 'incident-radar', label: 'Incident radar', icon: Radio },
           { id: 'team-queue', label: 'Team queue', icon: Users },
           { id: 'sla-risk', label: 'SLA risk', icon: Activity },
           { id: 'knowledge-search', label: 'Knowledge', icon: BookOpen },
@@ -60,6 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, onSele
       case 'ADMIN':
         return [
           { id: 'overview', label: 'Overview', icon: Activity },
+          { id: 'incident-radar', label: 'Incident radar', icon: Radio },
           { id: 'tickets', label: 'All tickets', icon: FolderKanban },
           { id: 'routing', label: 'Teams & routing', icon: Users },
           { id: 'knowledge', label: 'Knowledge base', icon: BookOpen },

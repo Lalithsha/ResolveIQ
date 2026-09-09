@@ -75,6 +75,12 @@ These make ResolveIQ safer and more defensible during an interview.
 
 # Part 2: Five differentiated features
 
+The implementation-ready architecture, real-life scenarios, data models, APIs,
+state machines, UI journeys, safety controls, delivery phases and acceptance
+gates for all five features are defined in
+[`RESOLVEIQ_PART2_IMPLEMENTATION_PLAN.md`](RESOLVEIQ_PART2_IMPLEMENTATION_PLAN.md).
+That plan is the source of truth for Part 2 execution.
+
 ## 1. Support Incident Radar and proactive communication
 
 ### Real-world problem

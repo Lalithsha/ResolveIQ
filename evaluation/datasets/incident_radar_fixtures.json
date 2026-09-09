@@ -1,0 +1,50 @@
+{
+  "clusters": [
+    {
+      "clusterId": "cluster-billing-gateway-timeout",
+      "tenantId": "00000000-0000-0000-0000-000000000001",
+      "expectedCategory": "BILLING",
+      "expectedProduct": "Checkout API",
+      "expectedFingerprint": "ERR_PAYMENT_GATEWAY_TIMEOUT",
+      "expectedTicketCount": 10,
+      "tickets": [
+        { "id": "t-b1", "subject": "Checkout failed with ERR_PAYMENT_GATEWAY_TIMEOUT", "category": "BILLING", "error": "ERR_PAYMENT_GATEWAY_TIMEOUT" },
+        { "id": "t-b2", "subject": "Duplicate charge on credit card due to gateway timeout ERR_PAYMENT_GATEWAY_TIMEOUT", "category": "BILLING", "error": "ERR_PAYMENT_GATEWAY_TIMEOUT" },
+        { "id": "t-b3", "subject": "Payment timeout during checkout confirmation ERR_PAYMENT_GATEWAY_TIMEOUT", "category": "BILLING", "error": "ERR_PAYMENT_GATEWAY_TIMEOUT" },
+        { "id": "t-b4", "subject": "Order stuck in pending authorization ERR_PAYMENT_GATEWAY_TIMEOUT", "category": "BILLING", "error": "ERR_PAYMENT_GATEWAY_TIMEOUT" },
+        { "id": "t-b5", "subject": "Cannot complete purchase error ERR_PAYMENT_GATEWAY_TIMEOUT", "category": "BILLING", "error": "ERR_PAYMENT_GATEWAY_TIMEOUT" },
+        { "id": "t-b6", "subject": "Customer charged twice after timeout ERR_PAYMENT_GATEWAY_TIMEOUT", "category": "BILLING", "error": "ERR_PAYMENT_GATEWAY_TIMEOUT" },
+        { "id": "t-b7", "subject": "Payment processor unresponsive ERR_PAYMENT_GATEWAY_TIMEOUT", "category": "BILLING", "error": "ERR_PAYMENT_GATEWAY_TIMEOUT" },
+        { "id": "t-b8", "subject": "Checkout spinner keeps spinning ERR_PAYMENT_GATEWAY_TIMEOUT", "category": "BILLING", "error": "ERR_PAYMENT_GATEWAY_TIMEOUT" },
+        { "id": "t-b9", "subject": "Duplicate invoice generated on timeout ERR_PAYMENT_GATEWAY_TIMEOUT", "category": "BILLING", "error": "ERR_PAYMENT_GATEWAY_TIMEOUT" },
+        { "id": "t-b10", "subject": "Card authorization failed ERR_PAYMENT_GATEWAY_TIMEOUT", "category": "BILLING", "error": "ERR_PAYMENT_GATEWAY_TIMEOUT" }
+      ]
+    },
+    {
+      "clusterId": "cluster-sso-saml-signature",
+      "tenantId": "00000000-0000-0000-0000-000000000001",
+      "expectedCategory": "SECURITY",
+      "expectedProduct": "Auth Portal",
+      "expectedFingerprint": "SAML_SIGNATURE_INVALID",
+      "expectedTicketCount": 8,
+      "tickets": [
+        { "id": "t-s1", "subject": "SSO login failed SAML_SIGNATURE_INVALID", "category": "SECURITY", "error": "SAML_SIGNATURE_INVALID" },
+        { "id": "t-s2", "subject": "Cannot log in with Okta SAML_SIGNATURE_INVALID", "category": "SECURITY", "error": "SAML_SIGNATURE_INVALID" },
+        { "id": "t-s3", "subject": "Invalid SAML assertion certificate error SAML_SIGNATURE_INVALID", "category": "SECURITY", "error": "SAML_SIGNATURE_INVALID" },
+        { "id": "t-s4", "subject": "Team locked out of portal SAML_SIGNATURE_INVALID", "category": "SECURITY", "error": "SAML_SIGNATURE_INVALID" },
+        { "id": "t-s5", "subject": "Signature mismatch on SSO callback SAML_SIGNATURE_INVALID", "category": "SECURITY", "error": "SAML_SIGNATURE_INVALID" },
+        { "id": "t-s6", "subject": "Authentication rejected by provider SAML_SIGNATURE_INVALID", "category": "SECURITY", "error": "SAML_SIGNATURE_INVALID" },
+        { "id": "t-s7", "subject": "SAML certificate validation failed SAML_SIGNATURE_INVALID", "category": "SECURITY", "error": "SAML_SIGNATURE_INVALID" },
+        { "id": "t-s8", "subject": "Corporate identity login blocked SAML_SIGNATURE_INVALID", "category": "SECURITY", "error": "SAML_SIGNATURE_INVALID" }
+      ]
+    }
+  ],
+  "isolatedControls": [
+    { "id": "t-c1", "subject": "How do I update my billing credit card expiration date?", "category": "BILLING", "error": null },
+    { "id": "t-c2", "subject": "Requesting receipt for annual subscription invoice", "category": "BILLING", "error": null },
+    { "id": "t-c3", "subject": "Please change my account display name", "category": "ACCOUNT", "error": null },
+    { "id": "t-c4", "subject": "How to invite another team member to our workspace", "category": "GENERAL", "error": null },
+    { "id": "t-c5", "subject": "Dark theme request for mobile web view", "category": "UI", "error": null },
+    { "id": "t-c6", "subject": "Foreign tenant ticket with ERR_PAYMENT_GATEWAY_TIMEOUT", "category": "BILLING", "tenantId": "00000000-0000-0000-0000-000000000002", "error": "ERR_PAYMENT_GATEWAY_TIMEOUT" }
+  ]
+}

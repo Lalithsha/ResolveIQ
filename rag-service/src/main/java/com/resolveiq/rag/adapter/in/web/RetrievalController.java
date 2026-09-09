@@ -2,7 +2,10 @@ package com.resolveiq.rag.adapter.in.web;
 
 import com.resolveiq.rag.application.dto.RetrievalQueryRequest;
 import com.resolveiq.rag.application.dto.RetrievalResultDto;
+import com.resolveiq.rag.application.dto.TicketSimilarityRequest;
+import com.resolveiq.rag.application.dto.TicketSimilarityResponse;
 import com.resolveiq.rag.application.service.HybridRetrievalService;
+import com.resolveiq.rag.application.service.TicketSimilarityService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,9 +17,11 @@ import java.util.UUID;
 public class RetrievalController {
 
     private final HybridRetrievalService retrievalService;
+    private final TicketSimilarityService similarityService;
 
-    public RetrievalController(HybridRetrievalService retrievalService) {
+    public RetrievalController(HybridRetrievalService retrievalService, TicketSimilarityService similarityService) {
         this.retrievalService = retrievalService;
+        this.similarityService = similarityService;
     }
 
     @PostMapping("/search")
@@ -38,5 +43,14 @@ public class RetrievalController {
             request.sourceTypes()
         );
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/ticket-similarity")
+    public ResponseEntity<TicketSimilarityResponse> computeTicketSimilarity(
+        @RequestHeader(value = "X-Tenant-Id") UUID tenantId,
+        @Valid @RequestBody TicketSimilarityRequest request
+    ) {
+        TicketSimilarityResponse response = similarityService.computeSimilarity(tenantId, request);
+        return ResponseEntity.ok(response);
     }
 }

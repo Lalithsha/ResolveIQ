@@ -2,11 +2,15 @@
 
 ## 1. Purpose and testing rule
 
+> **Purpose / feature:** Defines how manual acceptance is recorded and prevents a visual/demo-only screen from being mistaken for working functionality. A pass means the stated API-backed outcome was observed, not merely that the page rendered.
+
 This guide is the manual acceptance checklist for the UI that exists in the current repository. Follow it from top to bottom to exercise every role and every user-visible control without guessing.
 
 Record each check as `PASS`, `FAIL`, or `LIMITATION`. A `PASS` requires the expected API-backed result described here. A page that only displays sample content or an alert is explicitly marked `DEMO-ONLY` and must not be reported as a completed feature.
 
 ## 2. Start the complete local environment
+
+> **Purpose / feature:** Starts the distributed ResolveIQ application and verifies that its browser, gateway, database, messaging, discovery and object-storage dependencies are available. This establishes a healthy baseline before testing business features.
 
 The following ports avoid the common local conflicts on PostgreSQL `5432`, Kafka `9092`, gateway `8080`, and frontend `3000`:
 
@@ -46,6 +50,8 @@ If startup fails with `port is already allocated`, run `docker compose --profile
 
 ## 3. Load the fictional demo data
 
+> **Purpose / feature:** Creates repeatable users, tickets, routing rules and indexed knowledge needed by later journeys. Running the real ingestion path proves the demo does not depend on incomplete hand-written database records.
+
 Run this once after the schemas have been created and all backend services are healthy:
 
 ```bash
@@ -58,6 +64,8 @@ The seed command verifies lifecycle indexing and deterministic embeddings for lo
 
 ### Demo accounts
 
+> **Purpose / feature:** Maps each fictional identity to the role-specific workspace it is authorized to test. Switching accounts proves that functionality and data visibility change according to persisted roles.
+
 All seeded accounts use the fictional password `ResolveIQ2026!`.
 
 
@@ -65,9 +73,9 @@ All seeded accounts use the fictional password `ResolveIQ2026!`.
 | ------------- | ------------------------------- | ----------------- | --------------------------------------- |
 | Alex Morgan   | `alex.morgan@acme.com`          | CUSTOMER          | Ticket creation and customer replies    |
 | Sarah Chen    | `sarah.chen@resolveiq.local`    | AGENT             | Queue, AI draft, feedback, and approval |
-| Marcus Vance  | `marcus.vance@resolveiq.local`  | TEAM_LEAD         | Current role/navigation limitation      |
-| Elena Rostova | `elena.rostova@resolveiq.local` | KNOWLEDGE_MANAGER | Hybrid knowledge search                 |
-| David Kross   | `admin@resolveiq.local`         | ADMIN             | Governance shell and role restrictions  |
+| Marcus Vance  | `marcus.vance@resolveiq.local`  | TEAM_LEAD         | Team queue, assignment and SLA risk      |
+| Elena Rostova | `elena.rostova@resolveiq.local` | KNOWLEDGE_MANAGER | Knowledge lifecycle and retrieval        |
+| David Kross   | `admin@resolveiq.local`         | ADMIN             | Operations, routing, users and governance |
 | Priya Nair    | `auditor@resolveiq.local`       | AUDITOR           | Read-only evidence and governance        |
 
 
@@ -75,9 +83,11 @@ Use a private/incognito browser window when changing personas, or click the sign
 
 ## 4. Global authentication and layout checks
 
-
+> **Purpose / feature:** Verifies the shared login, session and role-aware application shell used by every persona. These checks prove users enter the correct tenant workspace without exposing or manually supplying trusted identity data.
 
 ### 4.1 Login form
+
+> **Purpose / feature:** Tests credential entry, invalid-login handling and role-aware authentication. A pass proves inputs are usable and successful login returns the correct persisted identity and allowed roles.
 
 1. Open `http://localhost:3300`.
 2. Confirm the right panel says **Welcome back**.
@@ -94,6 +104,8 @@ Expected: access tokens remain in memory, the refresh session is cookie-backed, 
 
 ### 4.2 Customer self-registration
 
+> **Purpose / feature:** Tests safe public onboarding for a new customer. It proves registration creates a usable customer account while preventing privilege selection or staff-role creation.
+
 1. Sign out.
 2. Click **Create account**.
 3. Confirm the heading changes to **Create your account**.
@@ -106,6 +118,8 @@ Expected: public registration creates only a `CUSTOMER`; it cannot create an age
 
 ### 4.3 Refresh-session check
 
+> **Purpose / feature:** Tests refresh-token session continuity and logout invalidation. A pass proves a reload restores a valid session, while logout prevents that session from returning.
+
 1. Login successfully.
 2. Refresh the browser tab.
 3. Confirm **Preparing your workspace…** appears briefly and the authenticated workspace returns without another login.
@@ -116,6 +130,8 @@ Expected: refresh restores a valid session before logout; after logout the login
 
 ### 4.4 Global controls
 
+> **Purpose / feature:** Tests that the shared header reflects authenticated backend data and clearly identifies unfinished controls. It proves role switching is limited to assigned roles and prevents the notification placeholder from being claimed as complete.
+
 1. Confirm the navbar shows `ResolveIQ`, `Alpha`, user name, role selector, notification icon, and sign-out icon.
 2. Confirm the role selector lists only the roles returned for the current account.
 3. Click the notification bell.
@@ -124,9 +140,13 @@ Expected: the bell currently has no behavior and is `DEMO-ONLY`. Do not report n
 
 ## 5. Customer journey — API-backed
 
+> **Purpose / feature:** Exercises the complete customer self-service path: create a problem report, follow asynchronous triage, continue the conversation and search approved knowledge. It proves customers interact only with their own persisted data.
+
 Login as `alex.morgan@acme.com`.
 
 ### 5.1 Create a billing ticket
+
+> **Purpose / feature:** Tests idempotent ticket intake and the event-driven triage trigger. A pass creates one real ticket and starts analysis, retrieval, routing and SLA work without making the customer wait for AI processing.
 
 1. Select **Create Ticket** in the sidebar or **New Request** at the top.
 2. Enter subject: `Duplicate payment authorization after checkout`.
@@ -141,6 +161,8 @@ Expected backend effects: ticket persistence, scoped idempotency key, ticket-cre
 
 ### 5.2 Verify asynchronous triage
 
+> **Purpose / feature:** Tests the Kafka/outbox orchestration that converts a newly accepted ticket into agent-ready work. A pass proves background processing updates the correct customer-owned ticket to `READY_FOR_AGENT`.
+
 1. Click **View My Tickets**.
 2. Click **Refresh** until the new ticket appears.
 3. Confirm the ticket progresses from `NEW` to `READY_FOR_AGENT`. Normally this takes a few seconds after services are warm.
@@ -150,6 +172,8 @@ Expected backend effects: ticket persistence, scoped idempotency key, ticket-cre
 
 
 ### 5.3 Inspect and reply to a ticket
+
+> **Purpose / feature:** Tests persisted two-way ticket conversation and customer ownership. A pass proves a public reply survives navigation/reload and appears only on the owning customer’s ticket.
 
 1. Click the created ticket row.
 2. Confirm its ticket number, subject, and description match the submitted values.
@@ -164,6 +188,8 @@ Expected: the reply is persisted as a public customer message and is visible aft
 
 ### 5.4 Search the self-service Help Center
 
+> **Purpose / feature:** Tests hybrid lexical/vector retrieval over approved active knowledge. A pass proves natural-language customer questions return real indexed articles instead of hardcoded search cards or unpublished content.
+
 1. Select **Help Center** in the sidebar or the customer portal sub-navigation.
 2. Enter `duplicate charge invoice billing dispute` and click **Search Articles**.
 3. Confirm a loading state appears, followed by a real result count.
@@ -177,6 +203,8 @@ Expected: searches call the hybrid knowledge retrieval API. Curated topic cards 
 
 ### 5.5 Customer navigation coverage
 
+> **Purpose / feature:** Confirms every Customer navigation entry opens its intended implemented workflow. This prevents inaccessible or demo-only pages from being counted as customer features.
+
 
 | Sidebar item  | Current behavior                                          | Result classification |
 | ------------- | --------------------------------------------------------- | --------------------- |
@@ -189,9 +217,13 @@ Expected: searches call the hybrid knowledge retrieval API. Curated topic cards 
 
 ## 6. Agent journey — fully API-backed workspace
 
+> **Purpose / feature:** Exercises the agent’s real queue-to-resolution workflow using persisted tickets, AI evidence and explicit human control. It proves an agent can investigate authorized work without fabricated UI data or automatic customer messaging.
+
 Login as `sarah.chen@resolveiq.local` after completing the customer flow. The seeded ticket `RIQ-2026-000412` is also assigned to this agent and can be used if a new ticket is not yet available.
 
 ### 6.1 Load the queue and AI suggestion
+
+> **Purpose / feature:** Tests authorized queue selection, filtering and complete ticket/AI context loading. A pass proves the agent can choose real assigned work and inspect persisted classifications, citations, SLA and drafts before acting.
 
 1. Select **My Queue**.
 2. Confirm the paginated queue lists only tickets assigned to Sarah and does not auto-open an unauthorized ticket.
@@ -204,6 +236,8 @@ Login as `sarah.chen@resolveiq.local` after completing the customer flow. The se
 
 ### 6.2 Accept feedback
 
+> **Purpose / feature:** Tests immutable positive feedback for an unchanged AI suggestion. This records that the draft was useful for later governance metrics without sending it to the customer.
+
 Use a ticket with a suggestion that has no previous feedback.
 
 1. Do not edit the composer.
@@ -215,6 +249,8 @@ Expected: one feedback record is stored for that suggestion. Feedback is intenti
 
 ### 6.3 Edited feedback
 
+> **Purpose / feature:** Tests whether ResolveIQ captures the agent’s corrected version of an AI draft. This distinguishes “useful after editing” from acceptance and supplies auditable quality feedback.
+
 Use a different newly triaged ticket.
 
 1. Change the composer text while preserving a safe, professional response.
@@ -224,6 +260,8 @@ Use a different newly triaged ticket.
 Expected: the edited content and `EDITED` action are persisted. The **Edit** button records the current composer content; it does not open a separate modal.
 
 ### 6.4 Rejected feedback
+
+> **Purpose / feature:** Tests safe rejection of an incorrect or unsupported AI draft with a required reason. A pass proves harmful suggestions can be audited and cannot be silently treated as successful.
 
 Use a third newly triaged ticket.
 
@@ -235,6 +273,8 @@ Use a third newly triaged ticket.
 
 
 ### 6.5 Human approval and customer send
+
+> **Purpose / feature:** Tests ResolveIQ’s central Human-in-the-Loop safety boundary. A pass proves no AI draft reaches the customer until an authorized agent explicitly approves it and the persisted ticket status changes accordingly.
 
 Use a ticket that has not already been sent.
 
@@ -249,6 +289,8 @@ Expected: ResolveIQ records feedback if needed, creates the agent’s public mes
 
 ### 6.6 Agent navigation coverage
 
+> **Purpose / feature:** Confirms every Agent navigation entry is connected to an authorized API-backed queue or retrieval workflow. It also proves team and SLA views are scopes of real ticket data, not static dashboards.
+
 
 | Sidebar item     | Current behavior                                            | Result classification |
 | ---------------- | ----------------------------------------------------------- | --------------------- |
@@ -258,6 +300,8 @@ Expected: ResolveIQ records feedback if needed, creates the agent’s public mes
 | Knowledge Search | Opens the real hybrid retrieval screen                      | API-BACKED search     |
 
 ### 6.7 Secure attachment exchange
+
+> **Purpose / feature:** Tests safe evidence exchange through validation, malware scanning, object storage and scoped download authorization. A pass proves clean files round-trip while unsafe, unsupported or foreign-owned content remains inaccessible.
 
 1. Open an owned ticket and click **Attach**.
 2. Upload a small `.txt`, `.json`, `.png`, `.jpg`, or `.pdf` file containing only fictional data.
@@ -270,9 +314,13 @@ Expected: the server normalizes the name, validates size/type/magic bytes, compu
 
 ## 7. Knowledge Manager journey
 
+> **Purpose / feature:** Exercises governed knowledge authoring and retrieval rather than direct insertion into the vector index. It proves only reviewed, active and tenant-approved content can influence customer or agent answers.
+
 Login as `elena.rostova@resolveiq.local`.
 
 ### 7.1 Article lifecycle
+
+> **Purpose / feature:** Tests the complete `DRAFT → IN_REVIEW → PUBLISHED → SUPERSEDED/ROLLED_BACK/ARCHIVED` feature. The goal is to prove indexing and activation are controlled, reversible and exclude every version that is not currently approved.
 
 1. Select **Articles & Chunks** and confirm the heading is **Knowledge lifecycle**.
 2. Click **New article**. Create `UI lifecycle payment guide` in `BILLING`, add a product, summary and unique safe troubleshooting content.
@@ -290,6 +338,8 @@ Expected: indexing finishes before the active version changes; unpublished, reje
 
 ### 7.2 Retrieval and navigation coverage
 
+> **Purpose / feature:** Tests that each Knowledge Manager area reads the lifecycle’s persisted documents, sanitized cases and vector index. It proves publication state and metadata actually control what hybrid retrieval can return.
+
 
 | Control           | Current behavior                                        | Result classification |
 | ----------------- | ------------------------------------------------------- | --------------------- |
@@ -305,9 +355,13 @@ Use `duplicate charge invoice billing dispute credit card` as the long-query reg
 
 ## 8. Administrator journey
 
+> **Purpose / feature:** Exercises tenant-wide operational control using persisted APIs and audited mutations. It proves administrators can manage platform configuration without relying on fictional metrics or bypassing service ownership.
+
 Login as `admin@resolveiq.local`.
 
 ### 8.1 Operations and governance
+
+> **Purpose / feature:** Tests operational visibility into outboxes, workflows, security events and governed AI usage. A pass proves failures and model activity are observable, sanitized and recoverable through real backend state.
 
 1. Select **Overview** and confirm the heading is **Operations overview**.
 2. Confirm tenant users, active routing rules, AI invocations, ticket/workflow outbox pending/dead totals, security events and failed-workflow count come from APIs.
@@ -318,6 +372,8 @@ Login as `admin@resolveiq.local`.
 
 ### 8.2 Routing and user administration
 
+> **Purpose / feature:** Tests persisted routing configuration and staff-role administration. A pass proves authorized changes survive refresh, are tenant-scoped and prevent unsafe self-role modification.
+
 1. Select **Teams & routing** and confirm persisted teams, capacities, rules and SLA policies are listed.
 2. Toggle one routing rule inactive, refresh, and confirm the state persists. Restore its original state and refresh again.
 3. Select **Users & roles** and create a fictional staff user with a 12+ character temporary password and a non-customer role.
@@ -326,6 +382,8 @@ Login as `admin@resolveiq.local`.
 6. Confirm the current administrator cannot change their own role from this table.
 
 ### 8.3 Administrator navigation coverage
+
+> **Purpose / feature:** Confirms the complete Administrator sidebar maps to working tenant-wide capabilities. This ensures each advertised admin area has real readback and appropriate mutation authority.
 
 
 | Sidebar item     | Current behavior                                      | Result classification |
@@ -342,6 +400,12 @@ Every displayed row must be persisted or explicitly empty/unavailable. A success
 
 ## 9. Team Lead and Auditor journeys
 
+> **Purpose / feature:** Verifies the two non-customer specialist roles have distinct capabilities: operational team control for the Team Lead and immutable read-only evidence for the Auditor. It proves they do not fall through to another role’s UI.
+
+### 9.1 Team Lead team operations
+
+> **Purpose / feature:** Tests team-scoped queue access, assignment and SLA-risk management. A pass proves the lead can manage only authorized teams and that assignment changes persist.
+
 Login as `marcus.vance@resolveiq.local`.
 
 1. Confirm authentication succeeds with only the `TEAM_LEAD` role.
@@ -349,6 +413,10 @@ Login as `marcus.vance@resolveiq.local`.
 3. Select a ticket and assign/reassign its team or agent. Refresh and confirm persistence.
 4. Open **SLA risk** and confirm the authorized at-risk projection and SLA ordering.
 5. Open **Knowledge** and confirm retrieval works without knowledge-publication controls.
+
+### 9.2 Auditor read-only evidence
+
+> **Purpose / feature:** Tests the independent audit workspace and defense-in-depth mutation denial. A pass proves the Auditor can inspect evidence across governed workflows but cannot change tickets, knowledge, users, routing or AI outcomes.
 
 Sign out and login as `auditor@resolveiq.local`.
 
@@ -358,6 +426,8 @@ Sign out and login as `auditor@resolveiq.local`.
 4. Use an API client for one auditor mutation request and confirm backend `403`; hidden UI alone is not authorization proof.
 
 ## 10. Authorization-negative tests through the UI
+
+> **Purpose / feature:** Tests RBAC, session separation and customer-data isolation by attempting access that should not be available. These negative checks prove security is based on authenticated ownership/roles rather than simply hiding menu items.
 
 1. Login as a customer and confirm the role selector does not offer AGENT, KNOWLEDGE_MANAGER, or ADMIN.
 2. Login as an agent and confirm CUSTOMER/ADMIN roles are not available unless explicitly assigned.
@@ -369,9 +439,13 @@ The SPA has no URL router with protected deep links, so endpoint-level forbidden
 
 ## 11. Hot-reload acceptance checks
 
+> **Purpose / feature:** Verifies the local development productivity feature added to Compose. A pass proves ordinary frontend/backend source edits become visible automatically without rebuilding or restarting the entire stack.
+
 Perform these only after the development stack was built once.
 
-### Frontend
+### 11.1 Frontend hot module replacement
+
+> **Purpose / feature:** Tests Vite HMR for React, TypeScript and CSS changes. A pass means the browser reflects a saved frontend edit without any Docker Compose command or container restart.
 
 1. Keep `http://localhost:3300` open.
 2. Change a visible label under `frontend/src`.
@@ -380,7 +454,9 @@ Perform these only after the development stack was built once.
 
 
 
-### Backend
+### 11.2 Backend automatic rebuild and restart
+
+> **Purpose / feature:** Tests module-scoped Spring Boot recompilation and restart while preserving the last successful process after a compile error. This proves backend development changes do not require rebuilding every container.
 
 1. Run `docker compose logs -f ticket-service`.
 2. Make a compilable change under `ticket-service/src/main` and save.
@@ -395,6 +471,8 @@ Changes to `common-contracts` or `common-security` intentionally trigger all wat
 
 ## 12. Honest UI boundary after Part 1
 
+> **Purpose / feature:** Defines what the current product intentionally does not offer in the UI. Reviewing this boundary prevents placeholders, API-only operations and future roadmap items from being presented as completed features.
+
 The Part 1 role workflows, queues, attachments, lifecycle, routing, governance and audit views are API-backed. These items remain outside the current UI and must not be claimed:
 
 - password reset/recovery;
@@ -408,6 +486,8 @@ The Part 1 role workflows, queues, attachments, lifecycle, routing, governance a
 
 
 ## 13. Final manual test record
+
+> **Purpose / feature:** Provides traceability from each tested feature to a pass, failure or defect and its evidence. Completing this table turns an informal walkthrough into a reproducible acceptance record.
 
 Copy this table into an issue or test report and fill it during execution.
 
@@ -444,6 +524,8 @@ Copy this table into an issue or test report and fill it during execution.
 
 
 ## 14. Defect-report template
+
+> **Purpose / feature:** Standardizes the evidence needed to reproduce and fix a failed UI journey. Recording persona, identifiers, expected/actual behavior and logs allows an engineer to diagnose the correct service quickly.
 
 ```text
 Title:

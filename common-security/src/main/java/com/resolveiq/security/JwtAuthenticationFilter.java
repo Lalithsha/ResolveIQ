@@ -13,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.*;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -47,8 +48,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             List<?> rawRoles = claims.get("roles", List.class);
             Set<String> roles = new LinkedHashSet<>();
             if (rawRoles != null) rawRoles.forEach(role -> roles.add(String.valueOf(role)));
-            principal = new TrustedPrincipal(userId, tenantId, Set.copyOf(roles), authenticationType);
-            authorities = roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role)).toList();
+
+            List<?> rawPermissions = claims.get("permissions", List.class);
+            Set<String> permissions = new LinkedHashSet<>();
+            if (rawPermissions != null) {
+                rawPermissions.forEach(p -> permissions.add(String.valueOf(p)));
+            } else {
+                permissions.addAll(RolePermissions.defaultPermissionsForRoles(roles));
+            }
+
+            Number authTimeEpoch = claims.get("auth_time", Number.class);
+            Instant authTime = authTimeEpoch != null ? Instant.ofEpochSecond(authTimeEpoch.longValue()) : Instant.now();
+
+            principal = new TrustedPrincipal(userId, tenantId, Set.copyOf(roles), authenticationType, Set.copyOf(permissions), authTime);
+            authorities = new ArrayList<>();
+            roles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
+            permissions.forEach(p -> authorities.add(new SimpleGrantedAuthority("PERM_" + p)));
         } catch (Exception invalidToken) {
             SecurityContextHolder.clearContext();
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired access token");
@@ -68,6 +83,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 "x-tenant-id", principal.tenantId().toString(),
                 "x-user-id", principal.userId().toString(),
                 "x-roles", String.join(",", principal.roles()),
+                "x-permissions", String.join(",", principal.permissions()),
+                "x-auth-time", String.valueOf(principal.authTime().getEpochSecond()),
                 "x-internal-caller", "verified-jwt"
             );
         }

@@ -149,3 +149,66 @@ export interface SecurityAuditEvent { id: string; tenantId: string; userId?: str
 export interface AnalysisTrace { id: string; ticketId: string; intent: string; category: string; modelName: string; promptVersion: string; validationOutcome: string; guardrailOutcome: string; guardrailFindings: string; inputTokens: number; outputTokens: number; estimatedCostMicros: number; latencyMs: number; createdAt: string; }
 export interface AnalysisGovernanceSummary { totalInvocations: number; validInvocations: number; blockedInvocations: number; fallbackInvocations: number; inputTokens: number; outputTokens: number; estimatedCostMicros: number; recentTraces: AnalysisTrace[]; }
 export interface OutboxSummary { PENDING: number; RETRY: number; DEAD: number; PUBLISHED: number; }
+
+export interface SupportIncident {
+  id: string;
+  tenantId: string;
+  title: string;
+  summary: string;
+  status: 'INVESTIGATING' | 'IDENTIFIED' | 'MONITORING' | 'RESOLVED';
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  affectedComponent: string;
+  detectedAt: string;
+  resolvedAt?: string | null;
+  ticketCount: number;
+  affectedCustomerCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IncidentCluster {
+  id: string;
+  clusterKey: string;
+  title: string;
+  summary: string;
+  suggestedSeverity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  affectedComponent: string;
+  ticketCount: number;
+  status: 'PROPOSED' | 'CONFIRMED' | 'DISMISSED';
+  sampleTicketIds: string[];
+  createdAt: string;
+}
+
+export interface IncidentUpdate {
+  id: string;
+  incidentId: string;
+  updateType: 'INVESTIGATING' | 'IDENTIFIED' | 'MONITORING' | 'RESOLVED';
+  summary: string;
+  customerFacingMessage: string;
+  authorId: string;
+  approverId?: string | null;
+  status: 'DRAFT' | 'APPROVED' | 'PUBLISHED';
+  createdAt: string;
+  publishedAt?: string | null;
+}
+
+export interface CustomerImpact {
+  id: string;
+  customerId: string;
+  incidentId: string;
+  customerEmail: string;
+  customerName: string;
+  linkedTicketId: string;
+  createdAt: string;
+}
+
+export interface ActiveCustomerIncident {
+  incidentId: string;
+  title: string;
+  summary: string;
+  severity: string;
+  status: string;
+  affectedComponent: string;
+  latestCustomerMessage?: string;
+  publishedAt?: string;
+}

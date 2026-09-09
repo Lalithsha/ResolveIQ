@@ -19,10 +19,11 @@ import {
   PlusCircle,
   Inbox,
   Paperclip,
-  Download
+  Download,
+  Radio,
 } from 'lucide-react';
 import { api } from '../api/client';
-import { Ticket, TicketMessage, Citation, Attachment } from '../types';
+import { Ticket, TicketMessage, Citation, Attachment, ActiveCustomerIncident } from '../types';
 
 interface CustomerPortalProps {
   activeTab?: string;
@@ -66,6 +67,22 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   const [helpResults, setHelpResults] = useState<Citation[] | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<Citation | null>(null);
   const [helpError, setHelpError] = useState<string | null>(null);
+
+  // Active customer incidents
+  const [activeIncidents, setActiveIncidents] = useState<ActiveCustomerIncident[]>([]);
+
+  const loadIncidents = useCallback(async () => {
+    try {
+      const incs = await api.getCustomerActiveIncidents();
+      setActiveIncidents(incs);
+    } catch {
+      setActiveIncidents([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadIncidents();
+  }, [loadIncidents]);
 
   const loadTickets = useCallback(async () => {
     setIsLoadingTickets(true);
@@ -250,6 +267,39 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
         <div role="alert" className="flex items-center gap-2 rounded-card border border-danger/20 bg-danger/10 p-3.5 text-xs text-danger">
           <AlertCircle className="h-4 w-4 flex-none" />
           <span>{ticketError}</span>
+        </div>
+      )}
+
+      {activeIncidents.length > 0 && (
+        <div className="space-y-2 mb-6">
+          {activeIncidents.map((inc) => (
+            <div
+              key={inc.incidentId}
+              role="alert"
+              className="rounded-card border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-DEFAULT space-y-1.5 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded bg-amber-500/20 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                    <Radio className="h-3 w-3 animate-pulse" />
+                    Ongoing Incident ({inc.severity})
+                  </span>
+                  <span className="font-bold text-DEFAULT">{inc.title}</span>
+                </div>
+                <span className="rounded bg-surface px-2 py-0.5 text-[10px] font-mono text-muted border border-border-subtle">
+                  {inc.affectedComponent}
+                </span>
+              </div>
+              <p className="text-muted leading-relaxed">
+                {inc.latestCustomerMessage || inc.summary}
+              </p>
+              {inc.publishedAt && (
+                <p className="text-[10px] text-muted">
+                  Latest status update: {new Date(inc.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
+            </div>
+          ))}
         </div>
       )}
 

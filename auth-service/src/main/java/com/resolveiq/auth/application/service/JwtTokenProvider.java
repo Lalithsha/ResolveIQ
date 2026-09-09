@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,10 +33,19 @@ public class JwtTokenProvider {
     }
 
     public String generateAccessToken(UUID userId, UUID tenantId, String email, Set<Role> roles) {
+        return generateAccessToken(userId, tenantId, email, roles, null, Instant.now());
+    }
+
+    public String generateAccessToken(UUID userId, UUID tenantId, String email, Set<Role> roles, Set<String> explicitPermissions, Instant authTime) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expirationMs);
 
         List<String> roleNames = roles.stream().map(Enum::name).collect(Collectors.toList());
+        Set<String> permissions = explicitPermissions != null && !explicitPermissions.isEmpty()
+            ? explicitPermissions
+            : deriveDefaultPermissions(roles);
+
+        Instant effectiveAuthTime = authTime != null ? authTime : Instant.now();
 
         return Jwts.builder()
             .issuer(issuer)
@@ -44,12 +54,40 @@ public class JwtTokenProvider {
             .claim("tenantId", tenantId.toString())
             .claim("email", email)
             .claim("roles", roleNames)
+            .claim("permissions", new ArrayList<>(permissions))
+            .claim("auth_time", effectiveAuthTime.getEpochSecond())
             .claim("token_type", "access")
             .issuedAt(now)
             .notBefore(new Date(now.getTime() - 5000))
             .expiration(expiryDate)
             .signWith(key)
             .compact();
+    }
+
+    public Set<String> deriveDefaultPermissions(Set<Role> roles) {
+        if (roles == null) return Collections.emptySet();
+        Set<String> permissions = new LinkedHashSet<>();
+        for (Role role : roles) {
+            switch (role) {
+                case AGENT -> permissions.add("ACTION_APPROVE_LOW_RISK");
+                case TEAM_LEAD -> {
+                    permissions.add("INCIDENT_APPROVE");
+                    permissions.add("INCIDENT_PUBLISH");
+                    permissions.add("ACTION_APPROVE_LOW_RISK");
+                    permissions.add("ACTION_APPROVE_FINANCIAL");
+                }
+                case KNOWLEDGE_MANAGER -> permissions.add("KNOWLEDGE_RELEASE_APPROVE");
+                case ADMIN -> {
+                    permissions.add("INCIDENT_APPROVE");
+                    permissions.add("INCIDENT_PUBLISH");
+                    permissions.add("ACTION_APPROVE_LOW_RISK");
+                    permissions.add("ACTION_APPROVE_FINANCIAL");
+                    permissions.add("KNOWLEDGE_RELEASE_APPROVE");
+                }
+                default -> {}
+            }
+        }
+        return permissions;
     }
 
     public Claims getClaimsFromToken(String token) {

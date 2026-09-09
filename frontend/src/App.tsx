@@ -5,21 +5,22 @@ import { CustomerPortal } from './pages/CustomerPortal';
 import { AgentWorkspace } from './pages/AgentWorkspace';
 import { KnowledgeConsole } from './pages/KnowledgeConsole';
 import { AdminGovernance } from './pages/AdminGovernance';
+import { IncidentRadar } from './pages/IncidentRadar';
 import { AuthPage } from './pages/AuthPage';
 import { useAuth } from './context/AuthContext';
 import { Role } from './types';
 
 const DEFAULT_TAB: Record<Role, string> = {
-  CUSTOMER: 'create', AGENT: 'my-queue', TEAM_LEAD: 'team-queue',
+  CUSTOMER: 'create', AGENT: 'my-queue', TEAM_LEAD: 'incident-radar',
   KNOWLEDGE_MANAGER: 'articles', ADMIN: 'overview', AUDITOR: 'audit',
 };
 
 const ALLOWED_TABS: Record<Role, string[]> = {
   CUSTOMER: ['create', 'my-tickets', 'help'],
-  AGENT: ['my-queue', 'team-queue', 'sla-risk', 'knowledge-search'],
-  TEAM_LEAD: ['team-queue', 'sla-risk', 'knowledge-search'],
+  AGENT: ['my-queue', 'team-queue', 'sla-risk', 'knowledge-search', 'incident-radar'],
+  TEAM_LEAD: ['incident-radar', 'team-queue', 'sla-risk', 'knowledge-search'],
   KNOWLEDGE_MANAGER: ['articles', 'resolved-cases', 'embeddings'],
-  ADMIN: ['overview', 'tickets', 'routing', 'knowledge', 'governance', 'users'],
+  ADMIN: ['overview', 'incident-radar', 'tickets', 'routing', 'knowledge', 'governance', 'users'],
   AUDITOR: ['audit', 'tickets', 'workflows', 'governance'],
 };
 
@@ -52,6 +53,9 @@ export const App: React.FC = () => {
   const renderContent = () => {
     if (activeRole === 'CUSTOMER') {
       return <CustomerPortal activeTab={activeTab} onSelectTab={setActiveTab} />;
+    }
+    if (activeTab === 'incident-radar') {
+      return <IncidentRadar role={activeRole} />;
     }
     if (activeRole === 'KNOWLEDGE_MANAGER' || activeTab === 'knowledge-search' || activeTab === 'knowledge') {
       return <KnowledgeConsole activeTab={activeTab} role={activeRole} />;

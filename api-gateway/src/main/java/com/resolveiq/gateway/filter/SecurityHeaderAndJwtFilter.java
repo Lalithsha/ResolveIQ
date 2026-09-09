@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 public class SecurityHeaderAndJwtFilter implements GlobalFilter, Ordered {
@@ -62,6 +63,8 @@ public class SecurityHeaderAndJwtFilter implements GlobalFilter, Ordered {
                 httpHeaders.remove("X-Tenant-Id");
                 httpHeaders.remove("X-User-Id");
                 httpHeaders.remove("X-Roles");
+                httpHeaders.remove("X-Permissions");
+                httpHeaders.remove("X-Auth-Time");
                 httpHeaders.remove("X-Internal-Caller");
             })
             .header("X-Correlation-Id", correlationId);
@@ -97,6 +100,13 @@ public class SecurityHeaderAndJwtFilter implements GlobalFilter, Ordered {
             List<String> roles = claims.get("roles", List.class);
             String rolesStr = roles != null ? String.join(",", roles) : "";
 
+            @SuppressWarnings("unchecked")
+            List<?> permissions = claims.get("permissions", List.class);
+            String permissionsStr = permissions != null ? permissions.stream().map(String::valueOf).collect(Collectors.joining(",")) : "";
+
+            Number authTime = claims.get("auth_time", Number.class);
+            String authTimeStr = authTime != null ? String.valueOf(authTime.longValue()) : String.valueOf(Instant.now().getEpochSecond());
+
             if (!StringUtils.hasText(userId) || !StringUtils.hasText(tenantId)) {
                 return returnUnauthorized(exchange, "Invalid JWT claims: missing subject or tenantId", correlationId);
             }
@@ -106,6 +116,8 @@ public class SecurityHeaderAndJwtFilter implements GlobalFilter, Ordered {
                 .header("X-Tenant-Id", tenantId)
                 .header("X-User-Id", userId)
                 .header("X-Roles", rolesStr)
+                .header("X-Permissions", permissionsStr)
+                .header("X-Auth-Time", authTimeStr)
                 .header("X-Internal-Caller", "api-gateway");
 
             return chain.filter(exchange.mutate().request(requestBuilder.build()).build());
@@ -120,6 +132,7 @@ public class SecurityHeaderAndJwtFilter implements GlobalFilter, Ordered {
         return path.equals("/api/v1/auth/login")
             || path.equals("/api/v1/auth/register")
             || path.equals("/api/v1/auth/refresh")
+            || path.startsWith("/webhooks/v1/email/")
             || path.startsWith("/openapi/")
             || path.startsWith("/actuator")
             || path.startsWith("/favicon.ico");

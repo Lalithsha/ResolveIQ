@@ -44,7 +44,9 @@ public class JwtService {
             .subject("service:" + serviceName)
             .claim("tenantId", tenantId.toString())
             .claim("roles", List.of("SYSTEM"))
+            .claim("permissions", List.of())
             .claim("token_type", "service")
+            .claim("auth_time", now.getEpochSecond())
             .issuedAt(Date.from(now)).notBefore(Date.from(now.minusSeconds(5)))
             .expiration(Date.from(now.plusSeconds(60)))
             .signWith(key).compact();

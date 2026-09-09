@@ -14,5 +14,20 @@ public record AuthResponse(
     UUID tenantId,
     String email,
     String fullName,
-    Set<Role> roles
-) {}
+    Set<Role> roles,
+    Set<String> permissions
+) {
+    public AuthResponse(
+        String accessToken,
+        String refreshToken,
+        String tokenType,
+        long expiresInMs,
+        UUID userId,
+        UUID tenantId,
+        String email,
+        String fullName,
+        Set<Role> roles
+    ) {
+        this(accessToken, refreshToken, tokenType, expiresInMs, userId, tenantId, email, fullName, roles, Set.of());
+    }
+}

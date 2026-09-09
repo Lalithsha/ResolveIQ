@@ -2,6 +2,7 @@ import {
   Ticket, TicketMessage, AiSuggestion, Citation, Role, TicketQueueResponse, AgentTicketContext,
   Attachment, KnowledgeDocument, KnowledgeVersion, User, Team, RoutingAgent, RoutingRule, SlaPolicy, ResolvedCase,
   AnalysisGovernanceSummary, OutboxSummary, SecurityAuditEvent, WorkflowInstance,
+  SupportIncident, IncidentCluster, IncidentUpdate, CustomerImpact, ActiveCustomerIncident,
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -342,6 +343,77 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ reason }),
     });
+  }
+
+  // Incident Radar APIs
+  async listActiveIncidents(): Promise<SupportIncident[]> {
+    return this.request<SupportIncident[]>('/incidents/active');
+  }
+
+  async listIncidentProposals(): Promise<IncidentCluster[]> {
+    return this.request<IncidentCluster[]>('/incidents/proposals');
+  }
+
+  async triggerIncidentDetection(lookbackMinutes: number = 30): Promise<{ clustersDetected: number; clusters: IncidentCluster[] }> {
+    return this.request(`/incidents/detect?lookbackMinutes=${lookbackMinutes}`, { method: 'POST' });
+  }
+
+  async confirmIncidentProposal(proposalId: string, data?: { title?: string; severity?: string; affectedComponent?: string }): Promise<SupportIncident> {
+    return this.request<SupportIncident>(`/incidents/proposals/${proposalId}/confirm`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    });
+  }
+
+  async dismissIncidentProposal(proposalId: string): Promise<void> {
+    return this.request<void>(`/incidents/proposals/${proposalId}/dismiss`, { method: 'POST' });
+  }
+
+  async getIncidentDetails(incidentId: string): Promise<{
+    incident: SupportIncident;
+    tickets: string[];
+    updates: IncidentUpdate[];
+    impacts: CustomerImpact[];
+  }> {
+    return this.request(`/incidents/${incidentId}`);
+  }
+
+  async updateIncidentStatus(incidentId: string, status: string): Promise<SupportIncident> {
+    return this.request<SupportIncident>(`/incidents/${incidentId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async linkTicketToIncident(incidentId: string, ticketId: string): Promise<void> {
+    return this.request<void>(`/incidents/${incidentId}/tickets/${ticketId}`, { method: 'POST' });
+  }
+
+  async unlinkTicketFromIncident(incidentId: string, ticketId: string): Promise<void> {
+    return this.request<void>(`/incidents/${incidentId}/tickets/${ticketId}`, { method: 'DELETE' });
+  }
+
+  async draftIncidentUpdate(incidentId: string, data: {
+    updateType: string;
+    summary: string;
+    customerFacingMessage: string;
+  }): Promise<IncidentUpdate> {
+    return this.request<IncidentUpdate>(`/incidents/${incidentId}/updates`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async approveIncidentUpdate(incidentId: string, updateId: string): Promise<IncidentUpdate> {
+    return this.request<IncidentUpdate>(`/incidents/${incidentId}/updates/${updateId}/approve`, { method: 'POST' });
+  }
+
+  async publishIncidentUpdate(incidentId: string, updateId: string): Promise<IncidentUpdate> {
+    return this.request<IncidentUpdate>(`/incidents/${incidentId}/updates/${updateId}/publish`, { method: 'POST' });
+  }
+
+  async getCustomerActiveIncidents(): Promise<ActiveCustomerIncident[]> {
+    return this.request<ActiveCustomerIncident[]>('/customer/incidents/active');
   }
 }
 
