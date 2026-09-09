@@ -282,3 +282,88 @@ export interface CompensationResponse {
   status: string;
   reason: string;
 }
+
+// Omnichannel Continuity and Handoff Types
+export type ChannelType = 'PORTAL' | 'EMAIL';
+export type ChannelDirection = 'INBOUND' | 'OUTBOUND' | 'INTERNAL';
+export type DeliveryStatus = 'PENDING' | 'SENT' | 'DELIVERED' | 'BOUNCED' | 'FAILED' | 'UNKNOWN';
+export type HandoffState = 'NONE' | 'REQUESTED' | 'QUEUED' | 'ASSIGNED' | 'REJECTED';
+
+export interface TimelineMessageItem {
+  messageId: string;
+  conversationId: string;
+  senderId: string;
+  senderRole: 'CUSTOMER' | 'AGENT' | 'SYSTEM' | 'ADMIN';
+  content: string;
+  isInternal: boolean;
+  channel: ChannelType;
+  direction: ChannelDirection;
+  deliveryStatus: DeliveryStatus;
+  senderAddress?: string;
+  recipientAddress?: string;
+  createdAt: string;
+}
+
+export interface HandoffSummary {
+  id: string;
+  conversationId: string;
+  ticketId: string;
+  issueSummary: string;
+  verifiedFacts: string;
+  attemptedSteps: string;
+  promisedActions: string;
+  sentiment: string;
+  openQuestions: string;
+  createdAt: string;
+}
+
+export interface TimelineResponse {
+  conversationId: string;
+  ticketId: string;
+  status: string;
+  handoffState: HandoffState;
+  preferredChannel: ChannelType;
+  messages: TimelineMessageItem[];
+  latestHandoff?: HandoffSummary;
+}
+
+export interface HandoffResponse {
+  conversationId: string;
+  state: HandoffState;
+  summary?: HandoffSummary;
+  message: string;
+}
+
+export interface ChannelIdentity {
+  id: string;
+  customerId: string;
+  channel: ChannelType;
+  displayAddress: string;
+  isVerified: boolean;
+  verifiedAt?: string;
+  confidence: number;
+}
+
+export interface CustomerPreferences {
+  customerId: string;
+  preferredChannel: ChannelType;
+  emailNotificationsEnabled: boolean;
+  marketingConsent: boolean;
+  updatedAt: string;
+}
+
+export interface EmailChallengeResponse {
+  email: string;
+  challengeToken?: string;
+  expiresAt?: string;
+  message: string;
+}
+
+export interface EmailVerifyResponse {
+  channelIdentityId?: string;
+  email: string;
+  isVerified: boolean;
+  linkedPendingIntakes: number;
+  message: string;
+}
+

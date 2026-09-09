@@ -4,6 +4,8 @@ import {
   AnalysisGovernanceSummary, OutboxSummary, SecurityAuditEvent, WorkflowInstance,
   SupportIncident, IncidentCluster, IncidentUpdate, CustomerImpact, ActiveCustomerIncident,
   ActionProposalResponse, ActionExecutionResponse, CompensationResponse,
+  ChannelType, TimelineResponse, TimelineMessageItem, HandoffResponse, ChannelIdentity,
+  CustomerPreferences, EmailChallengeResponse, EmailVerifyResponse,
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -466,6 +468,67 @@ class ApiClient {
 
   async compensateAction(id: string): Promise<CompensationResponse> {
     return this.request<CompensationResponse>(`/resolution-actions/${id}/compensate`, { method: 'POST' });
+  }
+
+  // Omnichannel Continuity & Handoff APIs
+  async getConversationTimeline(conversationId: string): Promise<TimelineResponse> {
+    return this.request<TimelineResponse>(`/conversations/${conversationId}/timeline`);
+  }
+
+  async addConversationMessage(conversationId: string, data: {
+    content: string;
+    isInternal: boolean;
+    channel?: ChannelType;
+    subject?: string;
+    idempotencyKey?: string;
+  }): Promise<TimelineMessageItem> {
+    return this.request<TimelineMessageItem>(`/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async requestHandoff(conversationId: string, reason?: string): Promise<HandoffResponse> {
+    return this.request<HandoffResponse>(`/conversations/${conversationId}/handoff`, {
+      method: 'POST',
+      body: JSON.stringify({ reason: reason || 'Customer requested human support' }),
+    });
+  }
+
+  async assignHandoff(conversationId: string, agentId: string): Promise<any> {
+    return this.request(`/conversations/${conversationId}/handoff/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ agentId }),
+    });
+  }
+
+  async getCustomerIdentities(): Promise<ChannelIdentity[]> {
+    return this.request<ChannelIdentity[]>('/customer/channel-identities');
+  }
+
+  async requestEmailChallenge(email: string): Promise<EmailChallengeResponse> {
+    return this.request<EmailChallengeResponse>('/customer/channel-identities/email/challenge', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async verifyEmailChallenge(email: string, token: string): Promise<EmailVerifyResponse> {
+    return this.request<EmailVerifyResponse>('/customer/channel-identities/email/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, token }),
+    });
+  }
+
+  async getCustomerPreferences(): Promise<CustomerPreferences> {
+    return this.request<CustomerPreferences>('/customer/channel-preferences');
+  }
+
+  async updateCustomerPreferences(prefs: Partial<CustomerPreferences>): Promise<CustomerPreferences> {
+    return this.request<CustomerPreferences>('/customer/channel-preferences', {
+      method: 'PATCH',
+      body: JSON.stringify(prefs),
+    });
   }
 }
 

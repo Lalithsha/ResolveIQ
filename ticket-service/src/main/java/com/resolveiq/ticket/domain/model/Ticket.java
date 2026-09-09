@@ -168,6 +168,11 @@ public class Ticket {
         this.updatedAt = Instant.now();
     }
 
+    public void assignAgent(UUID agentId) {
+        this.assignedAgentId = agentId;
+        this.updatedAt = Instant.now();
+    }
+
     public void updateTriageResult(String aiTriageStatus, String category, String intent, String sentiment,
                                    String urgency, Double confidence, UUID suggestionId, UUID teamId, UUID agentId) {
         this.aiTriageStatus = aiTriageStatus;

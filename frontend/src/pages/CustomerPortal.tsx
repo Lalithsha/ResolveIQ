@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import { Ticket, TicketMessage, Citation, Attachment, ActiveCustomerIncident } from '../types';
+import { OmnichannelTimelineCard } from '../components/ticket/OmnichannelTimelineCard';
 
 interface CustomerPortalProps {
   activeTab?: string;
@@ -511,6 +512,13 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 <span className="eyebrow mb-1.5 text-muted">Original request</span>
                 <p className="whitespace-pre-wrap text-xs leading-5 text-DEFAULT">{selectedTicket.description}</p>
               </div>
+
+              {/* Omnichannel Continuity Card */}
+              <OmnichannelTimelineCard
+                ticketId={selectedTicket.id}
+                isAgent={false}
+                onTicketUpdated={() => loadMessages(selectedTicket.id)}
+              />
 
               {/* Message Thread */}
               <div className="space-y-3 pt-2">
