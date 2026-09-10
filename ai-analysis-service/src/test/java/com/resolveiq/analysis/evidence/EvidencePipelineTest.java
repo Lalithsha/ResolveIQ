@@ -120,7 +120,7 @@ class EvidencePipelineTest {
     @DisplayName("Video golden test identifies failure chapter at exact timestamp 00:42 (42.0 seconds)")
     void videoGoldenTestIdentifiesFailureTimestampAt42Seconds() {
         DeterministicVideoAnalysisAdapter adapter = new DeterministicVideoAnalysisAdapter();
-        byte[] videoDummyBytes = new byte[]{0x00, 0x00, 0x00, 0x18, 'f', 't', 'y', 'p'};
+        byte[] videoDummyBytes = ("\0\0\0\u0018ftyp" + " SAML assertion parse failure at 00:42").getBytes(StandardCharsets.ISO_8859_1);
 
         ExtractionResult result = adapter.sampleVideo("screen_recording.mp4", videoDummyBytes);
 
@@ -136,5 +136,24 @@ class EvidencePipelineTest {
         assertThat(failureObs.codeOrKey()).isEqualTo("00:42");
         assertThat(failureObs.sourceCoordinates()).contains("\"timestamp\": 42.0");
         assertThat(failureObs.sourceCoordinates()).contains("\"chapter\": \"SAML assertion parse failure\"");
+    }
+
+    @Test
+    @DisplayName("C4 Acceptance: Filename independence - failure found in clean.mp4, clean video has no error even in saml_timestamp_42.mp4")
+    void filenameIndependenceTest() {
+        DeterministicVideoAnalysisAdapter adapter = new DeterministicVideoAnalysisAdapter();
+
+        // 1. Failure recording renamed to clean.mp4 -> failure must still be found!
+        byte[] failureBytes = ("\0\0\0\u0018ftyp" + " SAML assertion parse failure at 01:15").getBytes(StandardCharsets.ISO_8859_1);
+        ExtractionResult failResult = adapter.sampleVideo("clean.mp4", failureBytes);
+        assertThat(failResult.timestampSeconds()).isEqualTo(75.0);
+        assertThat(failResult.observations()).anyMatch(o -> o.type() == ObservationType.FAILURE_TIMESTAMP && o.codeOrKey().equals("01:15"));
+
+        // 2. Clean recording renamed to saml_timestamp_42.mp4 -> NO error may be invented!
+        byte[] cleanBytes = new byte[]{0x00, 0x00, 0x00, 0x18, 'f', 't', 'y', 'p', 0x01, 0x02, 0x03};
+        ExtractionResult cleanResult = adapter.sampleVideo("saml_timestamp_42.mp4", cleanBytes);
+        assertThat(cleanResult.timestampSeconds()).isNull();
+        assertThat(cleanResult.observations()).noneMatch(o -> o.type() == ObservationType.FAILURE_TIMESTAMP);
+        assertThat(cleanResult.observations()).anyMatch(o -> o.codeOrKey().equals("CLEAN_PLAYBACK"));
     }
 }

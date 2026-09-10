@@ -79,6 +79,12 @@ public class IncidentService {
         this.objectMapper = objectMapper;
     }
 
+    private java.time.Clock clock = java.time.Clock.systemUTC();
+
+    public void setClock(java.time.Clock clock) {
+        this.clock = clock;
+    }
+
     @Transactional(readOnly = true)
     public Page<IncidentResponse> listIncidents(UUID tenantId, IncidentStatus status, IncidentSeverity severity, Pageable pageable) {
         Page<SupportIncident> page = (status != null)
@@ -223,11 +229,30 @@ public class IncidentService {
 
     @Transactional
     public void unlinkTicket(UUID tenantId, UUID incidentId, UUID ticketId, UUID actorId, String reason) {
+        SupportIncident incident = incidentRepository.findByTenantIdAndId(tenantId, incidentId)
+            .orElseThrow(() -> new IllegalArgumentException("Incident not found: " + incidentId));
+
+        Ticket ticket = ticketRepository.findByIdAndTenantId(ticketId, tenantId)
+            .orElseThrow(() -> new IllegalArgumentException("Ticket not found: " + ticketId));
+
         IncidentTicketLink link = linkRepository.findByIncidentIdAndTicketId(incidentId, ticketId)
             .orElseThrow(() -> new IllegalArgumentException("Link not found for ticket: " + ticketId));
 
         link.unlink(actorId, reason != null ? reason : "Manual unlink");
         linkRepository.save(link);
+
+        // Recompute customer impact when the last active link for this customer is removed
+        boolean hasOtherActiveLinks = linkRepository.findByIncidentId(incidentId).stream()
+            .filter(l -> l.getUnlinkedAt() == null && !l.getTicketId().equals(ticketId))
+            .anyMatch(l -> ticketRepository.findByIdAndTenantId(l.getTicketId(), tenantId)
+                .map(t -> t.getCustomerId().equals(ticket.getCustomerId()))
+                .orElse(false));
+
+        if (!hasOtherActiveLinks) {
+            impactRepository.findByTenantIdAndIncidentIdAndCustomerId(tenantId, incidentId, ticket.getCustomerId())
+                .ifPresent(impactRepository::delete);
+            log.info("Customer {} removed from incident {} impact: all linked tickets unlinked", ticket.getCustomerId(), incidentId);
+        }
     }
 
     @Transactional
@@ -263,6 +288,10 @@ public class IncidentService {
         IncidentUpdate update = updateRepository.findByTenantIdAndId(tenantId, updateId)
             .orElseThrow(() -> new IllegalArgumentException("Update not found: " + updateId));
 
+        if (!update.getIncidentId().equals(incidentId)) {
+            throw new IllegalArgumentException("Update does not belong to incident: " + incidentId);
+        }
+
         // Two-person rule enforcement for HIGH/CRITICAL incidents
         if ((incident.getSeverity() == IncidentSeverity.HIGH || incident.getSeverity() == IncidentSeverity.CRITICAL)
             && update.getAuthorId().equals(approverId)) {
@@ -283,6 +312,14 @@ public class IncidentService {
 
         IncidentUpdate update = updateRepository.findByTenantIdAndId(tenantId, updateId)
             .orElseThrow(() -> new IllegalArgumentException("Update not found: " + updateId));
+
+        if (!update.getIncidentId().equals(incidentId)) {
+            throw new IllegalArgumentException("Update does not belong to incident: " + incidentId);
+        }
+
+        if (update.getStatus() != IncidentUpdateStatus.APPROVED) {
+            throw new IllegalStateException("Only approved updates can be published");
+        }
 
         update.publish(publisherId);
         updateRepository.save(update);
@@ -335,24 +372,32 @@ public class IncidentService {
 
         for (CustomerImpact impact : impacts) {
             incidentRepository.findByTenantIdAndId(tenantId, impact.getIncidentId()).ifPresent(inc -> {
-                if (inc.getStatus() != IncidentStatus.RESOLVED && inc.getStatus() != IncidentStatus.DISMISSED) {
+                // Only confirmed/active incidents (never proposed, never resolved/dismissed) with published customer-safe updates
+                if (inc.getStatus() != IncidentStatus.PROPOSED &&
+                    inc.getStatus() != IncidentStatus.RESOLVED &&
+                    inc.getStatus() != IncidentStatus.DISMISSED) {
                     List<IncidentUpdate> updates = updateRepository.findByTenantIdAndIncidentIdOrderByUpdateNumberAsc(tenantId, inc.getId());
-                    String latestMsg = updates.stream()
+                    List<IncidentUpdate> publishedUpdates = updates.stream()
                         .filter(u -> u.getStatus() == IncidentUpdateStatus.PUBLISHED)
-                        .reduce((first, second) -> second)
-                        .map(IncidentUpdate::getMessage)
-                        .orElse(inc.getSummary());
+                        .toList();
 
-                    results.add(new CustomerIncidentResponse(
-                        inc.getId(),
-                        inc.getIncidentNumber(),
-                        inc.getTitle(),
-                        inc.getStatus(),
-                        inc.getSeverity(),
-                        inc.getSummary(),
-                        latestMsg,
-                        inc.getUpdatedAt()
-                    ));
+                    if (!publishedUpdates.isEmpty()) {
+                        IncidentUpdate latestUpdate = publishedUpdates.get(publishedUpdates.size() - 1);
+                        String latestCustomerSafeMsg = latestUpdate.getMessage();
+                        String latestCustomerSafeTitle = latestUpdate.getTitle() != null && !latestUpdate.getTitle().isBlank()
+                            ? latestUpdate.getTitle()
+                            : inc.getTitle();
+                        results.add(new CustomerIncidentResponse(
+                            inc.getId(),
+                            inc.getIncidentNumber(),
+                            latestCustomerSafeTitle,
+                            inc.getStatus(),
+                            inc.getSeverity(),
+                            latestCustomerSafeMsg,
+                            latestCustomerSafeMsg,
+                            inc.getUpdatedAt()
+                        ));
+                    }
                 }
             });
         }
@@ -375,15 +420,25 @@ public class IncidentService {
 
     @Transactional
     public DetectionRunResult runDetectionScan(UUID tenantId) {
-        Instant windowEnd = Instant.now();
-        Instant windowStart = windowEnd.minus(60, ChronoUnit.MINUTES);
+        return runDetectionScan(tenantId, 10, 8);
+    }
 
-        List<Ticket> recentTickets = ticketRepository.findByTenantIdOrderByCreatedAtDesc(
+    @Transactional
+    public DetectionRunResult runDetectionScan(UUID tenantId, int minTickets, int minCustomers) {
+        Instant windowEnd = clock.instant();
+        Instant windowStart = windowEnd.minus(15, ChronoUnit.MINUTES);
+
+        List<Ticket> windowTickets = ticketRepository.findByTenantIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
             tenantId,
-            PageRequest.of(0, 200)
+            windowStart,
+            PageRequest.of(0, 500)
         );
 
-        Map<String, List<Ticket>> groupedByCategory = recentTickets.stream()
+        List<Ticket> ticketsToEvaluate = windowTickets.stream()
+            .filter(t -> t.getCreatedAt() != null && !t.getCreatedAt().isBefore(windowStart) && !t.getCreatedAt().isAfter(windowEnd))
+            .toList();
+
+        Map<String, List<Ticket>> groupedByCategory = ticketsToEvaluate.stream()
             .collect(Collectors.groupingBy(t -> t.getCategory() != null ? t.getCategory() : "GENERAL"));
 
         int proposalsCreated = 0;
@@ -393,7 +448,8 @@ public class IncidentService {
             String category = entry.getKey();
             List<Ticket> tickets = entry.getValue();
 
-            if (tickets.size() < 3) {
+            long distinctCustomers = tickets.stream().map(Ticket::getCustomerId).distinct().count();
+            if (tickets.size() < minTickets || distinctCustomers < minCustomers) {
                 continue;
             }
 
@@ -510,7 +566,7 @@ public class IncidentService {
             }
         }
 
-        return new DetectionRunResult(recentTickets.size(), proposalsCreated, ticketsLinked, "radar-v1.0");
+        return new DetectionRunResult(ticketsToEvaluate.size(), proposalsCreated, ticketsLinked, "radar-v1.0");
     }
 
     private IncidentResponse toIncidentResponse(UUID tenantId, SupportIncident incident) {

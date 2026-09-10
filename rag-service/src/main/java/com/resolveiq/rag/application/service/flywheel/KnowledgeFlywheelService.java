@@ -28,15 +28,30 @@ public class KnowledgeFlywheelService implements KnowledgeFlywheelServicePort {
     private final EvaluationRunRepository evaluationRunRepository;
     private final KnowledgeReleaseRepository releaseRepository;
     private final RollbackRecordRepository rollbackRecordRepository;
+    private final com.resolveiq.rag.domain.repository.KnowledgeDocumentRepository documentRepository;
+    private final com.resolveiq.rag.domain.repository.KnowledgeVersionRepository versionRepository;
+    private final com.resolveiq.rag.application.port.KnowledgePublicationPort publicationService;
+    private final com.resolveiq.rag.application.port.KnowledgeIndexingPort indexingService;
+    private final KnowledgeEvaluatorPort evaluatorPort;
 
     public KnowledgeFlywheelService(KnowledgeCandidateRepository candidateRepository,
                                   EvaluationRunRepository evaluationRunRepository,
                                   KnowledgeReleaseRepository releaseRepository,
-                                  RollbackRecordRepository rollbackRecordRepository) {
-        this.candidateRepository = candidateRepository;
-        this.evaluationRunRepository = evaluationRunRepository;
-        this.releaseRepository = releaseRepository;
-        this.rollbackRecordRepository = rollbackRecordRepository;
+                                  RollbackRecordRepository rollbackRecordRepository,
+                                  com.resolveiq.rag.domain.repository.KnowledgeDocumentRepository documentRepository,
+                                  com.resolveiq.rag.domain.repository.KnowledgeVersionRepository versionRepository,
+                                  com.resolveiq.rag.application.port.KnowledgePublicationPort publicationService,
+                                  com.resolveiq.rag.application.port.KnowledgeIndexingPort indexingService,
+                                  KnowledgeEvaluatorPort evaluatorPort) {
+        this.candidateRepository = Objects.requireNonNull(candidateRepository, "candidateRepository cannot be null");
+        this.evaluationRunRepository = Objects.requireNonNull(evaluationRunRepository, "evaluationRunRepository cannot be null");
+        this.releaseRepository = Objects.requireNonNull(releaseRepository, "releaseRepository cannot be null");
+        this.rollbackRecordRepository = Objects.requireNonNull(rollbackRecordRepository, "rollbackRecordRepository cannot be null");
+        this.documentRepository = Objects.requireNonNull(documentRepository, "documentRepository cannot be null");
+        this.versionRepository = Objects.requireNonNull(versionRepository, "versionRepository cannot be null");
+        this.publicationService = Objects.requireNonNull(publicationService, "publicationService cannot be null");
+        this.indexingService = Objects.requireNonNull(indexingService, "indexingService cannot be null");
+        this.evaluatorPort = Objects.requireNonNull(evaluatorPort, "evaluatorPort cannot be null");
     }
 
     public CandidateResponse createCandidate(UUID tenantId, CreateCandidateRequest request) {
@@ -79,12 +94,20 @@ public class KnowledgeFlywheelService implements KnowledgeFlywheelServicePort {
             throw new IllegalStateException("Candidate does not meet eligibility thresholds (requires score >= 80 and >= 5 distinct customers)");
         }
 
-        // Run baseline vs proposed benchmark across held-out evaluation dataset
-        // Metrics meeting Section 22.7 gate criteria:
-        // Recall@5 >= 0.85, MRR >= 0.75, proposed >= baseline, safety cases pass, latency <= 1.2x
+        String contentToEvaluate = candidate.getSanitizedContent() != null
+            ? candidate.getSanitizedContent()
+            : candidate.getContentDraft();
+
+        // Run evaluator across frozen benchmark holdout cases (independent of candidate title keywords)
+        KnowledgeEvaluatorPort.EvaluationResult evalResult = evaluatorPort.evaluateCandidate(
+            tenantId, candidateId, candidate.getTitle(), contentToEvaluate, candidate.getCategory()
+        );
+
         EvaluationRun run = new EvaluationRun(
-            tenantId, candidateId, "v1-frozen-benchmark",
-            0.82, 0.91, 0.72, 0.84, true, 1.05
+            tenantId, candidateId, evalResult.datasetVersion(),
+            evalResult.baselineRecallAt5(), evalResult.proposedRecallAt5(),
+            evalResult.baselineMrr(), evalResult.proposedMrr(),
+            evalResult.safetyCasesPassed(), evalResult.latencyP95Ratio()
         );
         run = evaluationRunRepository.save(run);
 
@@ -124,8 +147,34 @@ public class KnowledgeFlywheelService implements KnowledgeFlywheelServicePort {
                 releaseRepository.save(active);
             });
 
+        // Route activation through exact existing document reference if title matches, or create new
+        String docTitle = candidate.getTitle() != null ? candidate.getTitle() : "Solution Article";
+        com.resolveiq.rag.domain.model.KnowledgeDocument doc = documentRepository.findByTenantId(tenantId).stream()
+            .filter(d -> docTitle.equalsIgnoreCase(d.getTitle()))
+            .findFirst()
+            .orElseGet(() -> {
+                com.resolveiq.rag.domain.model.KnowledgeDocument newDoc = new com.resolveiq.rag.domain.model.KnowledgeDocument(
+                    UUID.randomUUID(), tenantId, docTitle, candidate.getCategory(), "DEFAULT", "en"
+                );
+                return documentRepository.save(newDoc);
+            });
+
+        int nextVersion = versionRepository.findTopByDocumentIdOrderByVersionNumberDesc(doc.getId())
+            .map(v -> v.getVersionNumber() + 1)
+            .orElse(1);
+
+        String content = candidate.getSanitizedContent() != null ? candidate.getSanitizedContent() : candidate.getContentDraft();
+        com.resolveiq.rag.domain.model.KnowledgeVersion ver = new com.resolveiq.rag.domain.model.KnowledgeVersion(
+            doc.getId(), nextVersion, content, "Flywheel verified release", approverId
+        );
+        ver = versionRepository.save(ver);
+
+        // Atomically index and activate
+        indexingService.index(tenantId, doc.getId(), ver.getId());
+        publicationService.activate(tenantId, doc.getId(), ver.getId(), approverId, "Flywheel publication");
+
         KnowledgeRelease release = new KnowledgeRelease(
-            tenantId, candidateId, UUID.randomUUID(), 1, runs.get(0).getId(),
+            tenantId, candidateId, doc.getId(), nextVersion, runs.get(0).getId(),
             approverId, "Released verified solution for: " + candidate.getTitle()
         );
         release = releaseRepository.save(release);
@@ -149,15 +198,28 @@ public class KnowledgeFlywheelService implements KnowledgeFlywheelServicePort {
         KnowledgeRelease current = releaseRepository.findByIdAndTenantId(releaseId, tenantId)
             .orElseThrow(() -> new NoSuchElementException("Release not found: " + releaseId));
 
+        if (current.getStatus() != KnowledgeReleaseStatus.ACTIVE) {
+            throw new IllegalStateException("Cannot rollback a release that is not currently ACTIVE");
+        }
+
         current.setStatus(KnowledgeReleaseStatus.ROLLED_BACK);
         releaseRepository.save(current);
 
         if (targetReleaseId != null) {
-            releaseRepository.findByIdAndTenantId(targetReleaseId, tenantId)
-                .ifPresent(target -> {
-                    target.setStatus(KnowledgeReleaseStatus.ACTIVE);
-                    releaseRepository.save(target);
-                });
+            KnowledgeRelease target = releaseRepository.findByIdAndTenantId(targetReleaseId, tenantId)
+                .orElseThrow(() -> new NoSuchElementException("Target release not found: " + targetReleaseId));
+            target.setStatus(KnowledgeReleaseStatus.ACTIVE);
+            releaseRepository.save(target);
+
+            // Revert document and search index to target release version
+            com.resolveiq.rag.domain.model.KnowledgeVersion targetVersion = versionRepository
+                .findByDocumentIdOrderByVersionNumberDesc(target.getDocumentId()).stream()
+                .filter(v -> v.getVersionNumber() == target.getVersionNumber())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Version not found for target release: " + target.getVersionNumber()));
+
+            publicationService.rollback(tenantId, target.getDocumentId(), targetVersion.getId(), performedBy, "Flywheel rollback: " + reason);
+            indexingService.index(tenantId, target.getDocumentId(), targetVersion.getId());
         }
 
         RollbackRecord record = new RollbackRecord(tenantId, releaseId, targetReleaseId, reason, performedBy);

@@ -14,7 +14,6 @@ public class OmnichannelDtos {
 
     public record EmailChallengeResponse(
         String email,
-        String challengeToken, // In test / development simulator, returned for convenience
         Instant expiresAt,
         String message
     ) {}

@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "seed": 42,
+  "actionTypes": ["REFUND_ISSUANCE", "ACCOUNT_UNLOCK"],
+  "testCases": [
+    {
+      "caseId": "VALID_TWO_PERSON_REFUND",
+      "actionType": "REFUND_ISSUANCE",
+      "proposer": "agent-1",
+      "approver": "lead-2",
+      "stepUpSeconds": 60,
+      "expectedStatus": "EXECUTED",
+      "expectedHttp": 200
+    },
+    {
+      "caseId": "FORBIDDEN_SELF_APPROVAL",
+      "actionType": "REFUND_ISSUANCE",
+      "proposer": "agent-1",
+      "approver": "agent-1",
+      "expectedStatus": "REJECTED",
+      "expectedHttp": 403,
+      "rule": "TWO_PERSON_PROPOSER_EXCLUSION"
+    },
+    {
+      "caseId": "STALE_VERSION_CONFLICT",
+      "actionType": "ACCOUNT_UNLOCK",
+      "proposer": "agent-1",
+      "approver": "lead-2",
+      "expectedVersion": 1,
+      "actualVersion": 2,
+      "expectedStatus": "CONFLICT",
+      "expectedHttp": 409
+    },
+    {
+      "caseId": "IDEMPOTENCY_KEY_REUSE_DIFF_HASH",
+      "actionType": "REFUND_ISSUANCE",
+      "idempotencyKey": "idem-key-101",
+      "alteredInput": true,
+      "expectedStatus": "CONFLICT",
+      "expectedHttp": 409
+    },
+    {
+      "caseId": "STEP_UP_TIMEOUT_EXPIRED",
+      "actionType": "ACCOUNT_UNLOCK",
+      "proposer": "agent-1",
+      "approver": "lead-2",
+      "authAgeMinutes": 8,
+      "expectedStatus": "STEP_UP_REQUIRED",
+      "expectedHttp": 403,
+      "maxAuthAgeMinutes": 5
+    }
+  ]
+}

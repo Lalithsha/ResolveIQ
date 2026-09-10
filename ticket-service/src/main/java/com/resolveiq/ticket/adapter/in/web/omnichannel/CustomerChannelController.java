@@ -82,9 +82,19 @@ public class CustomerChannelController {
     }
 
     private TrustedPrincipal resolveCustomerPrincipal(TrustedPrincipal authPrincipal, UUID tenantHeader, UUID userHeader) {
-        if (authPrincipal != null) return authPrincipal;
-        UUID tenantId = tenantHeader != null ? tenantHeader : UUID.fromString("00000000-0000-0000-0000-000000000001");
-        UUID userId = userHeader != null ? userHeader : UUID.fromString("00000000-0000-0000-0000-000000000003");
-        return new TrustedPrincipal(userId, tenantId, Set.of("CUSTOMER"), "DIRECT", Set.of("TICKET_READ", "TICKET_WRITE"), Instant.now());
+        if (authPrincipal != null) {
+            if (authPrincipal.roles().contains("AUDITOR")) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "Auditors are read-only and cannot manage channels"
+                );
+            }
+            return authPrincipal;
+        }
+        if (tenantHeader == null || userHeader == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.UNAUTHORIZED, "Authentication required: missing principal and headers"
+            );
+        }
+        return new TrustedPrincipal(userHeader, tenantHeader, Set.of("CUSTOMER"), "DIRECT", Set.of("TICKET_READ", "TICKET_WRITE"), Instant.now());
     }
 }

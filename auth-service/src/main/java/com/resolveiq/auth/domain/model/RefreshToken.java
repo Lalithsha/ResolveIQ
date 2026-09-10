@@ -35,9 +35,16 @@ public class RefreshToken {
     @Column(name = "user_agent")
     private String userAgent;
 
+    @Column(name = "auth_time", nullable = false)
+    private Instant authTime;
+
     public RefreshToken() {}
 
     public RefreshToken(UUID userId, String tokenHash, Instant expiresAt, String ipAddress, String userAgent) {
+        this(userId, tokenHash, expiresAt, ipAddress, userAgent, Instant.now());
+    }
+
+    public RefreshToken(UUID userId, String tokenHash, Instant expiresAt, String ipAddress, String userAgent, Instant authTime) {
         this.id = UUID.randomUUID();
         this.userId = userId;
         this.tokenHash = tokenHash;
@@ -45,6 +52,7 @@ public class RefreshToken {
         this.expiresAt = expiresAt;
         this.ipAddress = ipAddress;
         this.userAgent = userAgent;
+        this.authTime = authTime != null ? authTime : this.issuedAt;
     }
 
     public UUID getId() { return id; }
@@ -54,6 +62,7 @@ public class RefreshToken {
     public Instant getExpiresAt() { return expiresAt; }
     public Instant getRevokedAt() { return revokedAt; }
     public UUID getReplacedByTokenId() { return replacedByTokenId; }
+    public Instant getAuthTime() { return authTime; }
 
     public boolean isExpired() {
         return expiresAt.isBefore(Instant.now());

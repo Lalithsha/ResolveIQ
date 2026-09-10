@@ -244,11 +244,19 @@ class ResolutionActionServiceTest {
         );
 
         UUID proposalId = UUID.randomUUID();
+        String expectedHash = digestService.computeInputHash("{}");
         ActionExecution recordedExec = new ActionExecution(
-                proposalId, tenantId, 1, "REFUND_DUPLICATE_CHARGE", "idem_key_repeat", "hash1"
+                proposalId, tenantId, 1, "REFUND_DUPLICATE_CHARGE", "idem_key_repeat", expectedHash
         );
         recordedExec.setStatus("SUCCEEDED");
         recordedExec.setProviderReference("pay_ref_exist_123");
+
+        ResolutionActionProposal proposal = new ResolutionActionProposal(
+                tenantId, UUID.randomUUID(), ActionType.REFUND_DUPLICATE_CHARGE,
+                "{}", expectedHash, "any_digest", "bytes", "rationale", "ev", Instant.now().plusSeconds(900)
+        );
+        when(proposalRepository.findByIdAndTenantId(proposalId, tenantId))
+                .thenReturn(Optional.of(proposal));
 
         when(executionRepository.findByTenantIdAndProviderIdempotencyKey(tenantId, "idem_key_repeat"))
                 .thenReturn(Optional.of(recordedExec));
@@ -278,5 +286,96 @@ class ResolutionActionServiceTest {
         assertThat(comp.isSupported()).isFalse();
         assertThat(comp.status()).isEqualTo("NON_COMPENSATABLE");
         assertThat(comp.reason()).contains("cannot be mechanically debited back");
+    }
+
+    @Test
+    @DisplayName("Two-Person Rule: Proposer cannot approve their own high-risk proposal")
+    void proposerCannotApproveHighRiskProposal() {
+        TrustedPrincipal proposerPrincipal = new TrustedPrincipal(
+                agentId, tenantId, Set.of("ADMIN"), "JWT",
+                Set.of(Permission.ACTION_APPROVE_FINANCIAL.name()), Instant.now()
+        );
+
+        ResolutionActionProposal proposal = new ResolutionActionProposal(
+                tenantId, ticketId, ActionType.REFUND_DUPLICATE_CHARGE,
+                "{}", "{}", "digest123", "bytes", "rationale", "ev", Instant.now().plusSeconds(900)
+        );
+        proposal.setRiskLevel(RiskLevel.HIGH);
+        proposal.setStatus(ActionStatus.AWAITING_APPROVAL);
+        proposal.setProposerId(agentId);
+
+        when(proposalRepository.findByIdAndTenantId(proposal.getId(), tenantId)).thenReturn(Optional.of(proposal));
+        when(policyDecisionRepository.findByProposalIdAndTenantId(proposal.getId(), tenantId)).thenReturn(Optional.of(
+                new ActionPolicyDecision(proposal.getId(), tenantId, PolicyDecision.REQUIRES_APPROVAL,
+                        "[]", "[\"ACTION_APPROVE_FINANCIAL\"]", 1, 5000L, "[]")
+        ));
+
+        assertThatThrownBy(() -> service.approveAction(
+                tenantId, proposal.getId(),
+                new ApproveActionRequest("digest123", "Self-approving"),
+                proposerPrincipal
+        ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Two-person rule violation");
+    }
+
+    @Test
+    @DisplayName("Step-Up Authentication: Approval fails if step-up auth is older than 5 minutes")
+    void approvalFailsIfStepUpAuthExpired() {
+        Instant staleAuthTime = Instant.now().minusSeconds(301); // 5 min 1 sec ago
+        TrustedPrincipal stalePrincipal = new TrustedPrincipal(
+                agentId, tenantId, Set.of("ADMIN"), "JWT",
+                Set.of(Permission.ACTION_APPROVE_FINANCIAL.name()), staleAuthTime
+        );
+
+        ResolutionActionProposal proposal = new ResolutionActionProposal(
+                tenantId, ticketId, ActionType.REFUND_DUPLICATE_CHARGE,
+                "{}", "{}", "digest123", "bytes", "rationale", "ev", Instant.now().plusSeconds(900)
+        );
+        proposal.setRiskLevel(RiskLevel.HIGH);
+        proposal.setStatus(ActionStatus.AWAITING_APPROVAL);
+        proposal.setProposerId(UUID.randomUUID()); // Different proposer
+
+        when(proposalRepository.findByIdAndTenantId(proposal.getId(), tenantId)).thenReturn(Optional.of(proposal));
+        when(policyDecisionRepository.findByProposalIdAndTenantId(proposal.getId(), tenantId)).thenReturn(Optional.of(
+                new ActionPolicyDecision(proposal.getId(), tenantId, PolicyDecision.REQUIRES_APPROVAL,
+                        "[]", "[\"ACTION_APPROVE_FINANCIAL\"]", 1, 5000L, "[]")
+        ));
+
+        assertThatThrownBy(() -> service.approveAction(
+                tenantId, proposal.getId(),
+                new ApproveActionRequest("digest123", "Approving stale"),
+                stalePrincipal
+        ))
+                .isInstanceOf(SecurityException.class)
+                .hasMessageContaining("recent re-authentication");
+    }
+
+    @Test
+    @DisplayName("Idempotency: Re-executing with same idempotency key but different input hash throws 409 conflict")
+    void reExecutingWithSameIdempotencyKeyDifferentHashThrowsConflict() {
+        TrustedPrincipal agentPrincipal = new TrustedPrincipal(
+                agentId, tenantId, Set.of("AGENT"), "JWT",
+                Set.of(Permission.ACTION_APPROVE_LOW_RISK.name()), Instant.now()
+        );
+
+        UUID proposalId = UUID.randomUUID();
+        ActionExecution recordedExec = new ActionExecution(
+                proposalId, tenantId, 1, "REFUND_DUPLICATE_CHARGE", "idem_key_conflict", "hash_original"
+        );
+
+        when(executionRepository.findByTenantIdAndProviderIdempotencyKey(tenantId, "idem_key_conflict"))
+                .thenReturn(Optional.of(recordedExec));
+
+        ResolutionActionProposal proposal = new ResolutionActionProposal(
+                tenantId, ticketId, ActionType.REFUND_DUPLICATE_CHARGE,
+                "{}", "hash_different", "digest_diff", "bytes", "rationale", "ev", Instant.now().plusSeconds(900)
+        );
+        when(proposalRepository.findByIdAndTenantId(proposalId, tenantId)).thenReturn(Optional.of(proposal));
+
+        ExecuteActionRequest execReq = new ExecuteActionRequest("digest_diff", 0L, "idem_key_conflict");
+        assertThatThrownBy(() -> service.executeAction(tenantId, proposalId, execReq, agentPrincipal))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .hasMessageContaining("409 CONFLICT");
     }
 }

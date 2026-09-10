@@ -150,10 +150,7 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const resp = await api.requestEmailChallenge(verifyEmail.trim());
-      if (resp.challengeToken) {
-        setVerifyCode(resp.challengeToken); // Dev auto-fill
-      }
+      await api.requestEmailChallenge(verifyEmail.trim());
       setChallengeStep('VERIFY');
       setSuccessMessage(`Verification code sent to ${verifyEmail.trim()}`);
     } catch (err) {

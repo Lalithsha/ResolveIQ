@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 @Service
-public class KnowledgePublicationService {
+public class KnowledgePublicationService implements com.resolveiq.rag.application.port.KnowledgePublicationPort {
     private final KnowledgeDocumentRepository documents;
     private final KnowledgeVersionRepository versions;
 

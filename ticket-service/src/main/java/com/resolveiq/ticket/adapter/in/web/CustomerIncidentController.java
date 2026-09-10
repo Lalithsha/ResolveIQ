@@ -22,20 +22,32 @@ public class CustomerIncidentController {
 
     @GetMapping("/active")
     public ResponseEntity<List<CustomerIncidentResponse>> getActiveIncidents(
-        @RequestHeader("X-Tenant-Id") UUID tenantId,
-        @RequestHeader("X-User-Id") UUID customerId
+        @org.springframework.security.core.annotation.AuthenticationPrincipal com.resolveiq.security.TrustedPrincipal principal,
+        @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantIdHeader,
+        @RequestHeader(value = "X-User-Id", required = false) UUID customerIdHeader
     ) {
+        UUID tenantId = principal != null ? principal.tenantId() : tenantIdHeader;
+        UUID customerId = principal != null ? principal.userId() : customerIdHeader;
+        if (tenantId == null || customerId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         List<CustomerIncidentResponse> list = incidentService.getActiveCustomerIncidents(tenantId, customerId);
         return ResponseEntity.ok(list);
     }
 
     @PostMapping("/{id}/subscriptions")
     public ResponseEntity<Void> subscribe(
-        @RequestHeader("X-Tenant-Id") UUID tenantId,
-        @RequestHeader("X-User-Id") UUID customerId,
+        @org.springframework.security.core.annotation.AuthenticationPrincipal com.resolveiq.security.TrustedPrincipal principal,
+        @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantIdHeader,
+        @RequestHeader(value = "X-User-Id", required = false) UUID customerIdHeader,
         @PathVariable UUID id,
         @Valid @RequestBody SubscribeCustomerRequest request
     ) {
+        UUID tenantId = principal != null ? principal.tenantId() : tenantIdHeader;
+        UUID customerId = principal != null ? principal.userId() : customerIdHeader;
+        if (tenantId == null || customerId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         String channel = (request != null && request.channel() != null) ? request.channel() : "PORTAL";
         incidentService.subscribeCustomer(tenantId, id, customerId, channel);
         return ResponseEntity.status(HttpStatus.CREATED).build();

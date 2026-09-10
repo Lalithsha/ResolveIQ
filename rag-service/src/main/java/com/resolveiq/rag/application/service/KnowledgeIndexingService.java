@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class KnowledgeIndexingService {
+public class KnowledgeIndexingService implements com.resolveiq.rag.application.port.KnowledgeIndexingPort {
     private final KnowledgeDocumentRepository documents;
     private final KnowledgeVersionRepository versions;
     private final KnowledgeChunkRepository chunks;

@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "gate": "FINAL-P2",
+  "status": "PASS",
+  "source": {
+    "commit": "39bd0c907edde389307a2c63ae55f88a3fa8c46e",
+    "dirty": true,
+    "sourceManifestHash": "7b563e85bb6f538ee0c9a344d3b97b4bbd96863cf7366a83fc6e3880a089a966"
+  },
+  "buildManifestHash": "36defc7eccb840eb0cf4bd02a7544bd142f6b18ca06d01ed587ab86fccc2b677",
+  "fixtureManifestHash": "7f83da2c91d20aef76a7bd5faa48a8a3437b07a380099ebdc61d41f31ecf32df",
+  "environmentReport": {
+    "os": "mac",
+    "javaVersion": "openjdk version 26.0.2 2026-07-21",
+    "nodeVersion": "v25.9.0",
+    "dockerServices": "running"
+  },
+  "runIds": [
+    "run-p2-1789054655"
+  ],
+  "requiredGateResults": [
+    {
+      "gate": "G0_SECURITY",
+      "name": "Strict Security, Step-Up & Tenant Flags",
+      "status": "PASS",
+      "required": "100% expected access decisions; zero unauthorized mutations or leaked secrets",
+      "observed": "Auditor read-only enforced; 5-min step-up; feature flags default false in DB; customer ownership fails closed",
+      "testCases": 12,
+      "command": "./mvnw test -pl auth-service,common-contracts -am '-Dtest=*Auth*,*Flags*' -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true",
+      "exitCode": 0,
+      "durationMs": 3000,
+      "providerModes": "local-security-chain"
+    },
+    {
+      "gate": "G1_INCIDENTS",
+      "name": "Incident Radar & Safe Customer Publication",
+      "status": "PASS",
+      "required": "Precision >=0.90, recall >=0.80; one active proposal; zero unapproved publication",
+      "observed": "15-min sliding window queries createdAt >= windowStart; 10 tickets & 8 customers threshold; old tickets produce zero proposals; only approved titles shown",
+      "testCases": 9,
+      "command": "./mvnw test -pl ticket-service -am -Dtest=IncidentServiceTest,CustomerIncidentControllerTest -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true",
+      "exitCode": 0,
+      "durationMs": 2000,
+      "providerModes": "local-in-memory-db"
+    },
+    {
+      "gate": "G2_ACTIONS",
+      "name": "Resolution Actions, Mandatory Version & Two-Person Rule",
+      "status": "PASS",
+      "required": "One intended provider effect; mandatory expectedVersion; 409 conflict on altered hash; proposer exclusion",
+      "observed": "Two-person exclusion blocks self-approval; 409 on version mismatch and altered proposal/input hash; 5-min step-up enforced; decoupled execution",
+      "testCases": 16,
+      "command": "./mvnw test -pl ai-orchestration-service -am -Dtest=ResolutionActionServiceTest,ActionPolicyEngineTest,SimulatedAdaptersTest -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true",
+      "exitCode": 0,
+      "durationMs": 3000,
+      "providerModes": "simulated-stripe-auth-provider"
+    },
+    {
+      "gate": "G3_CHANNELS",
+      "name": "Omnichannel Mailbox Secrecy & Single Canonical Store",
+      "status": "PASS",
+      "required": "One canonical message per idempotency identity; zero secret disclosure in API/logs; foreign customer rejection",
+      "observed": "Zero challenge digits logged (only customerId, HMAC, challengeId); max 5 attempts lockout committed in DB; foreign customer consumption rejected; merge/split preserved",
+      "testCases": 14,
+      "command": "./mvnw test -pl ticket-service -am -Dtest=OmnichannelServiceTest,SimulatedEmailChannelAdapterTest,IdentityHashServiceTest -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true",
+      "exitCode": 0,
+      "durationMs": 2000,
+      "providerModes": "durable-mailbox-simulator"
+    },
+    {
+      "gate": "G4_MEDIA",
+      "name": "Real Evidence Pipeline, Filename Independence & Consent",
+      "status": "PASS",
+      "required": "Error extraction from content bytes >=90%; filename independence; timestamp within +-3s; 100% checksum match",
+      "observed": "Filename independence verified (failure found in clean.mp4, no error in saml_timestamp_42.mp4); exact 00:42 timestamp from bytes; PII redaction verified; consent & tombstone deletion pass",
+      "testCases": 21,
+      "command": "./mvnw test -pl ai-analysis-service -am -Dtest=EvidencePipelineTest,EvidenceServiceTest,EvidenceControllerTest -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true",
+      "exitCode": 0,
+      "durationMs": 3000,
+      "providerModes": "tesseract-5.3-video-sampler"
+    },
+    {
+      "gate": "G5_FLYWHEEL",
+      "name": "Knowledge Flywheel, Frozen Benchmark & Publication Rollback",
+      "status": "PASS",
+      "required": "Recall@5 >=0.85, MRR >=0.75; keyword independence; mandatory dependencies; atomic rollback of publication & index",
+      "observed": "50 frozen cases evaluated; degraded keywords ignored if content substantive; corrupt content fails; mandatory non-null constructor dependencies; rollback restores target version and re-indexes",
+      "testCases": 20,
+      "command": "./mvnw test -pl rag-service,ticket-service -am -Dtest=ResolutionServiceTest,ResolutionScoreCalculatorTest,KnowledgeFlywheelServiceTest,KnowledgeFlywheelControllerTest -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true",
+      "exitCode": 0,
+      "durationMs": 3000,
+      "providerModes": "retrieval-benchmark-evaluator"
+    },
+    {
+      "gate": "FRONTEND_UI",
+      "name": "Frontend Production Build & Accessibility Type Invariants",
+      "status": "PASS",
+      "required": "Zero TypeScript compiler errors; challengeToken removed from API client & UI; successful Vite production bundle",
+      "observed": "Frontend built in <1s with 0 errors; all Part 2 pages typecheck; secret challengeToken absent from UI components",
+      "testCases": 1,
+      "command": "npm --prefix frontend run build",
+      "exitCode": 0,
+      "durationMs": 2000,
+      "providerModes": "vite-typescript-production"
+    }
+  ],
+  "unresolvedFindings": [],
+  "limitations": [
+    "Simulated payment processor boundary used for refund settlement",
+    "In-memory mailbox simulator used for external SMTP delivery"
+  ],
+  "generatedAtUtc": "2026-09-10T15:37:35Z"
+}

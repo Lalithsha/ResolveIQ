@@ -29,7 +29,8 @@ public class ResolutionActionController {
             @PathVariable UUID ticketId,
             @RequestBody ProposeActionRequest request,
             @AuthenticationPrincipal TrustedPrincipal principal) {
-        UUID tenantId = principal != null ? principal.tenantId() : UUID.fromString("00000000-0000-0000-0000-000000000001");
+        validateStaffMutation(principal);
+        UUID tenantId = requireAuthenticatedTenant(principal);
         ActionProposalResponse response = actionService.proposeAction(tenantId, ticketId, request, principal);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -39,7 +40,7 @@ public class ResolutionActionController {
     public ResponseEntity<List<ActionProposalResponse>> listActionsForTicket(
             @PathVariable UUID ticketId,
             @AuthenticationPrincipal TrustedPrincipal principal) {
-        UUID tenantId = principal != null ? principal.tenantId() : UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID tenantId = requireAuthenticatedTenant(principal);
         return ResponseEntity.ok(actionService.getProposalsForTicket(tenantId, ticketId));
     }
 
@@ -48,8 +49,17 @@ public class ResolutionActionController {
     public ResponseEntity<ActionProposalResponse> getProposal(
             @PathVariable UUID id,
             @AuthenticationPrincipal TrustedPrincipal principal) {
-        UUID tenantId = principal != null ? principal.tenantId() : UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID tenantId = requireAuthenticatedTenant(principal);
         return ResponseEntity.ok(actionService.getProposal(tenantId, id));
+    }
+
+    @GetMapping("/api/v1/resolution-actions/{id}/executions")
+    @Operation(summary = "Get executions for action proposal")
+    public ResponseEntity<List<ActionExecutionResponse>> getExecutions(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal TrustedPrincipal principal) {
+        UUID tenantId = requireAuthenticatedTenant(principal);
+        return ResponseEntity.ok(actionService.getExecutionsForProposal(tenantId, id));
     }
 
     @PostMapping("/api/v1/resolution-actions/{id}/approve")
@@ -58,7 +68,8 @@ public class ResolutionActionController {
             @PathVariable UUID id,
             @RequestBody ApproveActionRequest request,
             @AuthenticationPrincipal TrustedPrincipal principal) {
-        UUID tenantId = principal != null ? principal.tenantId() : UUID.fromString("00000000-0000-0000-0000-000000000001");
+        validateStaffMutation(principal);
+        UUID tenantId = requireAuthenticatedTenant(principal);
         return ResponseEntity.ok(actionService.approveAction(tenantId, id, request, principal));
     }
 
@@ -68,7 +79,8 @@ public class ResolutionActionController {
             @PathVariable UUID id,
             @RequestBody RejectActionRequest request,
             @AuthenticationPrincipal TrustedPrincipal principal) {
-        UUID tenantId = principal != null ? principal.tenantId() : UUID.fromString("00000000-0000-0000-0000-000000000001");
+        validateStaffMutation(principal);
+        UUID tenantId = requireAuthenticatedTenant(principal);
         return ResponseEntity.ok(actionService.rejectAction(tenantId, id, request, principal));
     }
 
@@ -79,7 +91,8 @@ public class ResolutionActionController {
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKeyHeader,
             @RequestBody ExecuteActionRequest request,
             @AuthenticationPrincipal TrustedPrincipal principal) {
-        UUID tenantId = principal != null ? principal.tenantId() : UUID.fromString("00000000-0000-0000-0000-000000000001");
+        validateStaffMutation(principal);
+        UUID tenantId = requireAuthenticatedTenant(principal);
 
         String effectiveKey = (request.idempotencyKey() != null && !request.idempotencyKey().isBlank())
                 ? request.idempotencyKey()
@@ -100,7 +113,27 @@ public class ResolutionActionController {
     public ResponseEntity<CompensationResponse> compensateAction(
             @PathVariable UUID id,
             @AuthenticationPrincipal TrustedPrincipal principal) {
-        UUID tenantId = principal != null ? principal.tenantId() : UUID.fromString("00000000-0000-0000-0000-000000000001");
+        validateStaffMutation(principal);
+        UUID tenantId = requireAuthenticatedTenant(principal);
         return ResponseEntity.ok(actionService.compensateAction(tenantId, id));
+    }
+
+    private UUID requireAuthenticatedTenant(TrustedPrincipal principal) {
+        if (principal == null || principal.tenantId() == null) {
+            throw new org.springframework.security.access.AccessDeniedException("Authentication required: missing trusted principal");
+        }
+        return principal.tenantId();
+    }
+
+    private void validateStaffMutation(TrustedPrincipal principal) {
+        if (principal == null) {
+            throw new org.springframework.security.access.AccessDeniedException("Authentication required");
+        }
+        if (principal.hasRole("AUDITOR")) {
+            throw new org.springframework.security.access.AccessDeniedException("Auditor role is read-only");
+        }
+        if (principal.hasRole("CUSTOMER")) {
+            throw new org.springframework.security.access.AccessDeniedException("Customers cannot perform resolution action operations");
+        }
     }
 }

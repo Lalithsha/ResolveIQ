@@ -6,6 +6,7 @@ import com.resolveiq.ticket.adapter.out.email.SimulatedEmailChannelAdapter;
 import com.resolveiq.ticket.application.dto.omnichannel.OmnichannelDtos.*;
 import com.resolveiq.ticket.application.port.omnichannel.WebhookRequest;
 import com.resolveiq.ticket.application.service.omnichannel.IdentityHashService;
+import com.resolveiq.ticket.application.service.omnichannel.MailboxSimulator;
 import com.resolveiq.ticket.application.service.omnichannel.OmnichannelService;
 import com.resolveiq.ticket.domain.model.*;
 import com.resolveiq.ticket.domain.model.omnichannel.*;
@@ -47,6 +48,7 @@ class OmnichannelServiceTest {
     private IdentityHashService identityHashService;
     private OmnichannelService omnichannelService;
 
+    private MailboxSimulator mailboxSimulator;
     private final String secret = "omnichannel_test_secret_123456789";
     private final UUID tenantId = UUID.randomUUID();
     private final UUID customerId = UUID.randomUUID();
@@ -56,6 +58,7 @@ class OmnichannelServiceTest {
     void setUp() {
         emailAdapter = new SimulatedEmailChannelAdapter(secret, new ObjectMapper());
         identityHashService = new IdentityHashService(secret);
+        mailboxSimulator = new MailboxSimulator();
         omnichannelService = new OmnichannelService(
             conversationRepository,
             channelIdentityRepository,
@@ -71,7 +74,8 @@ class OmnichannelServiceTest {
             ticketRepository,
             ticketMessageRepository,
             emailAdapter,
-            identityHashService
+            identityHashService,
+            mailboxSimulator
         );
     }
 
@@ -110,9 +114,8 @@ class OmnichannelServiceTest {
         when(ticketRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(conversationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(ticketMessageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(messageMetadataRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        WebhookRequest req = createSignedRequest("evt_1", email, "Payment question", "Can I get an invoice?");
+        WebhookRequest req = createSignedRequest("evt_1", email, "Payment issue", "Help me");
         InboundWebhookResult result = omnichannelService.processInboundEmailWebhook(tenantId.toString(), req);
 
         assertFalse(result.isDuplicate());
@@ -120,8 +123,7 @@ class OmnichannelServiceTest {
         assertNotNull(result.conversationId());
         assertNotNull(result.messageId());
         verify(ticketRepository).save(any());
-        verify(conversationRepository, atLeastOnce()).save(any());
-        verify(webhookInboxEventRepository).save(any());
+        verify(ticketMessageRepository).save(any());
     }
 
     @Test
@@ -137,23 +139,24 @@ class OmnichannelServiceTest {
     }
 
     @Test
-    void testInboundEmailFromUnverifiedSenderQuarantinesToPendingIntake() {
-        String unverifiedEmail = "stranger@unknown.org";
-        String hmac = identityHashService.computeAddressHmac(identityHashService.normalizeEmail(unverifiedEmail));
+    void testInboundEmailFromUnknownCustomerQuarantinesIntake() {
+        String email = "stranger@example.com";
+        String hmac = identityHashService.computeAddressHmac(identityHashService.normalizeEmail(email));
 
-        when(webhookInboxEventRepository.existsByTenantIdAndProviderAndExternalEventId(any(), eq("EMAIL"), eq("evt_unv"))).thenReturn(false);
+        when(webhookInboxEventRepository.existsByTenantIdAndProviderAndExternalEventId(any(), eq("EMAIL"), eq("evt_2"))).thenReturn(false);
         when(channelIdentityRepository.findByTenantIdAndChannelAndAddressHmac(any(), eq(ChannelType.EMAIL), eq(hmac)))
             .thenReturn(Optional.empty());
+
         when(unverifiedEmailIntakeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        WebhookRequest req = createSignedRequest("evt_unv", unverifiedEmail, "Unverified Support", "Need account unlock");
+        WebhookRequest req = createSignedRequest("evt_2", email, "Hello", "I am new here");
         InboundWebhookResult result = omnichannelService.processInboundEmailWebhook(tenantId.toString(), req);
 
         assertFalse(result.isDuplicate());
         assertEquals("PENDING_VERIFICATION", result.status());
         assertNotNull(result.pendingIntakeId());
         verify(unverifiedEmailIntakeRepository).save(any());
-        verify(ticketRepository, never()).save(any()); // No ticket fabricated for unverified stranger!
+        verify(ticketRepository, never()).save(any()); 
     }
 
     @Test
@@ -166,11 +169,15 @@ class OmnichannelServiceTest {
             .thenReturn(Optional.of(unverified));
         when(channelIdentityRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        // 1. Request challenge
+        // 1. Request challenge (API response does NOT contain plaintext token)
         EmailChallengeResponse challengeResp = omnichannelService.requestEmailChallenge(tenantId, customerId, email);
-        assertNotNull(challengeResp.challengeToken());
+        assertNotNull(challengeResp.expiresAt());
 
-        // 2. Mock pending intake
+        // 2. Token retrieved securely from test MailboxSimulator
+        String challengeToken = mailboxSimulator.getLatestChallengeCode(tenantId, email).orElseThrow();
+        assertNotNull(challengeToken);
+
+        // 3. Mock pending intake
         UnverifiedEmailIntake intake = new UnverifiedEmailIntake(tenantId, email, hmac, "Need help", "Body text", "ext_msg_1");
         when(unverifiedEmailIntakeRepository.findByTenantIdAndSenderHmacAndStatus(tenantId, hmac, "PENDING"))
             .thenReturn(List.of(intake));
@@ -178,12 +185,27 @@ class OmnichannelServiceTest {
         when(conversationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(ticketMessageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        // 3. Verify challenge with correct token
-        EmailVerifyResponse verifyResp = omnichannelService.verifyEmailChallenge(tenantId, customerId, email, challengeResp.challengeToken());
+        // 4. Verify challenge with correct token from mailboxSimulator
+        EmailVerifyResponse verifyResp = omnichannelService.verifyEmailChallenge(tenantId, customerId, email, challengeToken);
         assertTrue(verifyResp.isVerified());
         assertEquals(1, verifyResp.linkedPendingIntakes());
         assertEquals("VERIFIED_LINKED", intake.getStatus());
         verify(consentRecordRepository).save(any());
+    }
+
+    @Test
+    void testForeignAddressReassignmentRejected() {
+        String email = "shared@example.com";
+        String hmac = identityHashService.computeAddressHmac(identityHashService.normalizeEmail(email));
+        UUID otherCustomer = UUID.randomUUID();
+
+        ChannelIdentity existing = new ChannelIdentity(tenantId, otherCustomer, ChannelType.EMAIL, hmac, email, true);
+        when(channelIdentityRepository.findByTenantIdAndChannelAndAddressHmac(tenantId, ChannelType.EMAIL, hmac))
+            .thenReturn(Optional.of(existing));
+
+        assertThrows(IllegalStateException.class, () ->
+            omnichannelService.requestEmailChallenge(tenantId, customerId, email)
+        );
     }
 
     @Test

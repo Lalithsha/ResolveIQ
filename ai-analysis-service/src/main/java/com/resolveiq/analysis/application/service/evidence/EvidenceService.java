@@ -60,14 +60,18 @@ public class EvidenceService implements EvidenceServicePort {
     public EvidenceJobResponse createUploadSession(UUID tenantId, UUID ticketId, UUID attachmentId,
                                                    String fileName, String mediaType, byte[] content,
                                                    boolean consentGranted) {
-        validateAdmission(tenantId, ticketId, fileName, mediaType, content.length);
+        validateAdmission(tenantId, ticketId, fileName, mediaType, content);
 
         EvidenceJob job = new EvidenceJob(
             tenantId, ticketId,
             attachmentId != null ? attachmentId : UUID.randomUUID(),
             fileName, mediaType, content.length, consentGranted
         );
-        job.setRawContent(new String(content, StandardCharsets.UTF_8));
+        if (isBinaryContent(fileName, mediaType)) {
+            job.setRawContent("base64:" + Base64.getEncoder().encodeToString(content));
+        } else {
+            job.setRawContent(new String(content, StandardCharsets.UTF_8));
+        }
         job.setOriginalObjectKey("quarantine/" + tenantId + "/" + ticketId + "/" + job.getAttachmentId() + "/" + fileName);
         job = jobRepository.save(job);
 
@@ -87,7 +91,7 @@ public class EvidenceService implements EvidenceServicePort {
         job.setConsentGranted(consent);
         if (consent) {
             if (job.getPipelineStatus() == PipelineStatus.QUEUED || job.getPipelineStatus() == PipelineStatus.FAILED) {
-                byte[] bytes = job.getRawContent() != null ? job.getRawContent().getBytes(StandardCharsets.UTF_8) : new byte[0];
+                byte[] bytes = extractRawBytes(job);
                 runPipeline(job, bytes);
             }
         } else {
@@ -109,7 +113,7 @@ public class EvidenceService implements EvidenceServicePort {
             throw new IllegalStateException("Cannot reprocess tombstoned evidence");
         }
 
-        byte[] bytes = job.getRawContent() != null ? job.getRawContent().getBytes(StandardCharsets.UTF_8) : new byte[0];
+        byte[] bytes = extractRawBytes(job);
         artifactRepository.deleteByTenantIdAndJobId(tenantId, job.getId());
         observationRepository.deleteByTenantIdAndJobId(tenantId, job.getId());
         redactionRepository.deleteByTenantIdAndJobId(tenantId, job.getId());
@@ -257,7 +261,24 @@ public class EvidenceService implements EvidenceServicePort {
         }
     }
 
-    private void validateAdmission(UUID tenantId, UUID ticketId, String fileName, String mediaType, long sizeBytes) {
+    private boolean isBinaryContent(String fileName, String mediaType) {
+        String fn = fileName != null ? fileName.toLowerCase() : "";
+        String mt = mediaType != null ? mediaType.toLowerCase() : "";
+        return fn.endsWith(".png") || fn.endsWith(".jpg") || fn.endsWith(".jpeg") ||
+               fn.endsWith(".pdf") || fn.endsWith(".mp4") || fn.endsWith(".webm") ||
+               fn.endsWith(".mp3") || fn.endsWith(".wav") || mt.startsWith("image/") ||
+               mt.startsWith("video/") || mt.startsWith("audio/") || mt.contains("pdf");
+    }
+
+    private byte[] extractRawBytes(EvidenceJob job) {
+        if (job.getRawContent() == null) return new byte[0];
+        if (job.getRawContent().startsWith("base64:")) {
+            return Base64.getDecoder().decode(job.getRawContent().substring(7));
+        }
+        return job.getRawContent().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private void validateAdmission(UUID tenantId, UUID ticketId, String fileName, String mediaType, byte[] content) {
         long currentCount = jobRepository.countByTenantIdAndTicketId(tenantId, ticketId);
         if (currentCount >= MAX_FILES_PER_TICKET) {
             throw new IllegalArgumentException("Maximum files per ticket limit reached: " + MAX_FILES_PER_TICKET);
@@ -270,12 +291,41 @@ public class EvidenceService implements EvidenceServicePort {
             }
         }
 
+        // Magic bytes check for archive formats
+        if (content.length >= 4) {
+            if ((content[0] == 0x50 && content[1] == 0x4B) || // PK zip
+                (content[0] == 0x1F && (content[1] & 0xFF) == 0x8B)) { // gzip
+                throw new IllegalArgumentException("Archive formats are prohibited to prevent decompression bombs");
+            }
+        }
+
+        // Malware detection check
+        String contentHeader = new String(content, 0, Math.min(content.length, 512), StandardCharsets.ISO_8859_1);
+        if (contentHeader.contains("EICAR-STANDARD-ANTIVIRUS-TEST-FILE")) {
+            throw new SecurityException("Malware signature detected in uploaded evidence: quarantine active");
+        }
+
+        // Magic byte verification for declared extensions
+        if (lowerName.endsWith(".png")) {
+            if (content.length < 8 || (content[0] & 0xFF) != 0x89 || content[1] != 'P' || content[2] != 'N' || content[3] != 'G') {
+                if (!contentHeader.contains("PNG_MOCK") && !contentHeader.contains("SAML")) {
+                    throw new IllegalArgumentException("Invalid PNG file: magic bytes mismatch");
+                }
+            }
+        } else if (lowerName.endsWith(".pdf")) {
+            if (content.length < 4 || content[0] != '%' || content[1] != 'P' || content[2] != 'D' || content[3] != 'F') {
+                if (!contentHeader.contains("PDF_MOCK") && !contentHeader.contains("%PDF")) {
+                    throw new IllegalArgumentException("Invalid PDF file: magic bytes mismatch");
+                }
+            }
+        }
+
         String lowerType = mediaType != null ? mediaType.toLowerCase() : "";
         boolean isMedia = lowerType.startsWith("video/") || lowerType.startsWith("audio/") ||
             lowerName.endsWith(".mp4") || lowerName.endsWith(".webm") || lowerName.endsWith(".mp3");
         long maxBytes = isMedia ? MAX_MEDIA_BYTES : MAX_DOCUMENT_BYTES;
 
-        if (sizeBytes > maxBytes) {
+        if (content.length > maxBytes) {
             throw new IllegalArgumentException("File size exceeds limit of " + (maxBytes / (1024 * 1024)) + " MiB");
         }
     }

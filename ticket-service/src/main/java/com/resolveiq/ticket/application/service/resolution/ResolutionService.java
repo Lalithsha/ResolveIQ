@@ -59,6 +59,10 @@ public class ResolutionService implements ResolutionServicePort {
         Ticket ticket = ticketRepository.findByIdAndTenantId(ticketId, tenantId)
             .orElseThrow(() -> new NoSuchElementException("Ticket not found: " + ticketId));
 
+        if (customerId == null || !customerId.equals(ticket.getCustomerId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Missing customer identity or customer does not own ticket: " + ticketId);
+        }
+
         TicketResolution resolution = resolutionRepository.findTopByTenantIdAndTicketIdOrderByAttemptNumberDesc(tenantId, ticketId)
             .orElseThrow(() -> new NoSuchElementException("No active resolution attempt for ticket: " + ticketId));
 
@@ -107,6 +111,10 @@ public class ResolutionService implements ResolutionServicePort {
     public ResolutionAttemptResponse reopenTicket(UUID tenantId, UUID ticketId, UUID customerId, String reason) {
         Ticket ticket = ticketRepository.findByIdAndTenantId(ticketId, tenantId)
             .orElseThrow(() -> new NoSuchElementException("Ticket not found: " + ticketId));
+
+        if (customerId == null || !customerId.equals(ticket.getCustomerId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Missing customer identity or customer does not own ticket: " + ticketId);
+        }
 
         TicketResolution resolution = resolutionRepository.findTopByTenantIdAndTicketIdOrderByAttemptNumberDesc(tenantId, ticketId)
             .orElseThrow(() -> new NoSuchElementException("No resolution attempt found for ticket: " + ticketId));

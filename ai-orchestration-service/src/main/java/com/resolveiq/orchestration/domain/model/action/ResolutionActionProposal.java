@@ -57,6 +57,9 @@ public class ResolutionActionProposal {
     @Column(nullable = false)
     private Long version = 0L;
 
+    @Column(name = "proposer_id")
+    private UUID proposerId;
+
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
@@ -117,4 +120,7 @@ public class ResolutionActionProposal {
     public boolean isExpired() {
         return expiresAt != null && Instant.now().isAfter(expiresAt);
     }
+
+    public UUID getProposerId() { return proposerId; }
+    public void setProposerId(UUID proposerId) { this.proposerId = proposerId; }
 }

@@ -47,6 +47,7 @@ public class OmnichannelService {
     private final TicketMessageRepository ticketMessageRepository;
     private final SimulatedEmailChannelAdapter emailAdapter;
     private final IdentityHashService identityHashService;
+    private final MailboxSimulator mailboxSimulator;
 
     @Value("${resolveiq.default.tenant-id:00000000-0000-0000-0000-000000000001}")
     private String defaultTenantId;
@@ -66,7 +67,8 @@ public class OmnichannelService {
         TicketRepository ticketRepository,
         TicketMessageRepository ticketMessageRepository,
         SimulatedEmailChannelAdapter emailAdapter,
-        IdentityHashService identityHashService
+        IdentityHashService identityHashService,
+        MailboxSimulator mailboxSimulator
     ) {
         this.conversationRepository = conversationRepository;
         this.channelIdentityRepository = channelIdentityRepository;
@@ -83,6 +85,7 @@ public class OmnichannelService {
         this.ticketMessageRepository = ticketMessageRepository;
         this.emailAdapter = emailAdapter;
         this.identityHashService = identityHashService;
+        this.mailboxSimulator = mailboxSimulator;
     }
 
     /**
@@ -208,7 +211,11 @@ public class OmnichannelService {
         });
 
         if (identity.isVerified() && customerId.equals(identity.getCustomerId())) {
-            return new EmailChallengeResponse(normalized, null, null, "Email address is already verified and linked to your account.");
+            return new EmailChallengeResponse(normalized, null, "Email address is already verified and linked to your account.");
+        }
+
+        if (identity.isVerified() && !customerId.equals(identity.getCustomerId())) {
+            throw new IllegalStateException("Email address is already verified and linked to a different account.");
         }
 
         String challengeCode = identityHashService.generateChallengeCode();
@@ -218,20 +225,22 @@ public class OmnichannelService {
         identity.setChallenge(challengeHash, expiresAt);
         channelIdentityRepository.save(identity);
 
-        log.info("Email challenge generated: customerId={}, address={}, code={}", customerId, normalized, challengeCode);
+        // Deliver through isolated mailbox simulator (never via production API response)
+        mailboxSimulator.deliverChallenge(tenantId, normalized, challengeCode, expiresAt);
+
+        log.info("Email challenge generated: customerId={}, addressHmac={}, challengeId={}", customerId, hmac, identity.getId());
 
         return new EmailChallengeResponse(
             normalized,
-            challengeCode,
             expiresAt,
-            "Verification challenge generated. Please submit code to complete link."
+            "Verification challenge sent to email. Please submit code to complete link."
         );
     }
 
     /**
      * Verify Email Challenge and Atomically Promote Quarantined Intakes
      */
-    @Transactional
+    @Transactional(noRollbackFor = {IllegalArgumentException.class, IllegalStateException.class, org.springframework.security.access.AccessDeniedException.class})
     public EmailVerifyResponse verifyEmailChallenge(UUID tenantId, UUID customerId, String rawEmail, String token) {
         String normalized = identityHashService.normalizeEmail(rawEmail);
         String hmac = identityHashService.computeAddressHmac(normalized);
@@ -240,11 +249,21 @@ public class OmnichannelService {
             tenantId, ChannelType.EMAIL, hmac
         ).orElseThrow(() -> new IllegalArgumentException("No pending verification found for address: " + normalized));
 
-        if (identity.getChallengeAttempts() >= 3) {
-            throw new IllegalStateException("Maximum verification attempts exceeded. Please request a new code.");
+        if (identity.getCustomerId() != null && !customerId.equals(identity.getCustomerId())) {
+            identity.incrementChallengeAttempts();
+            channelIdentityRepository.save(identity);
+            throw new org.springframework.security.access.AccessDeniedException("Another customer cannot consume this verification challenge");
+        }
+
+        if (identity.getChallengeAttempts() >= 5) {
+            identity.setChallenge(null, null);
+            channelIdentityRepository.save(identity);
+            throw new IllegalStateException("Maximum verification attempts exceeded. Challenge has been invalidated. Please request a new code.");
         }
 
         if (identity.getChallengeExpiresAt() == null || Instant.now().isAfter(identity.getChallengeExpiresAt())) {
+            identity.setChallenge(null, null);
+            channelIdentityRepository.save(identity);
             throw new IllegalStateException("Verification challenge has expired. Please request a new code.");
         }
 
@@ -255,8 +274,9 @@ public class OmnichannelService {
             throw new IllegalArgumentException("Invalid verification token.");
         }
 
-        // Mark identity verified
+        // Mark identity verified and clear challenge
         identity.markVerified(customerId);
+        mailboxSimulator.clear(tenantId, normalized);
         channelIdentityRepository.save(identity);
 
         // Record transactional consent
@@ -731,11 +751,18 @@ public class OmnichannelService {
         );
     }
 
+    public MailboxSimulator getMailboxSimulator() {
+        return mailboxSimulator;
+    }
+
     private UUID resolveTenant(String tenantPublicKey) {
+        if (tenantPublicKey == null || tenantPublicKey.isBlank()) {
+            throw new IllegalArgumentException("Tenant public key / ID is required");
+        }
         try {
-            return UUID.fromString(tenantPublicKey);
+            return UUID.fromString(tenantPublicKey.trim());
         } catch (Exception e) {
-            return UUID.fromString(defaultTenantId);
+            throw new IllegalArgumentException("Invalid tenant key: " + tenantPublicKey);
         }
     }
 

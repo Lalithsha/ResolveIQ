@@ -201,10 +201,10 @@ class IncidentServiceTest {
     @DisplayName("Detection scan creates proposal when anomaly threshold is exceeded")
     void testDetectionScanVolumeSpike() {
         UUID tenantId = UUID.randomUUID();
-        UUID customerId = UUID.randomUUID();
 
         List<Ticket> tickets = new ArrayList<>();
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 10; i++) {
+            UUID customerId = UUID.randomUUID();
             Ticket t = new Ticket(
                 UUID.randomUUID(),
                 "RIQ-2026-" + (200 + i),
@@ -220,17 +220,63 @@ class IncidentServiceTest {
             tickets.add(t);
         }
 
-        when(ticketRepository.findByTenantIdOrderByCreatedAtDesc(eq(tenantId), any(Pageable.class)))
+        when(ticketRepository.findByTenantIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(eq(tenantId), any(Instant.class), any(Pageable.class)))
             .thenReturn(tickets);
         when(clusterRepository.findByTenantIdAndCentroidHash(eq(tenantId), anyString()))
             .thenReturn(Optional.empty());
 
         DetectionRunResult result = incidentService.runDetectionScan(tenantId);
 
-        assertThat(result.evaluatedTickets()).isEqualTo(5);
+        assertThat(result.evaluatedTickets()).isEqualTo(10);
         assertThat(result.proposalsCreated()).isEqualTo(1);
-        assertThat(result.ticketsLinked()).isEqualTo(5);
+        assertThat(result.ticketsLinked()).isEqualTo(10);
         verify(incidentRepository, times(1)).save(any(SupportIncident.class));
         verify(clusterRepository, times(1)).save(any(IncidentCluster.class));
+    }
+
+    @Test
+    @DisplayName("C2: Old tickets outside 15-minute window or sub-threshold tickets do not create proposals")
+    void testOldTicketsDoNotCreateProposals() {
+        UUID tenantId = UUID.randomUUID();
+
+        // 1. Zero recent tickets in window -> no incident
+        when(ticketRepository.findByTenantIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(eq(tenantId), any(Instant.class), any(Pageable.class)))
+            .thenReturn(List.of());
+
+        DetectionRunResult resultEmpty = incidentService.runDetectionScan(tenantId, 10, 8);
+        assertThat(resultEmpty.evaluatedTickets()).isEqualTo(0);
+        assertThat(resultEmpty.proposalsCreated()).isEqualTo(0);
+
+        // 2. 9 recent tickets (below minTickets 10) -> no incident
+        List<Ticket> nineTickets = new ArrayList<>();
+        for (int i = 0; i < 9; i++) {
+            nineTickets.add(new Ticket(
+                UUID.randomUUID(), "RIQ-2026-" + (300 + i), tenantId, UUID.randomUUID(),
+                "Checkout failed timeout", "Description", "BILLING", TicketPriority.HIGH, "PORTAL", "en"
+            ));
+        }
+        when(ticketRepository.findByTenantIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(eq(tenantId), any(Instant.class), any(Pageable.class)))
+            .thenReturn(nineTickets);
+
+        DetectionRunResult resultNine = incidentService.runDetectionScan(tenantId, 10, 8);
+        assertThat(resultNine.evaluatedTickets()).isEqualTo(9);
+        assertThat(resultNine.proposalsCreated()).isEqualTo(0);
+
+        // 3. 10 tickets but only 7 distinct customers (below minCustomers 8) -> no incident
+        List<Ticket> sevenCustomerTickets = new ArrayList<>();
+        UUID[] customers = new UUID[7];
+        for (int i = 0; i < 7; i++) customers[i] = UUID.randomUUID();
+        for (int i = 0; i < 10; i++) {
+            sevenCustomerTickets.add(new Ticket(
+                UUID.randomUUID(), "RIQ-2026-" + (400 + i), tenantId, customers[i % 7],
+                "Checkout failed timeout", "Description", "BILLING", TicketPriority.HIGH, "PORTAL", "en"
+            ));
+        }
+        when(ticketRepository.findByTenantIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(eq(tenantId), any(Instant.class), any(Pageable.class)))
+            .thenReturn(sevenCustomerTickets);
+
+        DetectionRunResult resultSevenCust = incidentService.runDetectionScan(tenantId, 10, 8);
+        assertThat(resultSevenCust.evaluatedTickets()).isEqualTo(10);
+        assertThat(resultSevenCust.proposalsCreated()).isEqualTo(0);
     }
 }

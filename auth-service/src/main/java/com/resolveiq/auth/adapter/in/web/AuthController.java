@@ -94,6 +94,21 @@ public class AuthController {
             .build();
     }
 
+    @PostMapping("/step-up")
+    public ResponseEntity<AuthResponse> stepUp(
+        @Valid @RequestBody StepUpRequest request,
+        @AuthenticationPrincipal String userId,
+        HttpServletRequest httpRequest
+    ) {
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String ipAddress = httpRequest.getRemoteAddr();
+        String userAgent = httpRequest.getHeader("User-Agent");
+        AuthResponse response = authService.stepUp(UUID.fromString(userId), request, ipAddress, userAgent);
+        return withRefreshCookie(response, HttpStatus.OK);
+    }
+
     @GetMapping("/me")
     public ResponseEntity<UserProfileDto> getCurrentUser(@AuthenticationPrincipal String userId) {
         if (userId == null) {

@@ -1,11 +1,11 @@
 package com.resolveiq.contracts.flags;
 
 public enum FeatureFlag {
-    INCIDENT_RADAR_ENABLED("incident_radar_enabled", true),
-    RESOLUTION_ACTIONS_ENABLED("resolution_actions_enabled", true),
-    EMAIL_CHANNEL_ENABLED("email_channel_enabled", true),
-    MULTIMODAL_PROCESSING_ENABLED("multimodal_processing_enabled", true),
-    RESOLUTION_FLYWHEEL_ENABLED("resolution_flywheel_enabled", true);
+    INCIDENT_RADAR_ENABLED("incident_radar_enabled", false),
+    RESOLUTION_ACTIONS_ENABLED("resolution_actions_enabled", false),
+    EMAIL_CHANNEL_ENABLED("email_channel_enabled", false),
+    MULTIMODAL_PROCESSING_ENABLED("multimodal_processing_enabled", false),
+    RESOLUTION_FLYWHEEL_ENABLED("resolution_flywheel_enabled", false);
 
     private final String flagKey;
     private final boolean defaultValue;

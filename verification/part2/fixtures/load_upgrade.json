@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "seed": 42,
+  "scale": {
+    "totalTickets": 1000,
+    "tenants": 2,
+    "ticketsPerTenant": 500,
+    "messagesPerTicketMean": 4,
+    "attachmentsPerTicketMean": 1
+  },
+  "invariants": [
+    "zero_data_loss_on_part1_upgrade",
+    "timeline_provenance_preserved",
+    "attachment_sha256_verified",
+    "author_visibility_flags_maintained"
+  ],
+  "performanceSla": {
+    "inboundAckP95Ms": 1000,
+    "durableActionAdmissionP95Ms": 500,
+    "steadyState5xxPercent": 1.0,
+    "detectorLatencyMinutes": 2
+  }
+}

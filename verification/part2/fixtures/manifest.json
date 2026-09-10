@@ -1,0 +1,89 @@
+{
+  "manifestVersion": "1.0",
+  "benchmarkSuite": "final-p2",
+  "fixtureSeed": 42,
+  "providerVersions": {
+    "embeddingModel": "text-embedding-3-small",
+    "ocrEngine": "tesseract-5.3.0",
+    "videoSampler": "deterministic-v1",
+    "paymentSimulator": "stripe-mock-v1",
+    "emailSimulator": "in-memory-v1"
+  },
+  "fixtures": [
+    {
+      "path": "identity_access.json",
+      "sha256": "69d25e04620aef911e045fbedab2563cdb2815f4f07ab34ce8f09048cbaf8c41",
+      "sizeBytes": 1827
+    },
+    {
+      "path": "incident_holdout.json",
+      "sha256": "650b867b3132d2f2f733d9b8ce1d6704bc17db57758ac610be589cb884d4dd7a",
+      "sizeBytes": 1874
+    },
+    {
+      "path": "actions_matrix.json",
+      "sha256": "cfb50375d8c8240aa02ce0042dec7ba48957e994bf0b59d2e837374ebefd8f0a",
+      "sizeBytes": 1394
+    },
+    {
+      "path": "channels_continuity.json",
+      "sha256": "e8fb4671f67d494a0359417e389de14a98b0333267d0df0b18a2829342db1efb",
+      "sizeBytes": 945
+    },
+    {
+      "path": "knowledge_holdout.json",
+      "sha256": "952ab5692b2a2a4bf73671ab2bd096fa9f106d4202f4f460c06524a51725727d",
+      "sizeBytes": 6978
+    },
+    {
+      "path": "outcomes_cohort.json",
+      "sha256": "d404db5c30abaa7ac491d2510bc7e6b91c3bd40e3e261ce6524d45d28393324c",
+      "sizeBytes": 1289
+    },
+    {
+      "path": "load_upgrade.json",
+      "sha256": "e18d5b782572407d63c982aed50c9c642888999d21a72a9ba915b3776824f837",
+      "sizeBytes": 530
+    },
+    {
+      "path": "assets/screen_recording.mp4",
+      "sha256": "e88643b9bfc3df487502fdbddc1a47d255c42811b94cfec06cb60a74d798f1fe",
+      "sizeBytes": 62
+    },
+    {
+      "path": "assets/clean.mp4",
+      "sha256": "b9e24b1b49f66ac5e10377ec3260b0008b8400491a0083352bcd2c926270d238",
+      "sizeBytes": 50
+    },
+    {
+      "path": "assets/invoice.pdf",
+      "sha256": "f741dd10de9cdb304837cae89bcd96438d6404e054cce86e38728ed9aff8661f",
+      "sizeBytes": 78
+    },
+    {
+      "path": "assets/screenshot.png",
+      "sha256": "39d96976f0a45fe9caafae148cbc7a148ee07a1e9d2b1c2772d43ff6c7b8c2c0",
+      "sizeBytes": 52
+    },
+    {
+      "path": "assets/clean_screenshot.png",
+      "sha256": "4662feb47bd2a7f4a2d5b2a6aceaa74e8784d22128abc6a807f59f87e7af3657",
+      "sizeBytes": 50
+    },
+    {
+      "path": "assets/audit_log.log",
+      "sha256": "c629a5da16d190933b12b0668f9cc923db9426ad3589a334498f38ae36e17fb5",
+      "sizeBytes": 95
+    },
+    {
+      "path": "assets/network_traffic.har",
+      "sha256": "c6ec1382bc910ecf914dda0ed3d3da255deada2d2e3aeab742e12cf16aabe5f1",
+      "sizeBytes": 164
+    },
+    {
+      "path": "assets/eicar_forbidden.txt",
+      "sha256": "131f95c51cc819465fa1797f6ccacf9d494aaaff46fa3eac73ae63ffbdfd8267",
+      "sizeBytes": 69
+    }
+  ]
+}

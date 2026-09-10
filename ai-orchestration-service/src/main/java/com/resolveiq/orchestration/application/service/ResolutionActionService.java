@@ -153,6 +153,9 @@ public class ResolutionActionService {
         proposal.setRiskLevel(validation.riskLevel());
         proposal.setCurrentStateVersion(currentState.stateVersion());
         proposal.setPolicyVersion(ActionPolicyEngine.POLICY_VERSION);
+        if (principal != null) {
+            proposal.setProposerId(principal.userId());
+        }
 
         if (policyEval.decision() == PolicyDecision.DENIED) {
             proposal.setStatus(ActionStatus.POLICY_DENIED);
@@ -228,6 +231,14 @@ public class ResolutionActionService {
         return mapToProposalResponse(proposal);
     }
 
+    @Transactional(readOnly = true)
+    public List<ActionExecutionResponse> getExecutionsForProposal(UUID tenantId, UUID proposalId) {
+        return executionRepository.findByProposalIdAndTenantIdOrderByAttemptNumberAsc(proposalId, tenantId)
+                .stream()
+                .map(this::mapToExecutionResponse)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public ActionProposalResponse approveAction(UUID tenantId, UUID proposalId, ApproveActionRequest request, TrustedPrincipal principal) {
         ResolutionActionProposal proposal = proposalRepository.findByIdAndTenantId(proposalId, tenantId)
@@ -236,7 +247,7 @@ public class ResolutionActionService {
         if (proposal.isExpired()) {
             proposal.setStatus(ActionStatus.EXPIRED);
             proposalRepository.save(proposal);
-            throw new IllegalStateException("Action proposal has expired");
+            throw new IllegalStateException("Action proposal has expired and cannot be approved");
         }
 
         if (proposal.getStatus() != ActionStatus.PROPOSED && proposal.getStatus() != ActionStatus.AWAITING_APPROVAL) {
@@ -260,12 +271,17 @@ public class ResolutionActionService {
             }
         }
 
-        // Recent authentication check for high-risk / financial actions
+        // Proposer exclusion & recent authentication check for high-risk / financial actions
         if (proposal.getRiskLevel() == RiskLevel.HIGH || proposal.getRiskLevel() == RiskLevel.CRITICAL) {
-            if (principal != null && principal.authTime() != null) {
-                if (!principal.isRecentAuthentication(900L)) {
-                    throw new SecurityException("High-risk action approval requires recent re-authentication (within 15 minutes)");
-                }
+            UUID actorIdCheck = principal != null ? principal.userId() : null;
+            if (actorIdCheck != null && actorIdCheck.equals(proposal.getProposerId())) {
+                throw new IllegalStateException("Two-person rule violation: proposer cannot approve own high-risk action");
+            }
+            if (principal == null || principal.authTime() == null) {
+                throw new SecurityException("Missing authentication time is a denial for high-risk action approval");
+            }
+            if (!principal.isRecentAuthentication(300L)) {
+                throw new SecurityException("High-risk action approval requires recent re-authentication (within 5 minutes)");
             }
         }
 
@@ -346,21 +362,56 @@ public class ResolutionActionService {
 
     @Transactional
     public ActionExecutionResponse executeAction(UUID tenantId, UUID proposalId, ExecuteActionRequest request, TrustedPrincipal principal) {
+        if (request.expectedVersion() == null) {
+            throw new IllegalArgumentException("expectedVersion is mandatory for action execution");
+        }
+
+        // Fetch proposal first (must exist before checking cached results)
+        ResolutionActionProposal proposal = proposalRepository.findByIdAndTenantId(proposalId, tenantId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Action proposal not found: " + proposalId));
+
+        // Two-person rule enforcement: Proposer cannot execute their own high-risk proposal
+        if (principal != null && proposal.getProposerId() != null && proposal.getProposerId().equals(principal.userId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Two-person rule violation: Proposer cannot execute own high-risk proposal");
+        }
+
+        // 5-minute step-up authentication check
+        if (principal != null && principal.authTime() != null) {
+            long secondsSinceAuth = Duration.between(principal.authTime(), Instant.now()).getSeconds();
+            if (secondsSinceAuth > 300) {
+                throw new org.springframework.security.access.AccessDeniedException("Step-up authentication required: auth_time older than 5 minutes");
+            }
+        }
+
         String idempotencyKey = request.idempotencyKey() != null && !request.idempotencyKey().isBlank()
                 ? request.idempotencyKey().trim()
-                : "exec_" + proposalId + "_" + (request.expectedVersion() != null ? request.expectedVersion() : 0);
+                : "exec_" + proposalId + "_" + request.expectedVersion();
 
         // 1. Check if execution already exists with this idempotency key
         Optional<ActionExecution> existingExec = executionRepository.findByTenantIdAndProviderIdempotencyKey(tenantId, idempotencyKey);
         if (existingExec.isPresent()) {
             ActionExecution exec = existingExec.get();
+            if (!exec.getProposalId().equals(proposalId)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT, "Idempotency conflict: key was previously used with a different proposal: " + exec.getProposalId()
+                );
+            }
+            if (exec.getProvider() != null && !exec.getProvider().equalsIgnoreCase(proposal.getActionType().name())) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT, "Idempotency conflict: key was previously used with a different action type"
+                );
+            }
+            String reqHash = digestService.computeInputHash(proposal.getInputPayload());
+            if (!exec.getRequestHash().equals(reqHash)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT, "Idempotency conflict: key was previously used with different request parameters"
+                );
+            }
             log.info("Returning existing execution {} for idempotency key {}", exec.getId(), idempotencyKey);
             return mapToExecutionResponse(exec);
         }
 
-        // 2. Fetch proposal with version check
-        ResolutionActionProposal proposal = proposalRepository.findByIdAndTenantId(proposalId, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Action proposal not found: " + proposalId));
+        String requestHash = digestService.computeInputHash(proposal.getInputPayload());
 
         if (proposal.isExpired()) {
             proposal.setStatus(ActionStatus.EXPIRED);
@@ -372,7 +423,7 @@ public class ResolutionActionService {
             throw new IllegalStateException("Proposal cannot be executed. Required status: APPROVED, current: " + proposal.getStatus());
         }
 
-        if (request.expectedVersion() != null && !proposal.getVersion().equals(request.expectedVersion())) {
+        if (!proposal.getVersion().equals(request.expectedVersion())) {
             throw new IllegalStateException("Optimistic concurrency conflict: proposal version changed concurrently");
         }
 

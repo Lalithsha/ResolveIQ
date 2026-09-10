@@ -1,0 +1,69 @@
+{
+  "version": "1.0",
+  "seed": 42,
+  "thresholds": {
+    "windowMinutes": 15,
+    "minTickets": 10,
+    "minCustomers": 8
+  },
+  "clusters": [
+    {
+      "clusterId": "SSO_GATEWAY_502",
+      "summary": "Gateway 502 bad gateway during IdP SAML callback",
+      "qualifyingTickets": 12,
+      "distinctCustomers": 10,
+      "withinWindow": true,
+      "expectedProposal": true
+    },
+    {
+      "clusterId": "CHECKOUT_PAYMENT_FAILED",
+      "summary": "Checkout session fails with card processing error 500",
+      "qualifyingTickets": 11,
+      "distinctCustomers": 9,
+      "withinWindow": true,
+      "expectedProposal": true
+    },
+    {
+      "clusterId": "SCIM_PROVISIONING_TIMEOUT",
+      "summary": "SCIM user sync connection timeout to Okta endpoint",
+      "qualifyingTickets": 10,
+      "distinctCustomers": 8,
+      "withinWindow": true,
+      "expectedProposal": true
+    }
+  ],
+  "negativeControls": [
+    {
+      "caseId": "OLD_TICKETS_OUTSIDE_WINDOW",
+      "summary": "Historical tickets from 2 hours ago matching SSO error pattern",
+      "tickets": 25,
+      "customers": 20,
+      "ageMinutes": 120,
+      "expectedProposal": false
+    },
+    {
+      "caseId": "SUB_THRESHOLD_TICKETS",
+      "summary": "Only 9 tickets matching cluster (below min 10 threshold)",
+      "tickets": 9,
+      "customers": 9,
+      "withinWindow": true,
+      "expectedProposal": false
+    },
+    {
+      "caseId": "SUB_THRESHOLD_CUSTOMERS",
+      "summary": "12 tickets but from only 7 distinct customers (below min 8 threshold)",
+      "tickets": 12,
+      "customers": 7,
+      "withinWindow": true,
+      "expectedProposal": false
+    },
+    {
+      "caseId": "SAME_CATEGORY_UNRELATED",
+      "summary": "General login question without error symptoms",
+      "tickets": 15,
+      "customers": 12,
+      "withinWindow": true,
+      "expectedProposal": false
+    }
+  ]
+}

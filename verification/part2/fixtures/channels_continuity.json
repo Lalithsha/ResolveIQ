@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "seed": 42,
+  "mailboxSecrecy": {
+    "zeroDigitsInApi": true,
+    "zeroDigitsInLogs": true,
+    "maxAttempts": 5,
+    "lockoutOnExceeded": true
+  },
+  "testCases": [
+    {
+      "caseId": "MAILBOX_CHALLENGE_VERIFICATION",
+      "action": "COMPLETE_CHALLENGE",
+      "expectedAttemptsAllowed": 5,
+      "lockoutOnSixth": true
+    },
+    {
+      "caseId": "CROSS_OWNER_SUBJECT_SPOOF",
+      "sender": "eve@attacker.com",
+      "subject": "Re: [TICKET-1042] Access update",
+      "owner": "alice@victim.com",
+      "expectedAccess": "DENIED",
+      "expectedHttp": 403
+    },
+    {
+      "caseId": "DUPLICATE_WEBHOOK_EVENT_ID",
+      "eventId": "evt-mail-repeat-999",
+      "replays": 100,
+      "expectedIngestedMessages": 1
+    },
+    {
+      "caseId": "FOREIGN_CUSTOMER_CHALLENGE_CONSUMPTION",
+      "initiatingCustomer": "cust-alice",
+      "consumingCustomer": "cust-bob",
+      "expectedResult": "DENIED"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "version": "1.0",
+  "seed": 42,
+  "tenants": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "Acme Corp",
+      "customers": [
+        {"id": "c1010000-0000-0000-0000-000000000001", "email": "alice@acme.com", "role": "CUSTOMER"},
+        {"id": "c1020000-0000-0000-0000-000000000002", "email": "bob@acme.com", "role": "CUSTOMER"}
+      ]
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "Beta Industries",
+      "customers": [
+        {"id": "c2010000-0000-0000-0000-000000000001", "email": "carol@beta.com", "role": "CUSTOMER"},
+        {"id": "c2020000-0000-0000-0000-000000000002", "email": "dave@beta.com", "role": "CUSTOMER"}
+      ]
+    }
+  ],
+  "roles": [
+    {"name": "AGENT", "permissions": ["TICKET_READ", "TICKET_UPDATE", "EVIDENCE_READ", "RESOLUTION_PROPOSE"]},
+    {"name": "LEAD", "permissions": ["TICKET_READ", "TICKET_UPDATE", "EVIDENCE_READ", "RESOLUTION_PROPOSE", "RESOLUTION_APPROVE"]},
+    {"name": "SECURITY_ADMIN", "permissions": ["TICKET_READ", "SECURITY_ADMIN", "EVIDENCE_ORIGINAL_READ", "ACTION_APPROVE", "KNOWLEDGE_RELEASE_APPROVE"]},
+    {"name": "OPS_ADMIN", "permissions": ["TICKET_READ", "OPS_ADMIN", "INCIDENT_UPDATE_PUBLISH", "ACTION_APPROVE", "KNOWLEDGE_RELEASE_APPROVE"]},
+    {"name": "AUDITOR", "permissions": ["TICKET_READ", "AUDIT_READ", "EVIDENCE_READ"], "readOnly": true},
+    {"name": "CUSTOMER", "permissions": ["TICKET_READ_OWN", "EVIDENCE_UPLOAD_OWN", "RESOLUTION_FEEDBACK_OWN"]}
+  ],
+  "isolationVariants": [
+    {"test": "cross_tenant_ticket_access", "expected": 403},
+    {"test": "cross_customer_evidence_access", "expected": 403},
+    {"test": "auditor_mutation_blocked", "expected": 403},
+    {"test": "forged_tenant_header", "expected": 401},
+    {"test": "revoked_grant_immediate_rejection", "expected": 403}
+  ]
+}

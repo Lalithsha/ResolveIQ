@@ -223,6 +223,7 @@ public class AuthService {
 
         User user = userRepository.findById(currentToken.getUserId())
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        Instant originalAuthTime = currentToken.getAuthTime() != null ? currentToken.getAuthTime() : currentToken.getIssuedAt();
 
         // Rotate token
         String newRawRefreshToken = newRefreshToken();
@@ -233,14 +234,14 @@ public class AuthService {
             newTokenHash,
             Instant.now().plusMillis(refreshExpirationMs),
             ipAddress,
-            userAgent
+            userAgent,
+            originalAuthTime
         );
         refreshTokenRepository.save(newRefreshToken);
 
         currentToken.revoke(newRefreshToken.getId());
         refreshTokenRepository.save(currentToken);
 
-        Instant originalAuthTime = currentToken.getIssuedAt();
         String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getTenantId(), user.getEmail(), user.getRoles(), null, originalAuthTime);
         Set<String> permissions = jwtTokenProvider.deriveDefaultPermissions(user.getRoles());
 
@@ -249,6 +250,52 @@ public class AuthService {
         return new AuthResponse(
             newAccessToken,
             newRawRefreshToken,
+            "Bearer",
+            jwtTokenProvider.getExpirationMs(),
+            user.getId(),
+            user.getTenantId(),
+            user.getEmail(),
+            user.getFullName(),
+            user.getRoles(),
+            permissions
+        );
+    }
+
+    @Transactional
+    public AuthResponse stepUp(UUID userId, StepUpRequest request, String ipAddress, String userAgent) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (user.isLocked()) {
+            throw new IllegalStateException("Account is locked");
+        }
+
+        if (!passwordService.matches(request.password(), user.getPasswordHash())) {
+            recordAudit(user.getTenantId(), user.getId(), "STEP_UP_FAILED", "BAD_CREDENTIALS", ipAddress, userAgent);
+            throw new IllegalArgumentException("Invalid password");
+        }
+
+        Instant freshAuthTime = Instant.now();
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getTenantId(), user.getEmail(), user.getRoles(), null, freshAuthTime);
+        String rawRefreshToken = newRefreshToken();
+        String tokenHash = hashToken(rawRefreshToken);
+
+        RefreshToken refreshToken = new RefreshToken(
+            user.getId(),
+            tokenHash,
+            Instant.now().plusMillis(refreshExpirationMs),
+            ipAddress,
+            userAgent,
+            freshAuthTime
+        );
+        refreshTokenRepository.save(refreshToken);
+
+        recordAudit(user.getTenantId(), user.getId(), "STEP_UP_SUCCESS", "SUCCESS", ipAddress, userAgent);
+        Set<String> permissions = jwtTokenProvider.deriveDefaultPermissions(user.getRoles());
+
+        return new AuthResponse(
+            accessToken,
+            rawRefreshToken,
             "Bearer",
             jwtTokenProvider.getExpirationMs(),
             user.getId(),

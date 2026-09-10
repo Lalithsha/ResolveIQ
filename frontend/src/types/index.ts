@@ -354,7 +354,6 @@ export interface CustomerPreferences {
 
 export interface EmailChallengeResponse {
   email: string;
-  challengeToken?: string;
   expiresAt?: string;
   message: string;
 }

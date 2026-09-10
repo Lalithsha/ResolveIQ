@@ -1,0 +1,52 @@
+{
+  "version": "1.0",
+  "seed": 42,
+  "scoringWeights": {
+    "YES": 100,
+    "PARTLY": 20,
+    "NO": -100
+  },
+  "maturityWindowDays": 7,
+  "eligibilityThresholds": {
+    "minScore": 80,
+    "minDistinctCustomers": 5
+  },
+  "cases": [
+    {
+      "cohortId": "AUTH_SSO_RESOLUTIONS",
+      "attempts": 6,
+      "outcomes": ["YES", "YES", "YES", "YES", "YES", "YES"],
+      "verifiedScore": 100,
+      "distinctCustomers": 6,
+      "repeatsWithin7Days": 0,
+      "expectedEligibility": "ELIGIBLE"
+    },
+    {
+      "cohortId": "BILLING_ROUNDING_RESOLUTIONS",
+      "attempts": 5,
+      "outcomes": ["YES", "YES", "PARTLY", "YES", "YES"],
+      "verifiedScore": 84,
+      "distinctCustomers": 5,
+      "repeatsWithin7Days": 0,
+      "expectedEligibility": "ELIGIBLE"
+    },
+    {
+      "cohortId": "UNSTABLE_WORKAROUND",
+      "attempts": 6,
+      "outcomes": ["YES", "NO", "PARTLY", "NO", "YES", "NO"],
+      "verifiedScore": -13,
+      "distinctCustomers": 6,
+      "repeatsWithin7Days": 3,
+      "expectedEligibility": "DRAFT"
+    },
+    {
+      "cohortId": "LOW_CUSTOMER_COUNT",
+      "attempts": 4,
+      "outcomes": ["YES", "YES", "YES", "YES"],
+      "verifiedScore": 100,
+      "distinctCustomers": 2,
+      "repeatsWithin7Days": 0,
+      "expectedEligibility": "DRAFT"
+    }
+  ]
+}

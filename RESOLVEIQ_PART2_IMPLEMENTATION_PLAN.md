@@ -5,7 +5,7 @@
 > **Scope:** All five differentiated features defined in `RESOLVEIQ_BEYOND_PARITY_ROADMAP.md`
 > **Primary stack:** Java 21, Spring Boot, Kafka, PostgreSQL/pgvector, MinIO, React and TypeScript
 > **Execution rule:** Deliver one independently demonstrable vertical slice at a time. Do not begin the next feature while the current feature's required gate is red.
-> **Required review decisions:** Sections 22–23 are mandatory. Section 23 records the implementation audit, remediation order and objective completion gates; existing code or passing mock tests alone do not satisfy them.
+> **Required review decisions:** Sections 22–24 are mandatory. Section 23 defines whole-Part-2 acceptance; section 24 records the subsequent local-change review and remaining corrective work. Existing code or passing mock tests alone do not satisfy the gates.
 
 ## 1. Product outcome
 
@@ -1570,3 +1570,280 @@ Implementation agent must fill this checklist only with linked evidence:
 - [ ] No mandatory gate skipped, no fabricated results presented as measured, no unresolved critical/high-severity finding.
 
 Final handoff must say what passed, what remains, the exact SHA tested, provider/simulator limits and where evidence lives. Do not report “Part 2 completed” until every required checkbox has objective proof. If new high-severity findings emerge during testing, add regression cases and remediation items here rather than treating this audit as an exhaustive guarantee.
+
+## 24. Local-change follow-up audit and corrective implementation plan
+
+### 24.1 Scope, findings and preserved improvements
+
+Review baseline: HEAD `39bd0c9` plus the uncommitted changes reviewed after section 23 was written. A dirty worktree cannot be identified by HEAD alone: the implementation agent must capture the current diff and untracked-file manifest before starting and reconcile changes made since this review. This section does not authorize discarding or rewriting unrelated local work.
+
+Thirty targeted service tests passed during the follow-up review with JaCoCo disabled. This is not acceptance of G0–G5. The local `verification/part2/part2_gate_results.json` labels all gates passed, but its runner does not measure the full declared requirements. Treat those gate claims as **unverified**, not as a baseline to preserve.
+
+Preserve and extend these useful fixes:
+
+- Incident unlink now checks tenant/incident/ticket and removes obsolete customer impact.
+- Incident approve/publish verifies the update belongs to the supplied incident.
+- Customer incident messages require published updates and exclude proposals.
+- Refresh-token rotation preserves original authentication time; a password step-up flow exists.
+- High-risk approval rejects missing/stale authentication and proposer self-approval.
+- Email challenge API response no longer contains the challenge code.
+- Customer resolution feedback/reopen checks ownership when a customer ID is supplied; strengthen this to reject missing identity as well.
+- New binary uploads use Base64 internally rather than lossy UTF-8 conversion; this is temporary compatibility handling, not completion of object-storage requirements.
+- Flywheel release has a new document/index activation path; it still requires real evaluation, mandatory dependencies and real rollback.
+
+All section 23 gates remain open pending their actual evidence. The following items are corrections to incomplete local fixes, not replacement or reduction of the original scope.
+
+### 24.2 C0 — Make the verification harness truthful first
+
+**Files:** `verification/part2/run-gates.sh`, its README/result schema, relevant test suites and fixture manifests.
+
+**Defect:** command exit success is converted into G0–G5 success, while `measuredCriteria` is just a hardcoded descriptive string. For example, unit tests do not prove real media extraction, independent-provider recovery or actual retrieval evaluation. `failIfNoSpecifiedTests=false` is useful for reactor dependencies but can hide an absent required test class. The runner suppresses logs, disables coverage, omits dirty-state identity and records no per-case benchmark results.
+
+Implementation steps:
+
+1. Separate `UNIT_SMOKE`, `SECURITY_INTEGRATION`, `PROVIDER_FAULTS`, `REAL_MEDIA`, `REAL_RETRIEVAL`, `LIVE_UI`, `UPGRADE_RESTORE`, `LOAD` and `COVERAGE` suites. G0–G5 are aggregations of required suites, not aliases for a single Maven command.
+2. Give each required suite an explicit ID, expected test/report identifiers, execution mode and artifact schema. After execution, parse Surefire/Failsafe/Playwright/evaluation reports and verify expected suites actually ran with nonzero cases and no required skips. Dependencies may have no matching tests; the owning module may not silently omit a required suite.
+3. Use statuses from section 23: missing provider/tool/report is `BLOCKED_EXTERNAL` or `MISSING`, never `PASS`. If any mandatory subgate is not passed, return nonzero and keep the whole gate unaccepted. Withhold coverage acceptance when instrumentation is disabled.
+4. Replace free-text `measuredCriteria` with structured `required`, `observed`, `comparison`, `caseCount`, `providerMode`, `reportPath` and `reportHash`. Retain stdout/stderr in sanitized per-suite logs. Validate JSON using a schema and a real serializer; shell interpolation of arbitrary output is not safe JSON generation.
+5. Record HEAD, dirty-state summary, hash of the reviewed patch/untracked source manifest, tool versions, fixture hashes and runtime image IDs. Never claim a HEAD-only report proves uncommitted code. Produce unique run directories so a failed run cannot reuse a previous successful report.
+6. Keep deterministic provider tests for wiring, but reject fixture adapters for real-media/semantic/retrieval acceptance. The runner must inspect actual configured provider modes and tool version outputs, not trust test naming.
+7. Build harness self-tests: missing test report, zero cases, skipped security case, stale report, failed command, missing media tool, malformed JSON and wrong provider mode must all produce nonzero overall status. Add a genuine passing minimal fixture for harness correctness only, clearly distinct from product acceptance.
+
+**Acceptance:** intentionally disable real OCR or evaluation infrastructure: G4/G5 cannot pass. Remove/rename a required suite: its gate fails. An ordinary unit-only run reports smoke-test results but no whole-feature completion. A complete run exposes the actual case results and thresholds from section 23.9. Archive the old misleading report as superseded evidence with an explanation; do not silently present it as current proof.
+
+### 24.3 C1 — Complete security, flags and challenge enforcement
+
+**Files:** shared security configuration; `FeatureFlagService`; auth refresh/step-up; channel/evidence/resolution controllers and services; mailbox/challenge persistence.
+
+1. Replace memory-only default-on flags with durable tenant configuration. Initial missing rows mean disabled. Use a versioned feature configuration table owned by auth/configuration, authenticated update/read APIs and bounded local caches; sensitive admissions revalidate or fail closed on stale/unavailable authoritative configuration. An enabled feature must survive restart consistently across replicas; disable prevents new work while allowing recovery/deletion.
+2. Cover both `/api/v1/evidence/**` and nested `/api/v1/tickets/{id}/evidence/**` methods. Restrict staff resolve commands and history reads by source-ticket access. Broad `.authenticated()` fallbacks must not make customer access sufficient for staff mutation. Enforce staff team access and object ownership in services, not just route roles.
+3. Remove all remaining fabricated principals and default identities, including conversation-controller fallback paths. Require a non-null validated actor for service commands. Reject unrelated parent IDs and wrong-customer ticket/account/evidence references before any write.
+4. Remove Team Lead/Admin role bypasses for explicit action/evidence permissions. Missing grants must deny regardless of role. Validate current permission version and revocation before execution and original-evidence access. Keep the existing five-minute high-risk step-up/proposer exclusion and add expiry, missing-time, future-time and rotation regression cases.
+5. Remove the masked challenge from logs entirely: exposing the first/last two digits of a six-digit code leaves only 100 unknown combinations. Log a challenge ID and outcome, not any code digits or reusable link. Keep mailbox inspection strictly local/test-only and unavailable under production configuration; provide an isolated local mailbox UI so manual verification can actually be completed without a code-returning API shortcut.
+6. Store challenge ID, requesting customer, tenant, address HMAC, hash, expiry, attempts and consumed time. Verify all bindings under a lock/version check. Another customer cannot consume a challenge, including one for an unverified address. Preserve verified-address reassignment denial.
+7. Ensure failed attempts commit: perform challenge verification in a transaction that returns a typed failure result, then map that result to HTTP error outside the transaction. Do not increment attempts and throw a runtime exception in the same rollback-default transaction. Test with real PostgreSQL; Mockito cannot demonstrate committed attempt counts. Add requester/address/IP rate limits that renewal cannot reset.
+8. Step-up failures require committed audit and bounded attempts too. Prove refresh rotation preserves original time across at least three rotations and step-up updates only the newly verified session. Validate legacy refresh migration semantics; do not accidentally grant recent authentication to old sessions during backfill.
+
+**Acceptance:** complete G0 matrix, including nested routes, two same-tenant customers and two replicas. Five incorrect challenge attempts remain persisted and block further verification; concurrent requests cannot exceed the attempt budget. Wrong requester, consumed/expired challenge and fresh challenge abuse are rejected. API/log captures contain zero challenge digits. Flags start off, persist across restart and show consistent behavior on both replicas. Missing actor/permission always fails closed.
+
+### 24.4 C2 — Remove the detector's stale-ticket fallback and finish correlation
+
+**Files:** `IncidentService.runDetectionScan`, ticket queries, RAG ticket similarity, orchestration detector jobs.
+
+The new 15-minute filtering is defeated by `windowTickets.isEmpty() ? recentTickets : windowTickets`. Remove that fallback: no tickets in the time window means no new proposal. Apply the timestamp predicate and stable pagination in the database rather than loading a capped page and filtering afterward. Use an injected clock for exact boundary tests.
+
+Replace remaining baseline `2.0`, similarity `0.88` and category-only membership with the real baseline/semantic contracts in sections 22.3 and 23.4. Call the similarity port; persist actual model/algorithm versions and explain exclusions. Implement scheduled/event recovery, fenced claims, overlap deduplication and checkpointed backfill. Do not lower detector thresholds inside production paths to make demonstration fixtures pass.
+
+Preserve the new tenant/parent/banner fixes. Still implement approved recipient snapshots, no audience expansion without approval, delivery jobs outside transactions and accurate severity filters. Check that displayed customer titles as well as bodies are customer-safe approved content.
+
+**Acceptance:** create 20 qualifying but old tickets and zero recent tickets: no incident. Create 9 recent tickets or only 7 distinct customers: no default proposal. Create the valid threshold with unrelated same-category distractors: only compatible members link. Shift only the clock past the window and repeat the scan: old tickets cannot create another proposal. Complete G1 holdout and two-replica delivery/recovery tests before marking this item passed.
+
+### 24.5 C3 — Finish durable execution and command identity
+
+**Files:** `ResolutionActionService`, action command/worker/reconciliation API, provider simulators and repositories.
+
+The local proposer/authentication changes do not decouple execution: `executeAction` remains transactional and invokes `action.execute` directly. Implement the durable admission/worker/result boundaries from section 23.5. A `202` response must contain a persisted workflow reference before provider work occurs. Simulator operations must commit independently of orchestration, otherwise accepted-then-crash tests only exercise one database rollback.
+
+The new input-hash comparison is insufficient. Existing-key lookup must validate requested proposal existence, source-ticket access, actor/command binding, action type and normalized input. Identical input on another proposal is not the same authorized command; an unknown proposal must not return an unrelated execution. Validate before returning cached results, and record the expected provider effect separately from HTTP command identity.
+
+Make expected version mandatory for mutations. Enforce fresh grants/policy/target state and reserved balance/daily budgets before execution. Preserve stable server-derived provider keys through retries, unknown states and restarts. Add lease/fencing, bounded retry, independently queried reconciliation and manual-review resolution with proof. Terminal/executing actions must not be arbitrarily marked rejected. Do not swallow reconciliation/audit persistence failures and still report successful completion.
+
+**Acceptance:** different actor/proposal/action or nonexistent proposal reusing a key is denied/conflicted, never served another execution. Same authorized retry returns the same reference. Block/slow the provider: admission still returns durably without awaiting provider completion. Crash at every boundary (intent committed, provider accepted, result received, local commit, event acknowledgment); G2 must retain one business effect and a truthful terminal/manual state. Confirm expired approval, revoked grants and concurrent budget exhaustion produce no effect.
+
+### 24.6 C4 — Replace fixture recognition with actual media processing
+
+**Files:** OCR/video/PDF adapters, `EvidenceService`, storage/scan/worker ports and evidence UI.
+
+Current negative-filename and timestamp-marker logic is not a real extraction fix. Remove branches based on `clean`, `negative`, `normal`, `timestamp_`, `TIMESTAMP:` and `NO_ERROR_CLEAN` from production adapters. Remove magic-byte exceptions for `PNG_MOCK`, `SAML` and `PDF_MOCK`. Test fixture shortcuts belong only in explicit test adapters and must be impossible to select for G4/production configurations.
+
+Implementation order:
+
+1. Until real tools are wired, return explicit unavailable/simulated status rather than `READY`, clean/no-error assertions or invented confidence/transcripts. A missing tool is not proof the file contains no error.
+2. Replace inline Base64 DB storage with MinIO immutable objects, retaining a migration/read-compatibility path for existing Base64 records. Store encoding metadata explicitly, not a content-prefix heuristic that could misinterpret a legitimate text file starting `base64:`. Recover valid legacy bytes and verify checksums; flag previously corrupted binary records for user reupload. Serve bytes/MIME/range correctly rather than returning the Base64 string as original text.
+3. Wire the existing trusted attachment scanner or an actual scanning adapter with fail-closed availability handling. The EICAR string check is only a test fixture, not an antivirus implementation. Enforce complete signatures/declared-type consistency and bounded decoding; renamed archives and malformed images/PDFs must not reach parsers.
+4. Run real OCR/PDF parsing/frame extraction/transcription with section 22 resource limits and local raw-content isolation. Derive coordinates and timestamps from tools and source media. Record actual tool versions. Media duration/frame limits use decoded metadata, not filename claims.
+5. Redact all returned modalities and sensitive observation metadata. Current `ocr-text:<email>` findings retain raw email; use coordinates/category instead. Confidence is measured/defined or omitted. Verify source content, not just extracted strings, before external model calls.
+6. Require active consent/source generation at admission, stage boundaries and result/index commit. Reprocess with consent off must be rejected; a consent update cannot clear a tombstone. Delete/revoke cancels or invalidates in-flight work and prevents late resurrection.
+7. Complete authorized RAG evidence indexing, asynchronous workers, storage cleanup, audit and UI playback as section 23.7 specifies.
+
+**Acceptance:** run the same valid media bytes under randomized filenames: extracted meaning/timestamps must remain the same. Rename a real failure recording to `clean.mp4`: the failure must still be found. Rename a clean recording to `saml_timestamp_42.mp4`: no error may be invented. Randomize the actual failure timestamp independently of the filename. Use real compressed images/PDF/media, no UTF-8 text masquerading as binaries. Require all G4 extraction/security/storage/consent/deletion thresholds and captured actual tool invocation/output evidence.
+
+### 24.7 C5 — Finish mailbox continuity beyond code secrecy
+
+The removed API challenge field is a useful fix, but section 23.6 still applies. Conversation `addMessage`, merge/split, handoff/assignment and generic reads need per-operation ownership/permission checks. Verified email sender plus subject ticket ID cannot establish access to another customer's ticket. Route tenant through configured provider/recipient mapping, not any caller-selected UUID with a shared signature secret.
+
+Replace memory-only challenge/send simulators with a clearly isolated, durable local provider boundary for restart tests. Implement event-ID and logical-message deduplication separately, destination-bound approved sending, status callbacks and ambiguous delivery recovery. Canonical message and triage event paths must cover both new portal tickets and email-promoted tickets; ensure the mailbox verification UI works without exposing codes through ordinary customer APIs.
+
+Merge/split must actually compose/separate the authorized timeline with original provenance, not just update a status. Handoff summaries must cite persisted events and omit unsupported claims. Assignments validate agent/team/capacity and are recoverable after restart.
+
+**Acceptance:** G3 live mailbox-to-portal flow, subject spoofing, same-tenant ownership matrix, 100 duplicate/reordered events, restart-safe send idempotency, merge/split visibility and evidence-backed handoff. A test that only inspects an in-memory mailbox is a unit test, not G3 completion.
+
+### 24.8 C6 — Replace keyword-based evaluation and complete release lifecycle
+
+**Files:** `KnowledgeFlywheelService`, evaluation worker/case repositories, shared publication service, resolution attempts/repeat/closure jobs and related UI.
+
+1. Delete keyword-based `isDegraded` and fixed metric selection. “Degraded” is a test label, not an algorithm. Introduce a real evaluator port with baseline/proposed query execution, frozen relevance labels, safety assertions and per-case timings. Dataset/model/corpus/source hashes must match the approved candidate. Compute Recall/MRR/latency from persisted case results; never infer them from content/title/claimed outcome score.
+2. Derive eligibility from verified source cases rather than request score/customer count. Reject absent/withdrawn source permission, immature observation windows and disqualifying repeats/reopens. Sanitize and review title, content and metadata. Tie changes to candidate version/hash and invalidate old evaluations/approvals.
+3. Make document/version/index/publication dependencies mandatory in production construction. Remove the `null`-dependency path that can create metadata-only successful releases. Unit tests should inject mocks for required ports, not use a constructor that silently bypasses publication.
+4. Route every activation through the shared gate and exact existing document/version references. Do not create unrelated documents for successive versions of the same solution. Persist real index generation and publish atomically; failed indexing leaves the old active version unchanged.
+5. Implement actual rollback in the publication/index lifecycle and cache invalidation. Validate target existence/tenant/approval/state before changing anything; require expected active version. Test by searching before publish, after publish and after rollback, not just asserting release-row statuses.
+6. Finish resolution integration and lifecycle from section 23.8: all normal resolve paths create one attempt; feedback carries attempt/version/idempotency; closure/expiry jobs run; repeat detector is connected; closed follow-up semantics and cohort metrics are correct. Ownership checks must deny missing customer identity, not skip validation when null.
+
+**Acceptance:** rename an identical candidate to include/exclude “degraded”; ranking/quality metrics must not change merely due to an artificial pass/fail keyword (unless its actual searchable content legitimately affects measured ranking). Independently corrupt relevance/content so actual retrieval worsens: evaluation must block release without relying on labels. Missing evaluator/index service must fail closed. Require >=50 real holdout cases and all G5 thresholds; verify actual API search and cited version change on publish/rollback. Prove a legacy publish request cannot bypass the same gate.
+
+### 24.9 Execution checklist and final evidence
+
+Implement C0 and C1 first, then C2–C6 in their service dependency order; retain section 23's integrated hardening last. Do not spend another iteration making synthetic outputs match test names. Tests should challenge implementation with inputs it has not special-cased.
+
+| Work item | Required evidence before acceptance | Initial state |
+|---|---|---|
+| C0 harness | Failure-injection/self-tests, report schema, missing-suite/provider failure, no stale report reuse | PARTIAL |
+| C1 security/flags/challenges | Real security-chain/DB tests, persistent attempts, two-replica flags and no secret logging | PARTIAL |
+| C2 detector | Old-ticket negative test, measured semantic holdout, leased scheduling and audience-safe delivery | PARTIAL |
+| C3 actions | Independent provider process, command identity matrix, crash/reconciliation/budget tests | PARTIAL |
+| C4 evidence | Actual-byte tools, filename invariance, safe storage/scanning/consent/retention/search | PARTIAL |
+| C5 channels | Genuine mailbox proof, ownership/threads, restart delivery and live timeline/handoff | PARTIAL |
+| C6 flywheel | Source-derived eligibility, real per-case evaluation, shared publication and search-observed rollback | PARTIAL |
+| Whole Part 2 | Every G0–G5 and cross-feature security/load/restore/UI gate in section 23 | NOT ACCEPTED |
+
+For each fix, record the previously failing scenario, regression-test path, source change, actual command/result, and which gate it advances. Run targeted tests during development, then full compatible-Java-21 verification, frontend checks and the live acceptance stack. Skipped infrastructure must remain visible as a blocker. Preserve uncommitted user work and ask before any destructive environment reset.
+
+Final handoff must explicitly distinguish **implemented**, **tested locally**, **measured with real tools/providers**, and **still blocked**. The current review found improvements, not completion. Only mark Part 2 accepted after sections 23–24 have linked objective evidence for every required gate and no unresolved critical/high-severity defect.
+
+## 25. FINAL-P2 — Binding end-to-end acceptance gate
+
+### 25.1 The implementation agent's finish line
+
+**Objective:** on one reproducibly identified source revision, demonstrate all five Part 2 features working together through the real UI/gateway/services/database/events/storage, with actual media extraction and retrieval evaluation, authorized human decisions, durable simulated external operations, and tested failure recovery.
+
+The work is accepted **only** when `FINAL-P2 = PASS`. This is a release decision computed from evidence, not an additional feature, a manual checkbox, a commit message or a model's opinion. It does not authorize real payments, real customer email or production deployment. Sections 22–24 remain mandatory; this section consolidates their finish criteria.
+
+```text
+FINAL-P2 = PASS only if:
+  G0 AND G1 AND G2 AND G3 AND G4 AND G5
+  AND INTEGRATED_JOURNEY
+  AND FAULT_RECOVERY
+  AND UPGRADE_RESTORE
+  AND PERFORMANCE
+  AND UI_ACCESSIBILITY
+  AND QUALITY_AND_EVIDENCE
+  all have validated PASS results for the same tested source/build identity.
+
+Any FAIL, missing result, skipped mandatory case, unavailable prerequisite,
+stale evidence, invalid report or unresolved critical/high defect => NOT_ACCEPTED.
+```
+
+No weighted score, overall percentage or excess coverage can compensate for one failing mandatory gate. “Code implemented but untested” is not accepted. If a gate is externally blocked, report the blocker and remaining work rather than manufacturing a pass.
+
+### 25.2 Required benchmark pack
+
+Create a versioned `verification/part2/fixtures/` manifest referencing fictional data and actual binary assets. Record SHA-256 hashes, expected outcomes, provider/model versions and the fixture seed. Keep tuning fixtures separate from acceptance holdouts. The acceptance runner must reject a missing or changed fixture manifest unless the change was separately reviewed and versioned before the run.
+
+| Pack | Minimum content | Purpose |
+|---|---|---|
+| Identity/access | Two tenants, at least two customers per tenant, all six roles and explicit granted/revoked permission variants | Prove tenant, customer, staff-team and operation isolation |
+| Incident | At least three labeled outage groups, same-category unrelated tickets, old tickets and boundary-count fixtures | Measure precision/recall and reject false incidents |
+| Actions | Both action types; valid, forbidden, stale, insufficient-budget and ambiguous-provider states | Prove controlled effects and recovery |
+| Channels | Signed/forged/replayed messages, duplicate message IDs, cross-owner subject references, delivery callbacks and mailbox challenges | Prove continuity without identity or delivery shortcuts |
+| Evidence | >=10 real screenshots, >=10 PDFs, >=10 text/log/CSV/HAR files and >=5 audio/video files, plus malformed/malicious controls | Prove real extraction and privacy, not fixture-label recognition |
+| Knowledge | >=50 held-out retrieval cases; relevant IDs/ranks, answerable gaps, abstention/safety cases and an intentionally worse candidate | Compute actual quality and block regressions |
+| Outcomes | Multiple attempts, mature/immature successes, No/Partly/no-response, repeat/reopen and closed-ticket follow-up cases | Prove lifecycle and eligibility without request-supplied success claims |
+| Load/upgrade | >=1,000 tickets across two tenants and populated Part 1 messages/attachments | Measure performance and preserve existing data |
+
+Use controllable time for seven-day outcome maturity, expiry and retention. Time advancement is allowed; directly inserting final successful business states to skip the workflow is not. Fixture setup may provision reference/provider state through dedicated isolated setup APIs, but actual acceptance commands must pass through production application paths.
+
+### 25.3 Non-negotiable gate matrix
+
+| Gate | Test and observation | Required threshold |
+|---|---|---|
+| G0 security | Every Part 2 route/method under role, tenant, customer, team, forged-header and revoked-grant variants; inspect side effects | 100% expected access decisions; zero unauthorized data, mutations, sends or provider effects |
+| G1 incidents | Actual semantic retrieval on labeled holdout; boundary cases; 20 simultaneous detector runs across two replicas | Precision >=0.90, recall >=0.80; one active proposal for the same cluster; zero unapproved customer publication/audience expansion |
+| G2 actions | Both actions via durable provider HTTP simulator; 20 concurrent executes, 100 replays and accepted-then-crash | One intended provider business effect; all policy/approval/key-conflict cases correct; ambiguity blocks unsafe retry |
+| G3 channels | Full mailbox verification and email/portal journey; 100 duplicates/reordered callbacks; restart send process | One canonical logical message/effect per idempotency identity; zero internal-note/foreign-customer disclosure; no mailbox proof bypass |
+| G4 media | Actual tools and binary assets, filename randomization, negative/moved-timestamp fixtures, byte downloads and consent/deletion races | Required exact error extraction >=90%; correct expected page references; failure timestamp within ±3s; 100% original checksum match; zero seeded sensitive-value leaks or invented failure on negative controls |
+| G5 flywheel | Server-derived source eligibility, real baseline/proposed retrieval, deliberately worse candidate, actual API search before/after publication/rollback | Recall@5 >=0.85; MRR >=0.75; neither below baseline; answerable zero-result rate no worse; all safety cases pass; targeted gap improves; latency ratio <=1.2; rollback restores expected prior version/results |
+| Lifecycle | Resolve through normal agent UI; feedback versions/retries; closure, expiry, repeat and new-message races | All specified transitions and idempotency assertions pass; no-response not success; no unintended closure; no stale feedback changing a newer attempt |
+| UI/accessibility | Live browser feature journeys at desktop and 390px mobile width; keyboard checks | All journeys pass; zero uncaught errors/unexpected failed requests; no serious/critical automated accessibility findings; visible focus and keyboard completion |
+| Quality | Supported Java 21 verification, frontend build/lint/tests, coverage, migration and contract checks | All required suites pass without skips; new Part 2 domain/application coverage >=85% lines and >=80% branches; zero unresolved critical/high findings |
+
+“Zero leaks” above applies to the finite reviewed test corpus and access matrix; it is not a claim of perfect real-world PII detection. Report case counts and limitations alongside measured accuracy. Reuse precise metric definitions in sections 22–23; do not change denominators or mark model guesses as verified ground truth.
+
+### 25.4 Performance and recovery benchmark
+
+Use the protocol and declared hardware allocation in section 23.9: two-minute warmup, ten-minute steady-state measurement, 20 concurrent API clients, and a separate ten-minute 10-webhooks/second burst. Run faults separately from steady-state measurements and report their effects explicitly.
+
+- Inbound acknowledgement p95 <1 second; durable action admission p95 <500 ms; unexpected steady-state 5xx <1%; zero lost accepted commands.
+- Incident detection <=2 minutes from threshold crossing; approved fan-out starts <=30 seconds after commit.
+- >=20 document jobs and >=5 bounded media jobs: document p95 <=60 seconds, media p95 <=180 seconds with declared worker concurrency and real tools. Report cold startup separately.
+- Outcome metrics lag <=5 minutes; a two-minute consumer outage catches up within five minutes after restoration at the declared load.
+- Inject crashes at intent commit, provider acceptance, before local result commit, before event acknowledgement, extraction/index commit and source deletion. Every accepted item reaches a correct final state or visible actionable manual-review state; no duplicate effect or deleted-source resurrection.
+- Run fault cases with two replicas for detector, action and delivery workers; prove fencing/leases and cross-replica visible state. A single-process lock is insufficient.
+- Upgrade populated Part 1 data and interrupt/resume backfill: preserve message IDs/counts, author, ownership, internal visibility and attachment integrity. No business-data loss is permitted.
+- Perform isolated restore drill: portfolio RPO <=15 minutes and RTO <=60 minutes; reapply tombstones before enabling reads. These are measured local targets, not a production SLA.
+
+If hardware or missing dependencies prevent measurement, report `BLOCKED_EXTERNAL`. The gate cannot pass by reducing load after seeing a failure without a separately approved specification change.
+
+### 25.5 Final live demonstration script with assertions
+
+Automate this chain through live APIs and Playwright, with persistence/provider readback. Do not intercept APIs with mocked success responses. Local payment/email/identity simulators are permitted only as explicit independently durable provider boundaries; semantic/media gates require real processing.
+
+1. **Intake:** unverified email becomes restricted intake; customer verifies using the isolated mailbox, then continues the same conversation in portal. Assert canonical IDs, ownership and actual triage events.
+2. **Evidence:** upload real files, observe scan/consent/worker progress, open redacted page/frame playback and search relevant permitted evidence. Assert source locations and reject another customer's access.
+3. **Incident:** create the qualifying tickets, detect one cluster, confirm and publish an approved update. Assert unrelated tickets excluded and only approved affected customers notified.
+4. **Actions:** propose/refund a valid settled duplicate and unlock a verified locked account through human approvals. Inject accepted-then-timeout and restart. Assert one provider effect, correct reconciliation and visible unknown handling where truth is unavailable.
+5. **Continuity:** send the approved result through email, retain private notes, request/assign handoff and exercise merge/split. Assert exact destinations, provenance and persisted delivery state.
+6. **Outcomes:** resolve through the normal agent workflow; exercise Yes and a separate No/reopen, repeat-contact and no-response case. Advance time, confirm guarded closure and derive eligible learning cases server-side.
+7. **Knowledge:** sanitize/review, measure evaluation, block a genuinely worse candidate, approve a valid release and search its real version. Roll back and assert actual retrieval/citations return to the approved prior generation.
+8. **Safety/recovery:** revoke a grant/consent and delete a source during processing, replay events and verify absence from content/retrieval. Reconstruct the full audit chain and independently reconcile outcome metrics.
+
+Run the integrated chain **twice on separate fresh isolated seeds and once on upgraded Part 1 data**. All three runs must pass. A failed run requires diagnosis/fix and a new complete run; do not discard failures and retain only lucky screenshots. Record all run IDs and reasons for superseding earlier results. Never reset the user's development volumes for this proof.
+
+### 25.6 Machine-readable acceptance certificate
+
+Extend the section 24 harness to produce a validated report per run and one final aggregate certificate. The following is a proposed interface to implement, not a claim that the existing runner provides it:
+
+```sh
+bash verification/part2/run-gates.sh --suite final-p2 --fixture-manifest verification/part2/fixtures/manifest.json
+```
+
+The runner must validate options and prerequisites and exit nonzero for anything other than accepted completion. Unknown options, missing reports or unavailable mandatory infrastructure cannot fall back to unit-only execution.
+
+Required certificate fields:
+
+```json
+{
+  "schemaVersion": 1,
+  "gate": "FINAL-P2",
+  "status": "NOT_ACCEPTED",
+  "source": {"commit": "required", "dirty": false, "sourceManifestHash": "required"},
+  "buildManifestHash": "required",
+  "fixtureManifestHash": "required",
+  "environmentReport": "required",
+  "runIds": [],
+  "requiredGateResults": [],
+  "unresolvedFindings": [],
+  "limitations": [],
+  "generatedAtUtc": "required"
+}
+```
+
+Each gate result must contain actual observed/required values, test-case count, exact command/exit code, provider modes, source/build identity, report paths and hashes. The displayed JSON is an unaccepted template, not evidence. Populate it from parsable test/benchmark reports rather than hardcoded prose. Require all manifest-enumerated gates; an empty array can never pass. Reject mismatched source/build identity across artifacts and stale pre-change reports. For uncommitted work, source manifest must include tracked diffs and untracked source hashes while excluding secrets/generated files; HEAD alone is insufficient.
+
+The certificate is valid only for the tested implementation. Any later relevant source, configuration, model, dataset or dependency change invalidates affected gates and the aggregate acceptance until rerun. Retain logs and failed results. Human spot-checks must compare actual retrieval/provider/media evidence against the certificate; a report generator cannot certify its own correctness solely by printing `PASS`.
+
+### 25.7 Required final response from the implementing agent
+
+Use this handoff structure:
+
+```text
+FINAL-P2: PASS | NOT_ACCEPTED
+Tested source/build identity:
+Fresh-seed runs / upgraded-data run:
+G0–G5 and cross-cutting gate statuses:
+Measured benchmarks versus thresholds:
+Certificate and raw report locations:
+Remaining failures/blockers:
+Simulator/provider limitations:
+```
+
+The agent may say **“Part 2 implemented and end-to-end accepted”** only with a valid `FINAL-P2: PASS` certificate and the full evidence above. Otherwise state precisely what is implemented and what still prevents acceptance. This is the single finish line for the work; it does not broaden scope beyond the five bounded features or replace the detailed safety requirements.
