@@ -24,6 +24,17 @@ spring:
     locations: classpath:db/migration
 
 resolveiq:
+  evidence:
+    minio:
+      endpoint: ${RESOLVEIQ_MINIO_ENDPOINT:http://localhost:9000}
+      access-key: ${MINIO_ACCESS_KEY:resolveiq_minio_dev_access}
+      secret-key: ${MINIO_SECRET_KEY:resolveiq_minio_dev_secret_key_12345}
+      bucket: ${RESOLVEIQ_EVIDENCE_MINIO_BUCKET:resolveiq-evidence}
+    tools:
+      tesseract: ${TESSERACT_BINARY:tesseract}
+      ffmpeg: ${FFMPEG_BINARY:ffmpeg}
+      ffprobe: ${FFPROBE_BINARY:ffprobe}
+      pdftotext: ${PDFTOTEXT_BINARY:pdftotext}
   ai:
     chat-provider: ${RESOLVEIQ_AI_CHAT_PROVIDER:deterministic}
     chat-model: ${RESOLVEIQ_AI_CHAT_MODEL:resolveiq-deterministic-chat-v1}

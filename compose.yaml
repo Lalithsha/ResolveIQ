@@ -270,6 +270,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
+      RESOLVEIQ_MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-resolveiq_minio_dev_access}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-resolveiq_minio_dev_secret_key_12345}
     volumes:
       - .:/workspace
       - /workspace/ai-analysis-service/target
@@ -279,6 +282,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      minio:
+        condition: service_started
       discovery-service:
         condition: service_healthy
     healthcheck:

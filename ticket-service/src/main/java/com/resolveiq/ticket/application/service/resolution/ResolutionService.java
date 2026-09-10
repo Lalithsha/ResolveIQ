@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -182,6 +183,37 @@ public class ResolutionService implements ResolutionServicePort {
         return new ResolutionMetricsResponse(
             eligible, responded, feedbackCoverage, verifiedSuccessRate, fcrRate, avgScore
         );
+    }
+
+    @Scheduled(fixedDelayString = "${resolveiq.resolution.lifecycle-delay-ms:60000}")
+    public void processResolutionLifecycle() {
+        Instant now = Instant.now();
+        for (TicketResolution resolution : resolutionRepository
+            .findTop100ByStatusAndScheduledClosureAtLessThanEqualOrderByScheduledClosureAtAsc(
+                ResolutionAttemptStatus.CONFIRMED, now)) {
+            closeIfStillResolved(resolution, "Confirmed resolution grace period completed");
+        }
+        for (TicketResolution resolution : resolutionRepository
+            .findTop100ByStatusAndConfirmationWindowExpiresAtLessThanEqualOrderByConfirmationWindowExpiresAtAsc(
+                ResolutionAttemptStatus.AWAITING_CONFIRMATION, now)) {
+            resolution.setStatus(ResolutionAttemptStatus.NO_RESPONSE);
+            resolution.setScore(ResolutionScoreCalculator.calculateScoreV1(
+                OutcomeRating.NO_RESPONSE, false, false, false));
+            resolutionRepository.save(resolution);
+            closeIfStillResolved(resolution, "Resolution confirmation window expired without customer response");
+        }
+    }
+
+    private void closeIfStillResolved(TicketResolution resolution, String reason) {
+        ticketRepository.findByIdAndTenantId(resolution.getTicketId(), resolution.getTenantId()).ifPresent(ticket -> {
+            if (ticket.getStatus() == TicketStatus.RESOLVED) {
+                ticket.transitionTo(TicketStatus.CLOSED);
+                ticketRepository.save(ticket);
+                log.info("Ticket {} automatically closed: {}", ticket.getId(), reason);
+            }
+        });
+        resolution.setScheduledClosureAt(null);
+        resolutionRepository.save(resolution);
     }
 
     private ResolutionAttemptResponse toAttemptResponse(TicketResolution r, List<ResolutionOutcome> outcomes) {

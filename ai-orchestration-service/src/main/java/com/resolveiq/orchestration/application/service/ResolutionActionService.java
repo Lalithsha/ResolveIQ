@@ -14,6 +14,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.data.domain.PageRequest;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -35,6 +39,7 @@ public class ResolutionActionService {
     private final ActionDigestService digestService;
     private final ActionPolicyEngine policyEngine;
     private final ObjectMapper objectMapper;
+    private final TransactionTemplate transactions;
 
     public ResolutionActionService(
             ResolutionActionProposalRepository proposalRepository,
@@ -46,7 +51,8 @@ public class ResolutionActionService {
             ActionRegistry actionRegistry,
             ActionDigestService digestService,
             ActionPolicyEngine policyEngine,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            PlatformTransactionManager transactionManager) {
         this.proposalRepository = proposalRepository;
         this.policyDecisionRepository = policyDecisionRepository;
         this.approvalRepository = approvalRepository;
@@ -57,10 +63,14 @@ public class ResolutionActionService {
         this.digestService = digestService;
         this.policyEngine = policyEngine;
         this.objectMapper = objectMapper;
+        this.transactions = new TransactionTemplate(transactionManager);
     }
 
     @Transactional
     public ActionProposalResponse proposeAction(UUID tenantId, UUID ticketId, ProposeActionRequest request, TrustedPrincipal principal) {
+        if (principal == null || principal.userId() == null || principal.tenantId() == null || !tenantId.equals(principal.tenantId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Authenticated tenant actor is required");
+        }
         ActionType type = request.actionType();
         ResolutionAction action = actionRegistry.getAction(type);
 
@@ -91,9 +101,9 @@ public class ResolutionActionService {
         }
 
         // 3. Fetch authoritative target current state
-        ActionContext context = new ActionContext(tenantId, ticketId, null, principal != null ? principal.userId() : null,
-                principal != null && !principal.roles().isEmpty() ? principal.roles().iterator().next() : "AGENT",
-                principal != null ? principal.permissions() : Set.of());
+        ActionContext context = new ActionContext(tenantId, ticketId, null, principal.userId(),
+                !principal.roles().isEmpty() ? principal.roles().iterator().next() : "UNKNOWN",
+                principal.permissions());
 
         CurrentState currentState = action.fetchCurrentState(context, typedInput);
 
@@ -241,6 +251,9 @@ public class ResolutionActionService {
 
     @Transactional
     public ActionProposalResponse approveAction(UUID tenantId, UUID proposalId, ApproveActionRequest request, TrustedPrincipal principal) {
+        if (principal == null || principal.userId() == null || principal.tenantId() == null || !tenantId.equals(principal.tenantId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Authenticated tenant actor is required");
+        }
         ResolutionActionProposal proposal = proposalRepository.findByIdAndTenantId(proposalId, tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Action proposal not found: " + proposalId));
 
@@ -266,7 +279,7 @@ public class ResolutionActionService {
         List<String> requiredPermissions = parseStringList(decision.getRequiredPermissions());
         if (principal != null && !requiredPermissions.isEmpty()) {
             boolean hasPermission = requiredPermissions.stream().anyMatch(p -> principal.permissions().contains(p));
-            if (!hasPermission && !principal.roles().contains("ADMIN") && !principal.roles().contains("TEAM_LEAD")) {
+            if (!hasPermission) {
                 throw new SecurityException("User lacks required permission for action approval: " + requiredPermissions);
             }
         }
@@ -336,6 +349,9 @@ public class ResolutionActionService {
 
     @Transactional
     public ActionProposalResponse rejectAction(UUID tenantId, UUID proposalId, RejectActionRequest request, TrustedPrincipal principal) {
+        if (principal == null || principal.userId() == null || principal.tenantId() == null || !tenantId.equals(principal.tenantId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Authenticated tenant actor is required");
+        }
         ResolutionActionProposal proposal = proposalRepository.findByIdAndTenantId(proposalId, tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Action proposal not found: " + proposalId));
 
@@ -362,6 +378,9 @@ public class ResolutionActionService {
 
     @Transactional
     public ActionExecutionResponse executeAction(UUID tenantId, UUID proposalId, ExecuteActionRequest request, TrustedPrincipal principal) {
+        if (principal == null || principal.userId() == null || principal.tenantId() == null || !tenantId.equals(principal.tenantId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Authenticated tenant actor is required");
+        }
         if (request.expectedVersion() == null) {
             throw new IllegalArgumentException("expectedVersion is mandatory for action execution");
         }
@@ -376,11 +395,9 @@ public class ResolutionActionService {
         }
 
         // 5-minute step-up authentication check
-        if (principal != null && principal.authTime() != null) {
-            long secondsSinceAuth = Duration.between(principal.authTime(), Instant.now()).getSeconds();
-            if (secondsSinceAuth > 300) {
-                throw new org.springframework.security.access.AccessDeniedException("Step-up authentication required: auth_time older than 5 minutes");
-            }
+        if (!principal.isRecentAuthentication(300L)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                "Step-up authentication required: auth_time must be present and within 5 minutes");
         }
 
         String idempotencyKey = request.idempotencyKey() != null && !request.idempotencyKey().isBlank()
@@ -388,12 +405,17 @@ public class ResolutionActionService {
                 : "exec_" + proposalId + "_" + request.expectedVersion();
 
         // 1. Check if execution already exists with this idempotency key
-        Optional<ActionExecution> existingExec = executionRepository.findByTenantIdAndProviderIdempotencyKey(tenantId, idempotencyKey);
+        Optional<ActionExecution> existingExec = executionRepository.findByTenantIdAndClientIdempotencyKey(tenantId, idempotencyKey);
         if (existingExec.isPresent()) {
             ActionExecution exec = existingExec.get();
             if (!exec.getProposalId().equals(proposalId)) {
                 throw new org.springframework.web.server.ResponseStatusException(
                     org.springframework.http.HttpStatus.CONFLICT, "Idempotency conflict: key was previously used with a different proposal: " + exec.getProposalId()
+                );
+            }
+            if (exec.getActorId() == null || !exec.getActorId().equals(principal.userId())) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT, "Idempotency conflict: key belongs to another actor"
                 );
             }
             if (exec.getProvider() != null && !exec.getProvider().equalsIgnoreCase(proposal.getActionType().name())) {
@@ -431,7 +453,7 @@ public class ResolutionActionService {
             throw new IllegalArgumentException("Approved digest mismatch on execution submission");
         }
 
-        // 3. Re-validate current authoritative target state before execution
+        // Re-validate current authoritative target state before durable admission
         ResolutionAction action = actionRegistry.getAction(proposal.getActionType());
         Object typedInput;
         try {
@@ -452,7 +474,7 @@ public class ResolutionActionService {
             throw new IllegalStateException("Authoritative target state version changed since proposal was approved. Re-evaluation required.");
         }
 
-        // 4. Mark proposal as EXECUTING
+        // Mark proposal as EXECUTING and persist a durable queued intent. Provider I/O is performed by the worker.
         proposal.setStatus(ActionStatus.EXECUTING);
         proposalRepository.save(proposal);
 
@@ -465,70 +487,110 @@ public class ResolutionActionService {
                 idempotencyKey,
                 digestService.computeInputHash(proposal.getInputPayload())
         );
+        execution.setActorId(principal.userId());
+        execution.setProviderIdempotencyKey("riq_" + digestService.computeInputHash(
+            tenantId + ":" + proposalId + ":" + requestHash).substring(0, 48));
         execution = executionRepository.save(execution);
-
-        // 6. Execute business action
-        ExecutionResult execResult = action.execute(context, typedInput, idempotencyKey);
-
-        execution.setStatus(execResult.status());
-        execution.setProviderReference(execResult.providerReference());
-        try {
-            execution.setSanitizedResponse(objectMapper.writeValueAsString(execResult.responsePayload()));
-        } catch (Exception ignored) {}
-        execution.setErrorMessage(execResult.errorMessage());
-        execution.setCompletedAt(Instant.now());
-        execution = executionRepository.save(execution);
-
-        // 7. Reconcile if SUCCEEDED
-        ActionReconciliation reconciliation = null;
-        if ("SUCCEEDED".equals(execResult.status())) {
-            ReconciliationResult reconResult = action.reconcile(context, typedInput, execResult);
-            try {
-                reconciliation = new ActionReconciliation(
-                        proposalId,
-                        execution.getId(),
-                        tenantId,
-                        reconResult.status(),
-                        objectMapper.writeValueAsString(reconResult.expectedState()),
-                        objectMapper.writeValueAsString(reconResult.observedState()),
-                        reconResult.notes()
-                );
-                reconciliation = reconciliationRepository.save(reconciliation);
-            } catch (Exception e) {
-                log.error("Failed to persist reconciliation for proposal {}", proposalId, e);
-            }
-
-            if (reconResult.isMatch()) {
-                proposal.setStatus(ActionStatus.RECONCILED);
-            } else {
-                proposal.setStatus(ActionStatus.MANUAL_REVIEW);
-            }
-        } else if ("EXECUTION_UNKNOWN".equals(execResult.status())) {
-            proposal.setStatus(ActionStatus.EXECUTION_UNKNOWN);
-        } else if ("FAILED_RETRYABLE".equals(execResult.status())) {
-            proposal.setStatus(ActionStatus.FAILED_RETRYABLE);
-        } else {
-            proposal.setStatus(ActionStatus.FAILED_FINAL);
-        }
-
-        proposalRepository.save(proposal);
-
-        // 8. Publish ActionExecutionCompleted event
-        publishOutboxEvent(tenantId, proposal.getId(), ActionEvents.ACTION_EXECUTION_COMPLETED,
-                new ActionEvents.ActionExecutionCompletedPayload(
-                        execution.getId(),
-                        proposalId,
-                        proposal.getTicketId(),
-                        tenantId,
-                        proposal.getActionType().name(),
-                        execution.getStatus(),
-                        execution.getProviderReference(),
-                        reconciliation != null ? reconciliation.getStatus() : "NOT_RECONCILED",
-                        execution.getErrorMessage(),
-                        Instant.now()
-                ));
 
         return mapToExecutionResponse(execution);
+    }
+
+    @Scheduled(fixedDelayString = "${resolveiq.actions.worker-delay-ms:1000}")
+    public void processPendingExecutions() {
+        for (UUID executionId : claimExecutions()) {
+            try {
+                processClaimedExecution(executionId);
+            } catch (Exception error) {
+                log.error("Action execution worker failed for {} and will leave a recoverable lease", executionId, error);
+            }
+        }
+    }
+
+    public List<UUID> claimExecutions() {
+        return transactions.execute(status -> {
+            Instant now = Instant.now();
+            List<ActionExecution> claimed = executionRepository.lockRecoverable(now, PageRequest.of(0, 20));
+            claimed.forEach(execution -> {
+                if ("FAILED_RETRYABLE".equals(execution.getStatus())) {
+                    execution.setAttemptNumber(execution.getAttemptNumber() + 1);
+                }
+                execution.setStatus("CLAIMED");
+                execution.setLeaseExpiresAt(now.plusSeconds(30));
+            });
+            executionRepository.saveAll(claimed);
+            return claimed.stream().map(ActionExecution::getId).toList();
+        });
+    }
+
+    public void processClaimedExecution(UUID executionId) {
+        ActionExecution execution = transactions.execute(status -> executionRepository.findById(executionId)
+            .filter(e -> "CLAIMED".equals(e.getStatus()))
+            .orElse(null));
+        if (execution == null) return;
+
+        ResolutionActionProposal proposal = proposalRepository.findByIdAndTenantId(execution.getProposalId(), execution.getTenantId())
+            .orElseThrow(() -> new IllegalStateException("Action proposal disappeared: " + execution.getProposalId()));
+        ResolutionAction action = actionRegistry.getAction(proposal.getActionType());
+        Object typedInput;
+        try {
+            typedInput = objectMapper.readValue(proposal.getInputPayload(), action.inputType());
+        } catch (Exception error) {
+            completeExecution(executionId, null, null, "FAILED_FINAL", error.getMessage());
+            return;
+        }
+
+        ActionContext context = new ActionContext(proposal.getTenantId(), proposal.getTicketId(), proposal.getId(),
+            proposal.getProposerId(), "SYSTEM_WORKER", Set.of());
+        ExecutionResult result;
+        ReconciliationResult reconciliation = null;
+        try {
+            result = action.execute(context, typedInput, execution.getProviderIdempotencyKey());
+            if ("SUCCEEDED".equals(result.status())) reconciliation = action.reconcile(context, typedInput, result);
+        } catch (Exception error) {
+            result = new ExecutionResult("EXECUTION_UNKNOWN", null, Map.of(), error.getMessage());
+        }
+        completeExecution(executionId, result, reconciliation, result.status(), result.errorMessage());
+    }
+
+    private void completeExecution(UUID executionId, ExecutionResult result, ReconciliationResult reconciliation,
+                                   String resultStatus, String errorMessage) {
+        transactions.executeWithoutResult(status -> {
+            ActionExecution execution = executionRepository.findById(executionId)
+                .orElseThrow(() -> new IllegalStateException("Execution disappeared: " + executionId));
+            ResolutionActionProposal proposal = proposalRepository.findByIdAndTenantId(execution.getProposalId(), execution.getTenantId())
+                .orElseThrow(() -> new IllegalStateException("Proposal disappeared: " + execution.getProposalId()));
+            execution.setStatus(resultStatus);
+            execution.setLeaseExpiresAt(null);
+            execution.setErrorMessage(errorMessage);
+            if (result != null) {
+                execution.setProviderReference(result.providerReference());
+                try { execution.setSanitizedResponse(objectMapper.writeValueAsString(result.responsePayload())); }
+                catch (Exception error) { throw new IllegalStateException("Cannot persist sanitized provider response", error); }
+            }
+            execution.setCompletedAt(Instant.now());
+            executionRepository.save(execution);
+
+            ActionReconciliation saved = null;
+            if (reconciliation != null) {
+                try {
+                    saved = reconciliationRepository.save(new ActionReconciliation(proposal.getId(), execution.getId(),
+                        proposal.getTenantId(), reconciliation.status(), objectMapper.writeValueAsString(reconciliation.expectedState()),
+                        objectMapper.writeValueAsString(reconciliation.observedState()), reconciliation.notes()));
+                } catch (Exception error) {
+                    throw new IllegalStateException("Reconciliation persistence failed", error);
+                }
+            }
+            if (reconciliation != null && reconciliation.isMatch()) proposal.setStatus(ActionStatus.RECONCILED);
+            else if ("EXECUTION_UNKNOWN".equals(resultStatus)) proposal.setStatus(ActionStatus.EXECUTION_UNKNOWN);
+            else if ("FAILED_RETRYABLE".equals(resultStatus)) proposal.setStatus(ActionStatus.FAILED_RETRYABLE);
+            else if (!"SUCCEEDED".equals(resultStatus)) proposal.setStatus(ActionStatus.FAILED_FINAL);
+            else proposal.setStatus(ActionStatus.MANUAL_REVIEW);
+            proposalRepository.save(proposal);
+            publishOutboxEvent(proposal.getTenantId(), proposal.getId(), ActionEvents.ACTION_EXECUTION_COMPLETED,
+                new ActionEvents.ActionExecutionCompletedPayload(execution.getId(), proposal.getId(), proposal.getTicketId(),
+                    proposal.getTenantId(), proposal.getActionType().name(), execution.getStatus(), execution.getProviderReference(),
+                    saved != null ? saved.getStatus() : "NOT_RECONCILED", execution.getErrorMessage(), Instant.now()));
+        });
     }
 
     @Transactional

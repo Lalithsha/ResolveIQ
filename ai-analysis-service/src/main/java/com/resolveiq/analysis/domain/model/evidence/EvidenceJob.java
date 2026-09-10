@@ -54,6 +54,9 @@ public class EvidenceJob {
     @Column(name = "original_object_key")
     private String originalObjectKey;
 
+    @Column(name = "original_checksum_sha256", length = 64)
+    private String originalChecksumSha256;
+
     @Column(name = "raw_content", columnDefinition = "TEXT")
     private String rawContent;
 
@@ -113,6 +116,8 @@ public class EvidenceJob {
     public void setToolVersions(String toolVersions) { this.toolVersions = toolVersions; }
     public String getOriginalObjectKey() { return originalObjectKey; }
     public void setOriginalObjectKey(String originalObjectKey) { this.originalObjectKey = originalObjectKey; }
+    public String getOriginalChecksumSha256() { return originalChecksumSha256; }
+    public void setOriginalChecksumSha256(String originalChecksumSha256) { this.originalChecksumSha256 = originalChecksumSha256; }
     public String getRawContent() { return rawContent; }
     public void setRawContent(String rawContent) { this.rawContent = rawContent; }
     public String getErrorDetails() { return errorDetails; }

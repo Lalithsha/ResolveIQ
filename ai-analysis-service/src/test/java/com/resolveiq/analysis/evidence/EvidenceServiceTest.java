@@ -3,6 +3,7 @@ package com.resolveiq.analysis.evidence;
 import com.resolveiq.analysis.adapter.out.evidence.*;
 import com.resolveiq.analysis.application.dto.EvidenceDtos.*;
 import com.resolveiq.analysis.application.service.evidence.EvidenceService;
+import com.resolveiq.analysis.application.service.evidence.EvidenceObjectStore;
 import com.resolveiq.analysis.domain.model.evidence.*;
 import com.resolveiq.analysis.domain.repository.evidence.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +29,7 @@ class EvidenceServiceTest {
     @Mock private EvidenceArtifactRepository artifactRepository;
     @Mock private EvidenceObservationRepository observationRepository;
     @Mock private EvidenceRedactionRepository redactionRepository;
+    @Mock private EvidenceObjectStore objectStore;
 
     private EvidenceService evidenceService;
 
@@ -42,11 +44,12 @@ class EvidenceServiceTest {
             artifactRepository,
             observationRepository,
             redactionRepository,
-            new TesseractOcrAdapter(),
+            objectStore,
+            new FixtureEvidenceAdapters.Ocr(),
             new DeterministicLogAnalysisAdapter(),
             new DeterministicCsvSanitizationAdapter(),
-            new DeterministicPdfExtractionAdapter(),
-            new DeterministicVideoAnalysisAdapter()
+            new FixtureEvidenceAdapters.Pdf(),
+            new FixtureEvidenceAdapters.Video()
         );
     }
 
@@ -84,7 +87,7 @@ class EvidenceServiceTest {
         when(jobRepository.countByTenantIdAndTicketId(tenantId, ticketId)).thenReturn(0L);
         when(jobRepository.save(any(EvidenceJob.class))).thenAnswer(i -> i.getArgument(0));
 
-        byte[] content = "Error: SAML_SIGNATURE_INVALID".getBytes(StandardCharsets.UTF_8);
+        byte[] content = new byte[] {(byte) 0x89, 'P', 'N', 'G', 13, 10, 26, 10};
         EvidenceJobResponse response = evidenceService.createUploadSession(
             tenantId, ticketId, attachmentId, "error.png", "image/png", content, false
         );

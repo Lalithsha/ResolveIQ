@@ -30,6 +30,7 @@ public class EvidenceService implements EvidenceServicePort {
     private final EvidenceArtifactRepository artifactRepository;
     private final EvidenceObservationRepository observationRepository;
     private final EvidenceRedactionRepository redactionRepository;
+    private final EvidenceObjectStore objectStore;
 
     private final OcrPort ocrPort;
     private final LogAnalysisPort logAnalysisPort;
@@ -41,6 +42,7 @@ public class EvidenceService implements EvidenceServicePort {
                            EvidenceArtifactRepository artifactRepository,
                            EvidenceObservationRepository observationRepository,
                            EvidenceRedactionRepository redactionRepository,
+                           EvidenceObjectStore objectStore,
                            OcrPort ocrPort,
                            LogAnalysisPort logAnalysisPort,
                            CsvSanitizationPort csvSanitizationPort,
@@ -50,6 +52,7 @@ public class EvidenceService implements EvidenceServicePort {
         this.artifactRepository = artifactRepository;
         this.observationRepository = observationRepository;
         this.redactionRepository = redactionRepository;
+        this.objectStore = objectStore;
         this.ocrPort = ocrPort;
         this.logAnalysisPort = logAnalysisPort;
         this.csvSanitizationPort = csvSanitizationPort;
@@ -67,12 +70,11 @@ public class EvidenceService implements EvidenceServicePort {
             attachmentId != null ? attachmentId : UUID.randomUUID(),
             fileName, mediaType, content.length, consentGranted
         );
-        if (isBinaryContent(fileName, mediaType)) {
-            job.setRawContent("base64:" + Base64.getEncoder().encodeToString(content));
-        } else {
-            job.setRawContent(new String(content, StandardCharsets.UTF_8));
-        }
-        job.setOriginalObjectKey("quarantine/" + tenantId + "/" + ticketId + "/" + job.getAttachmentId() + "/" + fileName);
+        String objectKey = "quarantine/" + tenantId + "/" + ticketId + "/" + job.getAttachmentId();
+        objectStore.put(objectKey, mediaType, content);
+        job.setOriginalObjectKey(objectKey);
+        job.setOriginalChecksumSha256(sha256(content));
+        job.setRawContent(null);
         job = jobRepository.save(job);
 
         if (consentGranted) {
@@ -128,6 +130,9 @@ public class EvidenceService implements EvidenceServicePort {
 
         job.setPipelineStatus(PipelineStatus.TOMBSTONED);
         job.setRawContent(null);
+        if (job.getOriginalObjectKey() != null) {
+            objectStore.delete(job.getOriginalObjectKey());
+        }
         artifactRepository.deleteByTenantIdAndJobId(tenantId, jobId);
         observationRepository.deleteByTenantIdAndJobId(tenantId, jobId);
         redactionRepository.deleteByTenantIdAndJobId(tenantId, jobId);
@@ -179,15 +184,13 @@ public class EvidenceService implements EvidenceServicePort {
         }
 
         if ("original".equalsIgnoreCase(variant)) {
-            boolean hasPermission = permissions.contains("EVIDENCE_VIEW_ORIGINAL") ||
-                roles.contains("ADMIN") || roles.contains("ROLE_ADMIN") ||
-                roles.contains("TEAM_LEAD") || roles.contains("ROLE_TEAM_LEAD");
+            boolean hasPermission = permissions.contains("EVIDENCE_VIEW_ORIGINAL");
             if (!hasPermission) {
                 log.warn("Unauthorized access attempt to original evidence: jobId={}, tenantId={}", jobId, tenantId);
                 throw new org.springframework.security.access.AccessDeniedException("Missing required permission: EVIDENCE_VIEW_ORIGINAL");
             }
             log.info("SECURITY AUDIT: Original evidence viewed for job {} by authorized principal. Reason: {}", jobId, reason);
-            return job.getRawContent() != null ? job.getRawContent() : "";
+            return new String(extractRawBytes(job), StandardCharsets.UTF_8);
         } else {
             // Default to redacted content
             List<EvidenceArtifact> artifacts = artifactRepository.findByTenantIdAndJobId(tenantId, jobId);
@@ -271,6 +274,14 @@ public class EvidenceService implements EvidenceServicePort {
     }
 
     private byte[] extractRawBytes(EvidenceJob job) {
+        if (job.getOriginalObjectKey() != null) {
+            byte[] stored = objectStore.get(job.getOriginalObjectKey());
+            if (job.getOriginalChecksumSha256() != null && !job.getOriginalChecksumSha256().equals(sha256(stored))) {
+                throw new IllegalStateException("Evidence checksum mismatch; source object is quarantined");
+            }
+            return stored;
+        }
+        // Read compatibility only for pre-V4 records. New uploads never use raw_content.
         if (job.getRawContent() == null) return new byte[0];
         if (job.getRawContent().startsWith("base64:")) {
             return Base64.getDecoder().decode(job.getRawContent().substring(7));
@@ -308,15 +319,11 @@ public class EvidenceService implements EvidenceServicePort {
         // Magic byte verification for declared extensions
         if (lowerName.endsWith(".png")) {
             if (content.length < 8 || (content[0] & 0xFF) != 0x89 || content[1] != 'P' || content[2] != 'N' || content[3] != 'G') {
-                if (!contentHeader.contains("PNG_MOCK") && !contentHeader.contains("SAML")) {
-                    throw new IllegalArgumentException("Invalid PNG file: magic bytes mismatch");
-                }
+                throw new IllegalArgumentException("Invalid PNG file: magic bytes mismatch");
             }
         } else if (lowerName.endsWith(".pdf")) {
             if (content.length < 4 || content[0] != '%' || content[1] != 'P' || content[2] != 'D' || content[3] != 'F') {
-                if (!contentHeader.contains("PDF_MOCK") && !contentHeader.contains("%PDF")) {
-                    throw new IllegalArgumentException("Invalid PDF file: magic bytes mismatch");
-                }
+                throw new IllegalArgumentException("Invalid PDF file: magic bytes mismatch");
             }
         }
 

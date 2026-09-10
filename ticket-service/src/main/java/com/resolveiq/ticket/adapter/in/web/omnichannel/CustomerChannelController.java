@@ -7,9 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -90,11 +88,7 @@ public class CustomerChannelController {
             }
             return authPrincipal;
         }
-        if (tenantHeader == null || userHeader == null) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                org.springframework.http.HttpStatus.UNAUTHORIZED, "Authentication required: missing principal and headers"
-            );
-        }
-        return new TrustedPrincipal(userHeader, tenantHeader, Set.of("CUSTOMER"), "DIRECT", Set.of("TICKET_READ", "TICKET_WRITE"), Instant.now());
+        throw new org.springframework.web.server.ResponseStatusException(
+            org.springframework.http.HttpStatus.UNAUTHORIZED, "Authentication required");
     }
 }

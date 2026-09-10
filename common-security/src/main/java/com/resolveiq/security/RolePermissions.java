@@ -17,7 +17,10 @@ public final class RolePermissions {
             Permission.INCIDENT_APPROVE,
             Permission.INCIDENT_PUBLISH,
             Permission.ACTION_APPROVE_LOW_RISK,
-            Permission.ACTION_APPROVE_FINANCIAL
+            Permission.ACTION_APPROVE_FINANCIAL,
+            Permission.EVIDENCE_VIEW_ORIGINAL,
+            Permission.CONVERSATION_MERGE,
+            Permission.TICKET_ASSIGN
         ),
         "KNOWLEDGE_MANAGER", EnumSet.of(Permission.KNOWLEDGE_RELEASE_APPROVE),
         "ADMIN", EnumSet.of(
@@ -25,6 +28,9 @@ public final class RolePermissions {
             Permission.INCIDENT_PUBLISH,
             Permission.ACTION_APPROVE_LOW_RISK,
             Permission.ACTION_APPROVE_FINANCIAL,
+            Permission.EVIDENCE_VIEW_ORIGINAL,
+            Permission.CONVERSATION_MERGE,
+            Permission.TICKET_ASSIGN,
             Permission.KNOWLEDGE_RELEASE_APPROVE
         ),
         "AUDITOR", Collections.emptySet()

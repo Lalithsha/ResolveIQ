@@ -11,6 +11,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
+import com.resolveiq.ticket.application.service.TicketChangedEvent;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -75,6 +79,14 @@ public class RepeatContactDetectorService {
             }
         }
         return Optional.empty();
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void detectAfterTicketCreation(TicketChangedEvent event) {
+        if (!"ticket.created".equals(event.eventType())) return;
+        ticketRepository.findByIdAndTenantId(event.ticket().id(), event.ticket().tenantId())
+            .ifPresent(this::checkAndRecordRepeatContact);
     }
 
     private void applyRepeatContactPenalty(UUID tenantId, UUID priorTicketId) {

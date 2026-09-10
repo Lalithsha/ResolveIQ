@@ -58,7 +58,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             Number authTimeEpoch = claims.get("auth_time", Number.class);
-            Instant authTime = authTimeEpoch != null ? Instant.ofEpochSecond(authTimeEpoch.longValue()) : Instant.now();
+            Instant authTime = authTimeEpoch != null ? Instant.ofEpochSecond(authTimeEpoch.longValue()) : null;
 
             principal = new TrustedPrincipal(userId, tenantId, Set.copyOf(roles), authenticationType, Set.copyOf(permissions), authTime);
             authorities = new ArrayList<>();
@@ -84,7 +84,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 "x-user-id", principal.userId().toString(),
                 "x-roles", String.join(",", principal.roles()),
                 "x-permissions", String.join(",", principal.permissions()),
-                "x-auth-time", String.valueOf(principal.authTime().getEpochSecond()),
+                "x-auth-time", principal.authTime() != null ? String.valueOf(principal.authTime().getEpochSecond()) : "",
                 "x-internal-caller", "verified-jwt"
             );
         }

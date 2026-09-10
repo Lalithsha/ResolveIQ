@@ -137,6 +137,12 @@ record = {
     "durationMs": ${duration_ms},
     "providerModes": "${provider_mode}"
 }
+
+record_gate "PREFLIGHT" "Fail-closed acceptance prerequisites" \
+    "python3 verification/part2/verify_prerequisites.py --suite '${SUITE}'" \
+    "Real tools/providers/reports and supported runtime must exist for infrastructure-backed suites" \
+    "Required external evidence and runtime prerequisites are present" \
+    1 "environment-probe"
 print(json.dumps(record))
 EOF
 }

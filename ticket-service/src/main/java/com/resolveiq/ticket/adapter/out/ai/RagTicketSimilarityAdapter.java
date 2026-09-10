@@ -89,68 +89,8 @@ public class RagTicketSimilarityAdapter implements TicketSimilarityPort {
                 return results;
             }
         } catch (Exception e) {
-            log.debug("RAG service call failed or unavailable ({}), falling back to deterministic local similarity", e.getMessage());
+            log.warn("RAG similarity unavailable; incident correlation fails closed: {}", e.getMessage());
         }
-
-        return localDeterministicSimilarity(queryText, category, product, errorFingerprint, minSimilarity, candidates);
-    }
-
-    private List<SimilarityResult> localDeterministicSimilarity(
-        String queryText,
-        String category,
-        String product,
-        String errorFingerprint,
-        Double minSimilarity,
-        List<CandidateTicket> candidates
-    ) {
-        double threshold = minSimilarity != null ? minSimilarity : 0.70;
-        List<SimilarityResult> results = new ArrayList<>();
-        Set<String> queryTokens = tokenize(queryText);
-
-        for (CandidateTicket c : candidates) {
-            Set<String> candTokens = tokenize(c.text());
-            double jaccard = jaccard(queryTokens, candTokens);
-
-            boolean fpMatch = errorFingerprint != null && errorFingerprint.equalsIgnoreCase(c.errorFingerprint());
-            boolean catMatch = category != null && category.equalsIgnoreCase(c.category());
-            boolean prodMatch = product != null && product.equalsIgnoreCase(c.product());
-
-            double score = jaccard;
-            if (fpMatch) score = Math.min(1.0, score + 0.25);
-            if (catMatch) score = Math.min(1.0, score + 0.10);
-            if (product != null && c.product() != null && !prodMatch) score = Math.max(0.0, score - 0.30);
-
-            if (score >= threshold) {
-                results.add(new SimilarityResult(
-                    c.ticketId(),
-                    Math.round(score * 1000.0) / 1000.0,
-                    fpMatch,
-                    catMatch,
-                    String.format("Deterministic lexical similarity %.2f%s", jaccard, fpMatch ? " with matching error code" : "")
-                ));
-            }
-        }
-
-        results.sort((a, b) -> Double.compare(b.similarityScore(), a.similarityScore()));
-        return results;
-    }
-
-    private Set<String> tokenize(String text) {
-        if (text == null || text.isBlank()) return Set.of();
-        String[] words = text.toLowerCase(Locale.ROOT).split("[^a-z0-9_]+");
-        Set<String> tokens = new HashSet<>();
-        for (String w : words) {
-            if (w.length() > 2) tokens.add(w);
-        }
-        return tokens;
-    }
-
-    private double jaccard(Set<String> s1, Set<String> s2) {
-        if (s1.isEmpty() || s2.isEmpty()) return 0.0;
-        Set<String> intersection = new HashSet<>(s1);
-        intersection.retainAll(s2);
-        Set<String> union = new HashSet<>(s1);
-        union.addAll(s2);
-        return (double) intersection.size() / union.size();
+        return List.of();
     }
 }

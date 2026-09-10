@@ -32,6 +32,7 @@ public record TrustedPrincipal(
         if (authTime == null) {
             return false;
         }
-        return Instant.now().minusSeconds(maxAgeSeconds).isBefore(authTime);
+        Instant now = Instant.now();
+        return !authTime.isBefore(now.minusSeconds(maxAgeSeconds)) && !authTime.isAfter(now.plusSeconds(30));
     }
 }

@@ -1,6 +1,7 @@
 package com.resolveiq.ticket.domain.repository;
 
 import com.resolveiq.ticket.domain.model.IncidentStatus;
+import com.resolveiq.ticket.domain.model.IncidentSeverity;
 import com.resolveiq.ticket.domain.model.SupportIncident;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,8 @@ public interface SupportIncidentRepository extends JpaRepository<SupportIncident
     Optional<SupportIncident> findByTenantIdAndIncidentNumber(UUID tenantId, String incidentNumber);
     Page<SupportIncident> findByTenantId(UUID tenantId, Pageable pageable);
     Page<SupportIncident> findByTenantIdAndStatus(UUID tenantId, IncidentStatus status, Pageable pageable);
+    Page<SupportIncident> findByTenantIdAndSeverity(UUID tenantId, IncidentSeverity severity, Pageable pageable);
+    Page<SupportIncident> findByTenantIdAndStatusAndSeverity(UUID tenantId, IncidentStatus status, IncidentSeverity severity, Pageable pageable);
     List<SupportIncident> findByTenantIdAndStatusIn(UUID tenantId, List<IncidentStatus> statuses);
     long countByTenantIdAndStatus(UUID tenantId, IncidentStatus status);
 }

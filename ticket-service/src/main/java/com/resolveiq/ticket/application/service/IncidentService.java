@@ -87,9 +87,16 @@ public class IncidentService {
 
     @Transactional(readOnly = true)
     public Page<IncidentResponse> listIncidents(UUID tenantId, IncidentStatus status, IncidentSeverity severity, Pageable pageable) {
-        Page<SupportIncident> page = (status != null)
-            ? incidentRepository.findByTenantIdAndStatus(tenantId, status, pageable)
-            : incidentRepository.findByTenantId(tenantId, pageable);
+        Page<SupportIncident> page;
+        if (status != null && severity != null) {
+            page = incidentRepository.findByTenantIdAndStatusAndSeverity(tenantId, status, severity, pageable);
+        } else if (status != null) {
+            page = incidentRepository.findByTenantIdAndStatus(tenantId, status, pageable);
+        } else if (severity != null) {
+            page = incidentRepository.findByTenantIdAndSeverity(tenantId, severity, pageable);
+        } else {
+            page = incidentRepository.findByTenantId(tenantId, pageable);
+        }
 
         return page.map(inc -> toIncidentResponse(tenantId, inc));
     }
@@ -448,8 +455,7 @@ public class IncidentService {
             String category = entry.getKey();
             List<Ticket> tickets = entry.getValue();
 
-            long distinctCustomers = tickets.stream().map(Ticket::getCustomerId).distinct().count();
-            if (tickets.size() < minTickets || distinctCustomers < minCustomers) {
+            if (tickets.size() < minTickets) {
                 continue;
             }
 
@@ -468,9 +474,29 @@ public class IncidentService {
                 .map(Map.Entry::getKey)
                 .orElse(null);
 
-            // Baseline estimate: 2.0; anomaly = size / baseline
-            double baseline = 2.0;
-            double anomalyRatio = tickets.size() / baseline;
+            Ticket seed = tickets.get(0);
+            String seedText = ticketText(seed);
+            List<TicketSimilarityPort.CandidateTicket> candidates = tickets.stream().skip(1)
+                .map(ticket -> new TicketSimilarityPort.CandidateTicket(ticket.getId(), ticketText(ticket),
+                    ticket.getCategory(), "API", firstFingerprint(ticket)))
+                .toList();
+            List<TicketSimilarityPort.SimilarityResult> matches = Objects.requireNonNullElse(
+                similarityPort.findSimilarTickets(tenantId, seed.getId(), seedText, category, "API",
+                    topFingerprint, 0.82, candidates),
+                List.of());
+            Set<UUID> matchedIds = matches.stream().map(TicketSimilarityPort.SimilarityResult::ticketId).collect(Collectors.toSet());
+            Map<UUID, Double> measuredScores = matches.stream().collect(Collectors.toMap(
+                TicketSimilarityPort.SimilarityResult::ticketId, TicketSimilarityPort.SimilarityResult::similarityScore, Math::max));
+            List<Ticket> clusterTickets = tickets.stream()
+                .filter(ticket -> ticket.getId().equals(seed.getId()) || matchedIds.contains(ticket.getId()))
+                .toList();
+            long distinctCustomers = clusterTickets.stream().map(Ticket::getCustomerId).distinct().count();
+            if (clusterTickets.size() < minTickets || distinctCustomers < minCustomers) continue;
+
+            List<Ticket> historical = ticketRepository.findByTenantIdAndCreatedAtBetweenOrderByCreatedAtAsc(
+                tenantId, windowStart.minus(7, ChronoUnit.DAYS), windowStart);
+            double baseline = rollingMedianBaseline(Objects.requireNonNullElse(historical, List.of()), category, windowStart);
+            double anomalyRatio = clusterTickets.size() / Math.max(1.0, baseline);
 
             if (anomalyRatio >= 1.5) {
                 String centroidHash = String.format("%s:%s:%s", tenantId, category, topFingerprint != null ? topFingerprint : "NONE");
@@ -493,7 +519,7 @@ public class IncidentService {
                         anomalyRatio >= 3.0 ? IncidentSeverity.HIGH : IncidentSeverity.MEDIUM,
                         Instant.now(),
                         UUID.fromString("00000000-0000-0000-0000-000000000000"), // System detector
-                        String.format("Support Incident Radar detected a volume spike (%d tickets, %.1fx baseline) in category %s.", tickets.size(), anomalyRatio, category),
+                        String.format("Support Incident Radar detected a volume spike (%d compatible tickets, %.1fx baseline) in category %s.", clusterTickets.size(), anomalyRatio, category),
                         "radar-v1.0",
                         Math.min(0.98, 0.70 + (anomalyRatio * 0.05))
                     );
@@ -510,7 +536,7 @@ public class IncidentService {
                         windowEnd,
                         category + ":" + (topFingerprint != null ? topFingerprint : "GENERAL"),
                         centroidHash,
-                        tickets.size(),
+                        clusterTickets.size(),
                         (int) baseline,
                         anomalyRatio,
                         category,
@@ -518,7 +544,7 @@ public class IncidentService {
                         "GLOBAL",
                         fpsJson,
                         ClusterStatus.PROPOSED,
-                        String.format("Detected %d tickets in 60min window. Baseline is %d.", tickets.size(), (int) baseline),
+                        String.format("Detected %d compatible tickets in 15min window. Seven-day median baseline is %.1f.", clusterTickets.size(), baseline),
                         "radar-v1.0"
                     );
                     clusterRepository.save(cluster);
@@ -535,13 +561,13 @@ public class IncidentService {
                     componentRepository.save(component);
 
                     // Link tickets and record customer impacts
-                    for (Ticket t : tickets) {
+                    for (Ticket t : clusterTickets) {
                         IncidentTicketLink link = new IncidentTicketLink(
                             UUID.randomUUID(),
                             incident.getId(),
                             t.getId(),
                             LinkSource.AUTOMATIC,
-                            0.88,
+                            t.getId().equals(seed.getId()) ? 1.0 : measuredScores.get(t.getId()),
                             UUID.fromString("00000000-0000-0000-0000-000000000000")
                         );
                         linkRepository.save(link);
@@ -560,13 +586,35 @@ public class IncidentService {
                         }
                     }
 
-                    publishIncidentProposedEvent(tenantId, cluster, incident, tickets.stream().map(Ticket::getId).toList(), fps);
+                    publishIncidentProposedEvent(tenantId, cluster, incident, clusterTickets.stream().map(Ticket::getId).toList(), fps);
                     proposalsCreated++;
                 }
             }
         }
 
         return new DetectionRunResult(ticketsToEvaluate.size(), proposalsCreated, ticketsLinked, "radar-v1.0");
+    }
+
+    private String ticketText(Ticket ticket) {
+        return String.join(" ", Objects.toString(ticket.getSubject(), ""), Objects.toString(ticket.getDescription(), ""));
+    }
+
+    private String firstFingerprint(Ticket ticket) {
+        Matcher matcher = ERROR_CODE_PATTERN.matcher(ticketText(ticket));
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    private double rollingMedianBaseline(List<Ticket> historical, String category, Instant windowStart) {
+        long[] counts = new long[7 * 24 * 4];
+        for (Ticket ticket : historical) {
+            if (!Objects.equals(category, ticket.getCategory() != null ? ticket.getCategory() : "GENERAL")) continue;
+            long minutes = ChronoUnit.MINUTES.between(windowStart.minus(7, ChronoUnit.DAYS), ticket.getCreatedAt());
+            int bucket = (int) (minutes / 15);
+            if (bucket >= 0 && bucket < counts.length) counts[bucket]++;
+        }
+        Arrays.sort(counts);
+        int middle = counts.length / 2;
+        return (counts[middle - 1] + counts[middle]) / 2.0;
     }
 
     private IncidentResponse toIncidentResponse(UUID tenantId, SupportIncident incident) {

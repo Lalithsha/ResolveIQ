@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 
 @Repository
 public interface TicketResolutionRepository extends JpaRepository<TicketResolution, UUID> {
@@ -23,4 +24,10 @@ public interface TicketResolutionRepository extends JpaRepository<TicketResoluti
     long countByTenantId(UUID tenantId);
 
     long countByTenantIdAndStatus(UUID tenantId, ResolutionAttemptStatus status);
+
+    List<TicketResolution> findTop100ByStatusAndScheduledClosureAtLessThanEqualOrderByScheduledClosureAtAsc(
+        ResolutionAttemptStatus status, Instant now);
+
+    List<TicketResolution> findTop100ByStatusAndConfirmationWindowExpiresAtLessThanEqualOrderByConfirmationWindowExpiresAtAsc(
+        ResolutionAttemptStatus status, Instant now);
 }

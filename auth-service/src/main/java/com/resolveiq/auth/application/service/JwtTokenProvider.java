@@ -75,6 +75,9 @@ public class JwtTokenProvider {
                     permissions.add("INCIDENT_PUBLISH");
                     permissions.add("ACTION_APPROVE_LOW_RISK");
                     permissions.add("ACTION_APPROVE_FINANCIAL");
+                    permissions.add("EVIDENCE_VIEW_ORIGINAL");
+                    permissions.add("CONVERSATION_MERGE");
+                    permissions.add("TICKET_ASSIGN");
                 }
                 case KNOWLEDGE_MANAGER -> permissions.add("KNOWLEDGE_RELEASE_APPROVE");
                 case ADMIN -> {
@@ -82,6 +85,9 @@ public class JwtTokenProvider {
                     permissions.add("INCIDENT_PUBLISH");
                     permissions.add("ACTION_APPROVE_LOW_RISK");
                     permissions.add("ACTION_APPROVE_FINANCIAL");
+                    permissions.add("EVIDENCE_VIEW_ORIGINAL");
+                    permissions.add("CONVERSATION_MERGE");
+                    permissions.add("TICKET_ASSIGN");
                     permissions.add("KNOWLEDGE_RELEASE_APPROVE");
                 }
                 default -> {}

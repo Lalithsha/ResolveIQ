@@ -19,6 +19,7 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID>, org.sprin
     List<Ticket> findByTenantIdAndStatusOrderByCreatedAtDesc(UUID tenantId, TicketStatus status, Pageable pageable);
     List<Ticket> findByTenantIdOrderByCreatedAtDesc(UUID tenantId, Pageable pageable);
     List<Ticket> findByTenantIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(UUID tenantId, java.time.Instant createdAt, Pageable pageable);
+    List<Ticket> findByTenantIdAndCreatedAtBetweenOrderByCreatedAtAsc(UUID tenantId, java.time.Instant from, java.time.Instant to);
     boolean existsByTenantIdAndAssignedAgentIdAndTeamId(UUID tenantId, UUID assignedAgentId, UUID teamId);
 
     @org.springframework.data.jpa.repository.Query(value = "SELECT nextval('ticket_schema.ticket_number_seq')", nativeQuery = true)

@@ -9,9 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
-import java.util.Set;
 import java.util.UUID;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/v1/conversations")
@@ -29,8 +28,8 @@ public class ConversationController {
         @AuthenticationPrincipal TrustedPrincipal principal,
         @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantHeader
     ) {
-        UUID tenantId = getTenantId(principal, tenantHeader);
-        return ResponseEntity.ok(omnichannelService.getConversation(tenantId, id));
+        TrustedPrincipal effectivePrincipal = requirePrincipal(principal);
+        return ResponseEntity.ok(omnichannelService.getConversation(effectivePrincipal.tenantId(), id, effectivePrincipal));
     }
 
     @GetMapping("/{id}/timeline")
@@ -41,7 +40,7 @@ public class ConversationController {
         @RequestHeader(value = "X-User-Id", required = false) UUID userHeader,
         @RequestHeader(value = "X-Roles", required = false) String rolesHeader
     ) {
-        TrustedPrincipal effectivePrincipal = resolvePrincipal(principal, tenantHeader, userHeader, rolesHeader);
+        TrustedPrincipal effectivePrincipal = requirePrincipal(principal);
         return ResponseEntity.ok(omnichannelService.getTimeline(effectivePrincipal.tenantId(), id, effectivePrincipal));
     }
 
@@ -54,7 +53,7 @@ public class ConversationController {
         @RequestHeader(value = "X-User-Id", required = false) UUID userHeader,
         @RequestHeader(value = "X-Roles", required = false) String rolesHeader
     ) {
-        TrustedPrincipal effectivePrincipal = resolvePrincipal(principal, tenantHeader, userHeader, rolesHeader);
+        TrustedPrincipal effectivePrincipal = requirePrincipal(principal);
         TimelineMessageItem item = omnichannelService.addMessage(effectivePrincipal.tenantId(), id, effectivePrincipal, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(item);
     }
@@ -68,23 +67,25 @@ public class ConversationController {
         @RequestHeader(value = "X-User-Id", required = false) UUID userHeader,
         @RequestHeader(value = "X-Roles", required = false) String rolesHeader
     ) {
-        TrustedPrincipal effectivePrincipal = resolvePrincipal(principal, tenantHeader, userHeader, rolesHeader);
+        TrustedPrincipal effectivePrincipal = requirePrincipal(principal);
         HandoffRequest req = request != null ? request : new HandoffRequest("Customer requested human agent");
         return ResponseEntity.ok(omnichannelService.requestHandoff(effectivePrincipal.tenantId(), id, effectivePrincipal, req));
     }
 
     @PostMapping("/{id}/handoff/assign")
+    @PreAuthorize("hasAuthority('PERM_TICKET_ASSIGN')")
     public ResponseEntity<ConversationResponse> assignHandoff(
         @PathVariable UUID id,
         @RequestBody HandoffAssignRequest request,
         @AuthenticationPrincipal TrustedPrincipal principal,
         @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantHeader
     ) {
-        UUID tenantId = getTenantId(principal, tenantHeader);
-        return ResponseEntity.ok(omnichannelService.assignHandoff(tenantId, id, request.agentId()));
+        TrustedPrincipal effectivePrincipal = requirePrincipal(principal);
+        return ResponseEntity.ok(omnichannelService.assignHandoff(effectivePrincipal.tenantId(), id, request.agentId()));
     }
 
     @PostMapping("/{id}/merge")
+    @PreAuthorize("hasAuthority('PERM_CONVERSATION_MERGE')")
     public ResponseEntity<ConversationMergeRecord> mergeConversations(
         @PathVariable UUID id,
         @RequestBody MergeConversationRequest request,
@@ -93,7 +94,7 @@ public class ConversationController {
         @RequestHeader(value = "X-User-Id", required = false) UUID userHeader,
         @RequestHeader(value = "X-Roles", required = false) String rolesHeader
     ) {
-        TrustedPrincipal effectivePrincipal = resolvePrincipal(principal, tenantHeader, userHeader, rolesHeader);
+        TrustedPrincipal effectivePrincipal = requirePrincipal(principal);
         ConversationMergeRecord record = omnichannelService.mergeConversations(
             effectivePrincipal.tenantId(), id, request.targetConversationId(), effectivePrincipal.userId(), request.reason()
         );
@@ -101,6 +102,7 @@ public class ConversationController {
     }
 
     @PostMapping("/split")
+    @PreAuthorize("hasAuthority('PERM_CONVERSATION_MERGE')")
     public ResponseEntity<ConversationMergeRecord> splitConversations(
         @RequestBody SplitConversationRequest request,
         @AuthenticationPrincipal TrustedPrincipal principal,
@@ -108,25 +110,18 @@ public class ConversationController {
         @RequestHeader(value = "X-User-Id", required = false) UUID userHeader,
         @RequestHeader(value = "X-Roles", required = false) String rolesHeader
     ) {
-        TrustedPrincipal effectivePrincipal = resolvePrincipal(principal, tenantHeader, userHeader, rolesHeader);
+        TrustedPrincipal effectivePrincipal = requirePrincipal(principal);
         ConversationMergeRecord record = omnichannelService.splitConversations(
             effectivePrincipal.tenantId(), request.mergeRecordId(), effectivePrincipal.userId()
         );
         return ResponseEntity.ok(record);
     }
 
-    private UUID getTenantId(TrustedPrincipal principal, UUID tenantHeader) {
-        if (principal != null && principal.tenantId() != null) return principal.tenantId();
-        if (tenantHeader != null) return tenantHeader;
-        return UUID.fromString("00000000-0000-0000-0000-000000000001");
-    }
-
-    private TrustedPrincipal resolvePrincipal(TrustedPrincipal authPrincipal, UUID tenantHeader, UUID userHeader, String rolesHeader) {
-        if (authPrincipal != null) return authPrincipal;
-        UUID tenantId = tenantHeader != null ? tenantHeader : UUID.fromString("00000000-0000-0000-0000-000000000001");
-        UUID userId = userHeader != null ? userHeader : UUID.fromString("00000000-0000-0000-0000-000000000002");
-        Set<String> roles = rolesHeader != null ? Set.of(rolesHeader.split(",")) : Set.of("AGENT");
-        Set<String> permissions = Set.of("CONVERSATION_MERGE", "TICKET_READ", "TICKET_WRITE");
-        return new TrustedPrincipal(userId, tenantId, roles, "DIRECT", permissions, Instant.now());
+    private TrustedPrincipal requirePrincipal(TrustedPrincipal principal) {
+        if (principal == null || principal.userId() == null || principal.tenantId() == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        return principal;
     }
 }

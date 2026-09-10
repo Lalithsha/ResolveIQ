@@ -17,7 +17,7 @@ class EvidencePipelineTest {
     @Test
     @DisplayName("OCR golden test extracts SAML_SIGNATURE_INVALID and bounding box [120, 340, 480, 80]")
     void ocrGoldenTestExtractsSamlSignatureInvalidAndBoundingBox() {
-        TesseractOcrAdapter adapter = new TesseractOcrAdapter();
+        FixtureEvidenceAdapters.Ocr adapter = new FixtureEvidenceAdapters.Ocr();
         String fixtureText = "Error 401: Invalid SAML signature detected for user alice@example.com. Code: SAML_SIGNATURE_INVALID.";
         byte[] content = fixtureText.getBytes(StandardCharsets.UTF_8);
 
@@ -94,7 +94,7 @@ class EvidencePipelineTest {
     @Test
     @DisplayName("PDF golden test extracts invoice facts and redacts financial PII")
     void pdfGoldenTestExtractsFactsAndRedactsCreditCards() {
-        DeterministicPdfExtractionAdapter adapter = new DeterministicPdfExtractionAdapter();
+        FixtureEvidenceAdapters.Pdf adapter = new FixtureEvidenceAdapters.Pdf();
         String pdfFixture = """
             INVOICE #INV-98765
             Bill to: John Doe (john.doe@example.com)
@@ -119,7 +119,7 @@ class EvidencePipelineTest {
     @Test
     @DisplayName("Video golden test identifies failure chapter at exact timestamp 00:42 (42.0 seconds)")
     void videoGoldenTestIdentifiesFailureTimestampAt42Seconds() {
-        DeterministicVideoAnalysisAdapter adapter = new DeterministicVideoAnalysisAdapter();
+        FixtureEvidenceAdapters.Video adapter = new FixtureEvidenceAdapters.Video();
         byte[] videoDummyBytes = ("\0\0\0\u0018ftyp" + " SAML assertion parse failure at 00:42").getBytes(StandardCharsets.ISO_8859_1);
 
         ExtractionResult result = adapter.sampleVideo("screen_recording.mp4", videoDummyBytes);
@@ -141,7 +141,7 @@ class EvidencePipelineTest {
     @Test
     @DisplayName("C4 Acceptance: Filename independence - failure found in clean.mp4, clean video has no error even in saml_timestamp_42.mp4")
     void filenameIndependenceTest() {
-        DeterministicVideoAnalysisAdapter adapter = new DeterministicVideoAnalysisAdapter();
+        FixtureEvidenceAdapters.Video adapter = new FixtureEvidenceAdapters.Video();
 
         // 1. Failure recording renamed to clean.mp4 -> failure must still be found!
         byte[] failureBytes = ("\0\0\0\u0018ftyp" + " SAML assertion parse failure at 01:15").getBytes(StandardCharsets.ISO_8859_1);

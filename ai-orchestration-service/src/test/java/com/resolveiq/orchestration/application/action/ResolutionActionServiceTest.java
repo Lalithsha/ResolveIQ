@@ -18,6 +18,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import java.time.Instant;
 import java.util.*;
@@ -42,7 +44,8 @@ class ResolutionActionServiceTest {
     private ActionReconciliationRepository reconciliationRepository;
     @Mock
     private WorkflowOutboxRepository outboxRepository;
-
+    @Mock
+    private PlatformTransactionManager transactionManager;
     @Mock
     private SimulatedPaymentRepository paymentRepository;
     @Mock
@@ -66,6 +69,7 @@ class ResolutionActionServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         digestService = new ActionDigestService();
@@ -88,13 +92,14 @@ class ResolutionActionServiceTest {
                 registry,
                 digestService,
                 policyEngine,
-                objectMapper
+                objectMapper,
+                transactionManager
         );
     }
 
     @Test
-    @DisplayName("End-to-end: Propose, approve with matching digest, and execute refund action")
-    void proposeApproveAndExecuteRefundSuccessfully() throws Exception {
+    @DisplayName("Durable admission: approved refund is queued before provider execution")
+    void proposeApproveAndQueueRefundSuccessfully() throws Exception {
         TrustedPrincipal agentPrincipal = new TrustedPrincipal(
                 agentId, tenantId, Set.of("AGENT"), "JWT",
                 Set.of(Permission.ACTION_APPROVE_LOW_RISK.name()), Instant.now()
@@ -103,8 +108,6 @@ class ResolutionActionServiceTest {
         // 1. Mock payment state in repo
         SimulatedPayment payment = new SimulatedPayment(tenantId, "cust_123", "pay_dup_1", "USD", 4000L, true, "pay_orig_1");
         when(paymentRepository.findByTenantIdAndPaymentReference(tenantId, "pay_dup_1")).thenReturn(Optional.of(payment));
-        when(paymentRepository.findByTenantIdAndPaymentReferenceWithLock(tenantId, "pay_dup_1")).thenReturn(Optional.of(payment));
-        when(paymentRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(proposalRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         // 2. Propose action
@@ -160,15 +163,16 @@ class ResolutionActionServiceTest {
         assertThat(approved.status()).isEqualTo(ActionStatus.APPROVED);
 
         // 5. Execute action
-        when(executionRepository.findByTenantIdAndProviderIdempotencyKey(any(), any())).thenReturn(Optional.empty());
+        when(executionRepository.findByTenantIdAndClientIdempotencyKey(any(), any())).thenReturn(Optional.empty());
         when(executionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ExecuteActionRequest execReq = new ExecuteActionRequest(proposal.canonicalDigest(), 0L, "idem_test_exec_1");
         ActionExecutionResponse execResponse = service.executeAction(tenantId, proposal.id(), execReq, agentPrincipal);
 
-        assertThat(execResponse.status()).isEqualTo("SUCCEEDED");
-        assertThat(execResponse.providerReference()).isNotBlank();
-        assertThat(propEntity.getStatus()).isEqualTo(ActionStatus.RECONCILED);
+        assertThat(execResponse.status()).isEqualTo("QUEUED");
+        assertThat(execResponse.providerReference()).isNull();
+        assertThat(propEntity.getStatus()).isEqualTo(ActionStatus.EXECUTING);
+        verify(paymentRepository, never()).findByTenantIdAndPaymentReferenceWithLock(any(), any());
     }
 
     @Test
@@ -250,6 +254,7 @@ class ResolutionActionServiceTest {
         );
         recordedExec.setStatus("SUCCEEDED");
         recordedExec.setProviderReference("pay_ref_exist_123");
+        recordedExec.setActorId(agentId);
 
         ResolutionActionProposal proposal = new ResolutionActionProposal(
                 tenantId, UUID.randomUUID(), ActionType.REFUND_DUPLICATE_CHARGE,
@@ -258,7 +263,7 @@ class ResolutionActionServiceTest {
         when(proposalRepository.findByIdAndTenantId(proposalId, tenantId))
                 .thenReturn(Optional.of(proposal));
 
-        when(executionRepository.findByTenantIdAndProviderIdempotencyKey(tenantId, "idem_key_repeat"))
+        when(executionRepository.findByTenantIdAndClientIdempotencyKey(tenantId, "idem_key_repeat"))
                 .thenReturn(Optional.of(recordedExec));
 
         ExecuteActionRequest execReq = new ExecuteActionRequest("any_digest", 0L, "idem_key_repeat");
@@ -363,8 +368,9 @@ class ResolutionActionServiceTest {
         ActionExecution recordedExec = new ActionExecution(
                 proposalId, tenantId, 1, "REFUND_DUPLICATE_CHARGE", "idem_key_conflict", "hash_original"
         );
+        recordedExec.setActorId(agentId);
 
-        when(executionRepository.findByTenantIdAndProviderIdempotencyKey(tenantId, "idem_key_conflict"))
+        when(executionRepository.findByTenantIdAndClientIdempotencyKey(tenantId, "idem_key_conflict"))
                 .thenReturn(Optional.of(recordedExec));
 
         ResolutionActionProposal proposal = new ResolutionActionProposal(

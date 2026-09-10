@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "gate": "FINAL-P2",
-  "status": "PASS",
+  "status": "NOT_ACCEPTED",
   "source": {
     "commit": "39bd0c907edde389307a2c63ae55f88a3fa8c46e",
     "dirty": true,
@@ -104,7 +104,9 @@
       "providerModes": "vite-typescript-production"
     }
   ],
-  "unresolvedFindings": [],
+  "unresolvedFindings": [
+    "SUPERSEDED: this historical unit-smoke report did not execute the required real-media, real-retrieval, browser, coverage, load, restore, or crash-recovery suites. Re-run verification/part2/run-gates.sh after providing those prerequisites."
+  ],
   "limitations": [
     "Simulated payment processor boundary used for refund settlement",
     "In-memory mailbox simulator used for external SMTP delivery"

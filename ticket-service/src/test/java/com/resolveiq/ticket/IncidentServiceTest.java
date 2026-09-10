@@ -222,6 +222,17 @@ class IncidentServiceTest {
 
         when(ticketRepository.findByTenantIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(eq(tenantId), any(Instant.class), any(Pageable.class)))
             .thenReturn(tickets);
+        when(ticketRepository.findByTenantIdAndCreatedAtBetweenOrderByCreatedAtAsc(eq(tenantId), any(Instant.class), any(Instant.class)))
+            .thenReturn(List.of());
+        when(similarityPort.findSimilarTickets(eq(tenantId), any(UUID.class), anyString(), eq("BILLING"), eq("API"),
+            eq("ERR_PAYMENT_GATEWAY_TIMEOUT"), eq(0.82), anyList()))
+            .thenAnswer(invocation -> {
+                List<TicketSimilarityPort.CandidateTicket> candidates = invocation.getArgument(7);
+                return candidates.stream()
+                    .map(candidate -> new TicketSimilarityPort.SimilarityResult(
+                        candidate.ticketId(), 0.94, true, true, "semantic and fingerprint match"))
+                    .toList();
+            });
         when(clusterRepository.findByTenantIdAndCentroidHash(eq(tenantId), anyString()))
             .thenReturn(Optional.empty());
 

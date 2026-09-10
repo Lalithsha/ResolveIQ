@@ -1,5 +1,6 @@
 # Multi-stage Dockerfile for ResolveIQ Spring Boot Services
 FROM maven:3.9.9-eclipse-temurin-21-alpine AS dev
+RUN apk add --no-cache ffmpeg tesseract-ocr poppler-utils
 WORKDIR /workspace
 COPY . .
 ENTRYPOINT ["sh", "/workspace/infra/docker/dev-backend-entrypoint.sh"]
@@ -24,6 +25,7 @@ COPY . .
 RUN --mount=type=cache,target=/root/.m2 mvn clean package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine AS prod
+RUN apk add --no-cache ffmpeg tesseract-ocr poppler-utils
 ARG SERVICE_NAME
 WORKDIR /app
 COPY --from=builder /workspace/${SERVICE_NAME}/target/*.jar app.jar

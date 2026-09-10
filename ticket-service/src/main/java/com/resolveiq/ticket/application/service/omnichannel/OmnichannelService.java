@@ -126,6 +126,16 @@ public class OmnichannelService {
 
             if (optExistingTicket.isPresent()) {
                 ticket = optExistingTicket.get();
+                if (!customerId.equals(ticket.getCustomerId())) {
+                    UnverifiedEmailIntake intake = new UnverifiedEmailIntake(
+                        tenantId, event.senderAddress(), addressHmac, event.subject(), event.bodyText(), event.externalMessageId());
+                    intake = unverifiedEmailIntakeRepository.save(intake);
+                    log.warn("Cross-owner ticket reference quarantined: intakeId={}, referencedTicketId={}",
+                        intake.getId(), ticket.getId());
+                    return new InboundWebhookResult(false, "PENDING_VERIFICATION",
+                        "Message quarantined because the referenced ticket does not belong to the verified sender",
+                        null, null, intake.getId());
+                }
                 UUID existingTicketId = ticket.getId();
                 conv = conversationRepository.findByTicketIdAndTenantId(existingTicketId, tenantId)
                     .orElseGet(() -> conversationRepository.save(new Conversation(tenantId, existingTicketId, customerId)));
@@ -356,11 +366,8 @@ public class OmnichannelService {
     public TimelineResponse getTimeline(UUID tenantId, UUID conversationId, TrustedPrincipal principal) {
         Conversation conv = conversationRepository.findByIdAndTenantId(conversationId, tenantId)
             .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
-
-        boolean isCustomer = principal.roles().contains("CUSTOMER") && !principal.roles().contains("AGENT") && !principal.roles().contains("ADMIN");
-        if (isCustomer && !conv.getPrimaryCustomerId().equals(principal.userId())) {
-            throw new SecurityException("Access denied to conversation");
-        }
+        requireConversationAccess(conv, principal);
+        boolean isCustomer = isCustomerOnly(principal);
 
         List<TicketMessage> messages = ticketMessageRepository.findByTicketIdAndTenantIdOrderByCreatedAtAsc(
             conv.getTicketId(), tenantId
@@ -440,8 +447,8 @@ public class OmnichannelService {
     ) {
         Conversation conv = conversationRepository.findByIdAndTenantId(conversationId, tenantId)
             .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
-
-        boolean isCustomer = principal.roles().contains("CUSTOMER") && !principal.roles().contains("AGENT") && !principal.roles().contains("ADMIN");
+        requireConversationAccess(conv, principal);
+        boolean isCustomer = isCustomerOnly(principal);
         if (isCustomer && request.isInternal()) {
             throw new SecurityException("Customers cannot add internal notes");
         }
@@ -553,6 +560,7 @@ public class OmnichannelService {
     public HandoffResponse requestHandoff(UUID tenantId, UUID conversationId, TrustedPrincipal principal, HandoffRequest request) {
         Conversation conv = conversationRepository.findByIdAndTenantId(conversationId, tenantId)
             .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
+        requireConversationAccess(conv, principal);
 
         Ticket ticket = ticketRepository.findByIdAndTenantId(conv.getTicketId(), tenantId)
             .orElseThrow(() -> new IllegalArgumentException("Ticket not found for conversation"));
@@ -564,7 +572,12 @@ public class OmnichannelService {
         String verifiedFacts = String.format("Ticket %s [%s] category=%s priority=%s",
             ticket.getTicketNumber(), ticket.getStatus(), ticket.getCategory(), ticket.getPriority());
 
-        String attemptedSteps = "Omnichannel intake complete, automated triage performed.";
+        List<TicketMessage> persistedMessages = ticketMessageRepository.findByTicketIdAndTenantIdOrderByCreatedAtAsc(
+            ticket.getId(), tenantId);
+        long customerMessages = persistedMessages.stream().filter(m -> "CUSTOMER".equalsIgnoreCase(m.getSenderRole())).count();
+        long staffMessages = persistedMessages.stream().filter(m -> !m.isInternal() && !"CUSTOMER".equalsIgnoreCase(m.getSenderRole())).count();
+        String attemptedSteps = String.format("Conversation evidence: %d customer message(s), %d staff response(s).",
+            customerMessages, staffMessages);
         String promisedActions = "Conversation queued for human specialist assignment.";
         String sentiment = ticket.getSentiment() != null ? ticket.getSentiment() : "NEUTRAL";
         String openQuestions = "Awaiting customer requirements clarification.";
@@ -728,10 +741,29 @@ public class OmnichannelService {
     }
 
     @Transactional(readOnly = true)
-    public ConversationResponse getConversation(UUID tenantId, UUID conversationId) {
+    public ConversationResponse getConversation(UUID tenantId, UUID conversationId, TrustedPrincipal principal) {
         Conversation conv = conversationRepository.findByIdAndTenantId(conversationId, tenantId)
             .orElseThrow(() -> new IllegalArgumentException("Conversation not found: " + conversationId));
+        requireConversationAccess(conv, principal);
         return toConversationResponse(conv);
+    }
+
+    private void requireConversationAccess(Conversation conversation, TrustedPrincipal principal) {
+        if (principal == null || principal.userId() == null || principal.tenantId() == null ||
+            !conversation.getTenantId().equals(principal.tenantId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Authenticated conversation access is required");
+        }
+        if (isCustomerOnly(principal) && !conversation.getPrimaryCustomerId().equals(principal.userId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Conversation does not belong to customer");
+        }
+        boolean recognized = principal.roles().stream().anyMatch(role -> Set.of(
+            "CUSTOMER", "AGENT", "TEAM_LEAD", "ADMIN", "AUDITOR").contains(role));
+        if (!recognized) throw new org.springframework.security.access.AccessDeniedException("Conversation access denied");
+    }
+
+    private boolean isCustomerOnly(TrustedPrincipal principal) {
+        return principal.roles().contains("CUSTOMER") && principal.roles().stream().noneMatch(
+            role -> Set.of("AGENT", "TEAM_LEAD", "ADMIN").contains(role));
     }
 
     private ConversationResponse toConversationResponse(Conversation conv) {

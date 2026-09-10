@@ -7,6 +7,7 @@ public enum Permission {
     ACTION_APPROVE_FINANCIAL,
     EVIDENCE_VIEW_ORIGINAL,
     CONVERSATION_MERGE,
+    TICKET_ASSIGN,
     KNOWLEDGE_RELEASE_APPROVE;
 
     public String permissionName() {
