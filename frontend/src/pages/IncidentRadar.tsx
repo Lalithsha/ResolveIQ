@@ -26,6 +26,7 @@ import {
   IncidentUpdate,
   CustomerImpact,
   Role,
+  User,
 } from '../types';
 
 interface IncidentRadarProps {
@@ -57,6 +58,7 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
   const [updateType, setUpdateType] = useState<string>('INVESTIGATING');
   const [updateSummary, setUpdateSummary] = useState('');
   const [customerFacingMessage, setCustomerFacingMessage] = useState('');
+  const [updateActors, setUpdateActors] = useState<Record<string, User | null>>({});
 
   const loadData = useCallback(async () => {
     setErrorMessage(null);
@@ -101,6 +103,44 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
       setIncidentDetail(null);
     }
   }, [selectedIncidentId, loadIncidentDetail]);
+
+  useEffect(() => {
+    const actorIds = Array.from(new Set(
+      (incidentDetail?.updates ?? [])
+        .flatMap(update => [update.authorId, update.approverId])
+        .filter((id): id is string => Boolean(id)),
+    ));
+    const missingActorIds = actorIds.filter(id => !(id in updateActors));
+    if (missingActorIds.length === 0) return;
+
+    let cancelled = false;
+    void Promise.all(missingActorIds.map(async id => {
+      try {
+        return [id, await api.getDirectoryUser(id)] as const;
+      } catch {
+        return [id, null] as const;
+      }
+    })).then(entries => {
+      if (!cancelled) {
+        setUpdateActors(current => ({ ...current, ...Object.fromEntries(entries) }));
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [incidentDetail?.updates, updateActors]);
+
+  const actorLabel = (actorId?: string) => {
+    if (!actorId) return null;
+    if (!(actorId in updateActors)) return 'Loading team member…';
+    const actor = updateActors[actorId];
+    if (!actor) return 'Former or unavailable team member';
+    const role = actor.roles.includes('ADMIN')
+      ? 'Administrator'
+      : actor.roles.includes('TEAM_LEAD')
+      ? 'Team Lead'
+      : actor.roles.map(value => value === 'KNOWLEDGE_MANAGER' ? 'Knowledge Manager' : value[0] + value.slice(1).toLowerCase()).join(', ');
+    return `${actor.fullName} · ${role}`;
+  };
 
   const handleTriggerDetection = async () => {
     setIsDetecting(true);
@@ -610,8 +650,13 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
                             {update.customerFacingMessage}
                           </div>
 
-                          <div className="flex items-center justify-between text-[10px] text-muted pt-1">
-                            <span>Author: {update.authorId} {update.approverId && `• Approved by: ${update.approverId}`}</span>
+                          <div className="flex items-center justify-between gap-3 text-[10px] text-muted pt-1">
+                            <span className="flex flex-wrap gap-x-3 gap-y-1">
+                              <span title={`User ID: ${update.authorId}`}>Drafted by <strong className="font-medium text-DEFAULT">{actorLabel(update.authorId)}</strong></span>
+                              {update.approverId && (
+                                <span title={`User ID: ${update.approverId}`}>Approved by <strong className="font-medium text-DEFAULT">{actorLabel(update.approverId)}</strong></span>
+                              )}
+                            </span>
                             <div className="flex items-center gap-2">
                               {update.status === 'DRAFT' && (
                                 <>
