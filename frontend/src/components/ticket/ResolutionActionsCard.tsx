@@ -56,13 +56,24 @@ export const ResolutionActionsCard: React.FC<Props> = ({ ticketId, readOnly = fa
     loadProposals();
   }, [loadProposals]);
 
+  const showProposalOutcome = (proposal: ActionProposalResponse, actionLabel: string) => {
+    if (proposal.status === 'POLICY_DENIED') {
+      const reasons = proposal.policyDecision?.reasonCodes?.join(', ');
+      setErrorMessage(
+        `${actionLabel} was denied by policy${reasons ? `: ${reasons}` : '.'}`
+      );
+      return;
+    }
+    setSuccessMessage(`${actionLabel} proposed successfully. Awaiting policy approval.`);
+  };
+
   const handleProposeRefund = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionLoading('proposing');
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
-      await api.proposeResolutionAction(ticketId, {
+      const proposal = await api.proposeResolutionAction(ticketId, {
         actionType: 'REFUND_DUPLICATE_CHARGE',
         input: {
           customerAccountId: customerAccountId.trim(),
@@ -74,7 +85,7 @@ export const ResolutionActionsCard: React.FC<Props> = ({ ticketId, readOnly = fa
         },
         aiRationale: rationale.trim() || 'Verified duplicate billing charge during support interaction',
       });
-      setSuccessMessage('Refund action proposed successfully. Awaiting policy approval.');
+      showProposalOutcome(proposal, 'Refund action');
       setShowModal(null);
       await loadProposals();
     } catch (err) {
@@ -90,7 +101,7 @@ export const ResolutionActionsCard: React.FC<Props> = ({ ticketId, readOnly = fa
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
-      await api.proposeResolutionAction(ticketId, {
+      const proposal = await api.proposeResolutionAction(ticketId, {
         actionType: 'UNLOCK_ACCOUNT',
         input: {
           userId: userId.trim(),
@@ -99,7 +110,7 @@ export const ResolutionActionsCard: React.FC<Props> = ({ ticketId, readOnly = fa
         },
         aiRationale: rationale.trim() || 'Verified account recovery challenge completed',
       });
-      setSuccessMessage('Account unlock proposed successfully. Awaiting policy approval.');
+      showProposalOutcome(proposal, 'Account unlock');
       setShowModal(null);
       await loadProposals();
     } catch (err) {

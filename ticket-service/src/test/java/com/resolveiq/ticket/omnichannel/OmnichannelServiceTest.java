@@ -173,9 +173,15 @@ class OmnichannelServiceTest {
         EmailChallengeResponse challengeResp = omnichannelService.requestEmailChallenge(tenantId, customerId, email);
         assertNotNull(challengeResp.expiresAt());
 
-        // 2. Token retrieved securely from test MailboxSimulator
-        String challengeToken = mailboxSimulator.getLatestChallengeCode(tenantId, email).orElseThrow();
+        // 2. Token retrieved through the customer-bound local mailbox service
+        DevelopmentMailboxChallengeResponse mailboxChallenge =
+            omnichannelService.getDevelopmentMailboxChallenge(tenantId, customerId, email);
+        String challengeToken = mailboxChallenge.verificationCode();
         assertNotNull(challengeToken);
+        assertEquals(email, mailboxChallenge.email());
+        assertThrows(org.springframework.security.access.AccessDeniedException.class, () ->
+            omnichannelService.getDevelopmentMailboxChallenge(tenantId, UUID.randomUUID(), email)
+        );
 
         // 3. Mock pending intake
         UnverifiedEmailIntake intake = new UnverifiedEmailIntake(tenantId, email, hmac, "Need help", "Body text", "ext_msg_1");

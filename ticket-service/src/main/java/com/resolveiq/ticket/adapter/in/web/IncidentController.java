@@ -54,6 +54,14 @@ public class IncidentController {
         return ResponseEntity.ok(incidentService.getIncident(tenantId, id));
     }
 
+    @GetMapping("/{id}/detail")
+    public ResponseEntity<IncidentDetailResponse> detail(
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @PathVariable UUID id
+    ) {
+        return ResponseEntity.ok(incidentService.getIncidentDetail(tenantId, id));
+    }
+
     @GetMapping("/proposals")
     public ResponseEntity<List<IncidentProposalResponse>> proposals(
         @RequestHeader("X-Tenant-Id") UUID tenantId

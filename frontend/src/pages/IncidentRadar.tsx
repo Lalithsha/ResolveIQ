@@ -147,7 +147,7 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
-      const result = await api.triggerIncidentDetection(30);
+      const result = await api.triggerIncidentDetection();
       setSuccessMessage(`Radar scan completed. ${result.clustersDetected} outage clusters detected.`);
       await loadData();
     } catch (err) {
@@ -435,7 +435,7 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
             <span className="text-xs font-medium text-muted">Detection Algorithm</span>
             <Activity className="h-4 w-4 text-emerald-500" />
           </div>
-          <p className="mt-2 text-sm font-bold text-DEFAULT">Sliding Window (30m)</p>
+          <p className="mt-2 text-sm font-bold text-DEFAULT">Sliding Window (15m)</p>
           <p className="mt-1 text-[11px] text-muted">RAG Cosine + Volume Spike</p>
         </div>
       </div>

@@ -358,6 +358,12 @@ export interface EmailChallengeResponse {
   message: string;
 }
 
+export interface DevelopmentMailboxChallengeResponse {
+  email: string;
+  verificationCode: string;
+  expiresAt: string;
+}
+
 export interface EmailVerifyResponse {
   channelIdentityId?: string;
   email: string;

@@ -1,5 +1,6 @@
 package com.resolveiq.ticket.adapter.out.ai;
 
+import com.resolveiq.security.JwtService;
 import com.resolveiq.ticket.application.port.TicketSimilarityPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,16 +22,19 @@ public class RagTicketSimilarityAdapter implements TicketSimilarityPort {
 
     private final RestTemplate restTemplate;
     private final String ragBaseUrl;
+    private final JwtService jwtService;
 
     public RagTicketSimilarityAdapter(
         RestTemplateBuilder builder,
-        @Value("${resolveiq.rag.base-url:http://localhost:8086}") String ragBaseUrl
+        @Value("${resolveiq.rag.base-url:http://localhost:8086}") String ragBaseUrl,
+        JwtService jwtService
     ) {
         this.restTemplate = builder
             .setConnectTimeout(Duration.ofSeconds(2))
             .setReadTimeout(Duration.ofSeconds(5))
             .build();
         this.ragBaseUrl = ragBaseUrl;
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -53,6 +57,7 @@ public class RagTicketSimilarityAdapter implements TicketSimilarityPort {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("X-Tenant-Id", tenantId.toString());
+            headers.setBearerAuth(jwtService.serviceToken("ticket-service", tenantId));
 
             Map<String, Object> body = Map.of(
                 "ticketId", ticketId != null ? ticketId.toString() : UUID.randomUUID().toString(),

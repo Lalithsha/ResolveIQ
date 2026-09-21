@@ -141,6 +141,7 @@ class ResolutionActionServiceTest {
                 proposal.expiresAt()
         );
         propEntity.setRiskLevel(RiskLevel.LOW);
+        propEntity.setProposerId(agentId);
         propEntity.setCurrentStateVersion(payment.getVersion().toString());
         propEntity.setStatus(ActionStatus.AWAITING_APPROVAL);
 

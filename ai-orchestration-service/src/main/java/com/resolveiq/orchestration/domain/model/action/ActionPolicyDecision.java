@@ -1,6 +1,8 @@
 package com.resolveiq.orchestration.domain.model.action;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -21,9 +23,11 @@ public class ActionPolicyDecision {
     @Column(nullable = false, length = 50)
     private PolicyDecision decision;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "matched_rules", columnDefinition = "jsonb")
     private String matchedRules;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "required_permissions", columnDefinition = "jsonb")
     private String requiredPermissions;
 
@@ -33,6 +37,7 @@ public class ActionPolicyDecision {
     @Column(name = "financial_limit_cents")
     private Long financialLimitCents;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "reason_codes", columnDefinition = "jsonb")
     private String reasonCodes;
 

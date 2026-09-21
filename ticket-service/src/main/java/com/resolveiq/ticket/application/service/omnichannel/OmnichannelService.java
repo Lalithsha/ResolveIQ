@@ -248,6 +248,39 @@ public class OmnichannelService {
     }
 
     /**
+     * Reads a challenge from the isolated local mailbox. This method does not
+     * weaken challenge ownership: the address must have an active challenge
+     * belonging to the authenticated customer. It is exposed only by the
+     * docker/local-profile controller.
+     */
+    @Transactional(readOnly = true)
+    public DevelopmentMailboxChallengeResponse getDevelopmentMailboxChallenge(
+        UUID tenantId, UUID customerId, String rawEmail
+    ) {
+        String normalized = identityHashService.normalizeEmail(rawEmail);
+        String hmac = identityHashService.computeAddressHmac(normalized);
+        ChannelIdentity identity = channelIdentityRepository.findByTenantIdAndChannelAndAddressHmac(
+            tenantId, ChannelType.EMAIL, hmac
+        ).orElseThrow(() -> new IllegalArgumentException("No pending verification found for address: " + normalized));
+
+        if (!customerId.equals(identity.getCustomerId())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                "Verification challenge belongs to a different customer"
+            );
+        }
+        if (identity.isVerified()) {
+            throw new IllegalStateException("Email address is already verified");
+        }
+        if (identity.getChallengeExpiresAt() == null || Instant.now().isAfter(identity.getChallengeExpiresAt())) {
+            throw new IllegalStateException("Verification challenge has expired. Please request a new code.");
+        }
+
+        String code = mailboxSimulator.getLatestChallengeCode(tenantId, normalized)
+            .orElseThrow(() -> new IllegalStateException("No active code is available in the local mailbox"));
+        return new DevelopmentMailboxChallengeResponse(normalized, code, identity.getChallengeExpiresAt());
+    }
+
+    /**
      * Verify Email Challenge and Atomically Promote Quarantined Intakes
      */
     @Transactional(noRollbackFor = {IllegalArgumentException.class, IllegalStateException.class, org.springframework.security.access.AccessDeniedException.class})

@@ -40,6 +40,8 @@ spring:
       max-request-size: 11MB
 
 resolveiq:
+  rag:
+    base-url: ${RESOLVEIQ_RAG_BASE_URL:http://localhost:8086}
   attachments:
     enabled: ${RESOLVEIQ_ATTACHMENTS_ENABLED:true}
     storage: ${RESOLVEIQ_ATTACHMENTS_STORAGE:minio}

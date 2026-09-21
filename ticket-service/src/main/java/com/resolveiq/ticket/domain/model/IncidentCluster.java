@@ -1,6 +1,8 @@
 package com.resolveiq.ticket.domain.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -47,7 +49,8 @@ public class IncidentCluster {
     @Column(name = "region", length = 64)
     private String region;
 
-    @Column(name = "error_fingerprints", columnDefinition = "JSONB")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "error_fingerprints", columnDefinition = "jsonb")
     private String errorFingerprints;
 
     @Enumerated(EnumType.STRING)

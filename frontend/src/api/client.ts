@@ -5,13 +5,113 @@ import {
   SupportIncident, IncidentCluster, IncidentUpdate, CustomerImpact, ActiveCustomerIncident,
   ActionProposalResponse, ActionExecutionResponse, CompensationResponse,
   ChannelType, TimelineResponse, TimelineMessageItem, HandoffResponse, ChannelIdentity,
-  CustomerPreferences, EmailChallengeResponse, EmailVerifyResponse,
+  CustomerPreferences, EmailChallengeResponse, EmailVerifyResponse, DevelopmentMailboxChallengeResponse,
   EvidenceJobResponse, EvidenceArtifactResponse, EvidenceObservationResponse,
   ResolutionRating, ResolutionAttemptResponse, ResolutionMetricsResponse,
   KnowledgeCandidateResponse, EvaluationRunResponse, KnowledgeReleaseResponse, RollbackResponse,
 } from '../types';
 
 const API_BASE = '/api/v1';
+
+interface BackendIncident {
+  id: string;
+  incidentNumber: string;
+  title: string;
+  status: SupportIncident['status'] | 'PROPOSED' | 'DISMISSED';
+  severity: SupportIncident['severity'];
+  detectedAt: string;
+  resolvedAt?: string | null;
+  summary: string;
+  linkedTicketCount: number;
+  affectedCustomerCount: number;
+  components?: Array<{ componentName: string }>;
+}
+
+interface BackendIncidentProposal {
+  clusterId: string;
+  incidentId: string;
+  dominantCategory: string;
+  product?: string | null;
+  ticketCount: number;
+  anomalyScore: number;
+  sampleTickets?: Array<{ ticketId: string }>;
+  status: IncidentCluster['status'];
+  explanation: string;
+}
+
+interface BackendIncidentUpdate {
+  id: string;
+  incidentId: string;
+  status: IncidentUpdate['status'];
+  title: string;
+  message: string;
+  authorId: string;
+  approvedBy?: string | null;
+  publishedAt?: string | null;
+}
+
+interface BackendIncidentDetail {
+  incident: BackendIncident;
+  ticketIds: string[];
+  updates: BackendIncidentUpdate[];
+  impacts: Array<{
+    id: string;
+    customerId: string;
+    incidentId: string;
+    linkedTicketId: string;
+    createdAt: string;
+  }>;
+}
+
+function mapIncident(value: BackendIncident): SupportIncident {
+  const component = value.components?.[0]?.componentName || 'Unspecified component';
+  return {
+    id: value.id,
+    tenantId: '',
+    title: value.title,
+    summary: value.summary,
+    status: value.status as SupportIncident['status'],
+    severity: value.severity,
+    affectedComponent: component,
+    detectedAt: value.detectedAt,
+    resolvedAt: value.resolvedAt,
+    ticketCount: value.linkedTicketCount,
+    affectedCustomerCount: value.affectedCustomerCount,
+    createdAt: value.detectedAt,
+    updatedAt: value.resolvedAt || value.detectedAt,
+  };
+}
+
+function mapIncidentProposal(value: BackendIncidentProposal): IncidentCluster {
+  return {
+    // Mutations operate on the proposed incident, while clusterId remains an internal detector record.
+    id: value.incidentId,
+    clusterKey: value.clusterId,
+    title: `${value.product || 'Support'} ${value.dominantCategory} incident`,
+    summary: value.explanation,
+    suggestedSeverity: value.anomalyScore >= 3 ? 'HIGH' : 'MEDIUM',
+    affectedComponent: value.product || value.dominantCategory,
+    ticketCount: value.ticketCount,
+    status: value.status,
+    sampleTicketIds: (value.sampleTickets || []).map(ticket => ticket.ticketId),
+    createdAt: '',
+  };
+}
+
+function mapIncidentUpdate(value: BackendIncidentUpdate): IncidentUpdate {
+  return {
+    id: value.id,
+    incidentId: value.incidentId,
+    updateType: 'INVESTIGATING',
+    summary: value.title,
+    customerFacingMessage: value.message,
+    authorId: value.authorId,
+    approverId: value.approvedBy,
+    status: value.status,
+    createdAt: value.publishedAt || '',
+    publishedAt: value.publishedAt,
+  };
+}
 
 export interface AuthResponse {
   accessToken: string;
@@ -70,7 +170,11 @@ class ApiClient {
       return {} as T;
     }
 
-    return response.json();
+    const responseBody = await response.text();
+    if (!responseBody) {
+      return {} as T;
+    }
+    return JSON.parse(responseBody) as T;
   }
 
   // Auth APIs
@@ -353,26 +457,31 @@ class ApiClient {
 
   // Incident Radar APIs
   async listActiveIncidents(): Promise<SupportIncident[]> {
-    return this.request<SupportIncident[]>('/incidents/active');
+    const page = await this.request<{ content: BackendIncident[] }>('/incidents?status=INVESTIGATING&size=100');
+    const identified = await this.request<{ content: BackendIncident[] }>('/incidents?status=IDENTIFIED&size=100');
+    const monitoring = await this.request<{ content: BackendIncident[] }>('/incidents?status=MONITORING&size=100');
+    return [...page.content, ...identified.content, ...monitoring.content].map(mapIncident);
   }
 
   async listIncidentProposals(): Promise<IncidentCluster[]> {
-    return this.request<IncidentCluster[]>('/incidents/proposals');
+    const proposals = await this.request<BackendIncidentProposal[]>('/incidents/proposals');
+    return proposals.map(mapIncidentProposal);
   }
 
-  async triggerIncidentDetection(lookbackMinutes: number = 30): Promise<{ clustersDetected: number; clusters: IncidentCluster[] }> {
-    return this.request(`/incidents/detect?lookbackMinutes=${lookbackMinutes}`, { method: 'POST' });
+  async triggerIncidentDetection(): Promise<{ clustersDetected: number; evaluatedTickets: number }> {
+    const result = await this.request<{ proposalsCreated: number; evaluatedTickets: number }>('/incidents/detect', { method: 'POST' });
+    return { clustersDetected: result.proposalsCreated, evaluatedTickets: result.evaluatedTickets };
   }
 
-  async confirmIncidentProposal(proposalId: string, data?: { title?: string; severity?: string; affectedComponent?: string }): Promise<SupportIncident> {
-    return this.request<SupportIncident>(`/incidents/proposals/${proposalId}/confirm`, {
+  async confirmIncidentProposal(proposalId: string, _data?: { title?: string; severity?: string; affectedComponent?: string }): Promise<SupportIncident> {
+    const incident = await this.request<BackendIncident>(`/incidents/${proposalId}/confirm`, {
       method: 'POST',
-      body: JSON.stringify(data || {}),
     });
+    return mapIncident(incident);
   }
 
   async dismissIncidentProposal(proposalId: string): Promise<void> {
-    return this.request<void>(`/incidents/proposals/${proposalId}/dismiss`, { method: 'POST' });
+    return this.request<void>(`/incidents/${proposalId}/dismiss`, { method: 'POST' });
   }
 
   async getIncidentDetails(incidentId: string): Promise<{
@@ -381,18 +490,32 @@ class ApiClient {
     updates: IncidentUpdate[];
     impacts: CustomerImpact[];
   }> {
-    return this.request(`/incidents/${incidentId}`);
+    const detail = await this.request<BackendIncidentDetail>(`/incidents/${incidentId}/detail`);
+    return {
+      incident: mapIncident(detail.incident),
+      tickets: detail.ticketIds,
+      updates: detail.updates.map(mapIncidentUpdate),
+      impacts: detail.impacts.map(impact => ({
+        id: impact.id,
+        customerId: impact.customerId,
+        incidentId: impact.incidentId,
+        customerName: `Customer ${impact.customerId.slice(0, 8)}`,
+        customerEmail: '',
+        linkedTicketId: impact.linkedTicketId,
+        createdAt: impact.createdAt,
+      })),
+    };
   }
 
   async updateIncidentStatus(incidentId: string, status: string): Promise<SupportIncident> {
-    return this.request<SupportIncident>(`/incidents/${incidentId}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
+    const incident = await this.request<BackendIncident>(`/incidents/${incidentId}/transition`, {
+      method: 'POST', body: JSON.stringify({ status }),
     });
+    return mapIncident(incident);
   }
 
   async linkTicketToIncident(incidentId: string, ticketId: string): Promise<void> {
-    return this.request<void>(`/incidents/${incidentId}/tickets/${ticketId}`, { method: 'POST' });
+    return this.request<void>(`/incidents/${incidentId}/tickets/${ticketId}/link`, { method: 'POST' });
   }
 
   async unlinkTicketFromIncident(incidentId: string, ticketId: string): Promise<void> {
@@ -404,18 +527,21 @@ class ApiClient {
     summary: string;
     customerFacingMessage: string;
   }): Promise<IncidentUpdate> {
-    return this.request<IncidentUpdate>(`/incidents/${incidentId}/updates`, {
+    const update = await this.request<BackendIncidentUpdate>(`/incidents/${incidentId}/updates`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ title: data.summary, message: data.customerFacingMessage, audienceType: 'ALL_AFFECTED' }),
     });
+    return mapIncidentUpdate(update);
   }
 
   async approveIncidentUpdate(incidentId: string, updateId: string): Promise<IncidentUpdate> {
-    return this.request<IncidentUpdate>(`/incidents/${incidentId}/updates/${updateId}/approve`, { method: 'POST' });
+    const update = await this.request<BackendIncidentUpdate>(`/incidents/${incidentId}/updates/${updateId}/approve`, { method: 'POST' });
+    return mapIncidentUpdate(update);
   }
 
   async publishIncidentUpdate(incidentId: string, updateId: string): Promise<IncidentUpdate> {
-    return this.request<IncidentUpdate>(`/incidents/${incidentId}/updates/${updateId}/publish`, { method: 'POST' });
+    const update = await this.request<BackendIncidentUpdate>(`/incidents/${incidentId}/updates/${updateId}/publish`, { method: 'POST' });
+    return mapIncidentUpdate(update);
   }
 
   async getCustomerActiveIncidents(): Promise<ActiveCustomerIncident[]> {
@@ -521,6 +647,13 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ email, token }),
     });
+  }
+
+  async getDevelopmentMailboxChallenge(email: string): Promise<DevelopmentMailboxChallengeResponse> {
+    const params = new URLSearchParams({ email });
+    return this.request<DevelopmentMailboxChallengeResponse>(
+      `/customer/dev-mailbox/email/challenge?${params.toString()}`
+    );
   }
 
   async getCustomerPreferences(): Promise<CustomerPreferences> {

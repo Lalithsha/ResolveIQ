@@ -79,6 +79,23 @@ public final class IncidentDtos {
         String contentDigest
     ) {}
 
+    public record IncidentDetailResponse(
+        IncidentResponse incident,
+        List<UUID> ticketIds,
+        List<IncidentUpdateResponse> updates,
+        List<CustomerImpactDto> impacts
+    ) {}
+
+    public record CustomerImpactDto(
+        UUID id,
+        UUID customerId,
+        UUID incidentId,
+        UUID linkedTicketId,
+        String impactLevel,
+        boolean notified,
+        Instant createdAt
+    ) {}
+
     public record TransitionIncidentRequest(
         @NotNull IncidentStatus status,
         String resolutionSummary

@@ -12,3 +12,4 @@ logs
 *.log
 *.md
 !README.md
+compose.yaml

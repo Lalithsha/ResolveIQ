@@ -1,8 +1,31 @@
 # Multi-stage Dockerfile for ResolveIQ Spring Boot Services
+FROM maven:3.9.9-eclipse-temurin-21-alpine AS dev-builder
+WORKDIR /workspace
+COPY . .
+# Compile the reactor once while BuildKit is building the shared dev image. Every
+# backend container starts its own prepared JAR instead of running seven competing
+# Maven builds during `docker compose up`.
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw -q package -Dmaven.test.skip=true -Djacoco.skip=true && \
+    mkdir -p /opt/resolveiq-dev-jars && \
+    for service_dir in discovery-service api-gateway auth-service ticket-service \
+      ai-orchestration-service ai-analysis-service routing-service rag-service; do \
+      built_jar="$(find "/workspace/${service_dir}/target" -maxdepth 1 -type f -name '*.jar' ! -name '*.original' | head -n 1)"; \
+      test -n "${built_jar}"; \
+      cp "${built_jar}" "/opt/resolveiq-dev-jars/${service_dir}.jar"; \
+      { \
+        find "/workspace/${service_dir}/src/main" /workspace/common-contracts/src/main /workspace/common-security/src/main \
+          -type f -exec sha256sum {} + 2>/dev/null; \
+        sha256sum /workspace/pom.xml "/workspace/${service_dir}/pom.xml" \
+          /workspace/common-contracts/pom.xml /workspace/common-security/pom.xml 2>/dev/null; \
+      } | sort | sha256sum | cut -d ' ' -f 1 > "/opt/resolveiq-dev-jars/${service_dir}.fingerprint"; \
+    done
+
 FROM maven:3.9.9-eclipse-temurin-21-alpine AS dev
 RUN apk add --no-cache ffmpeg tesseract-ocr poppler-utils
 WORKDIR /workspace
 COPY . .
+COPY --from=dev-builder /opt/resolveiq-dev-jars /opt/resolveiq-dev-jars
 ENTRYPOINT ["sh", "/workspace/infra/docker/dev-backend-entrypoint.sh"]
 
 FROM maven:3.9.9-eclipse-temurin-21-alpine AS builder

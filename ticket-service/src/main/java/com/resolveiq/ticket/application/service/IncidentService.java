@@ -109,6 +109,26 @@ public class IncidentService {
     }
 
     @Transactional(readOnly = true)
+    public IncidentDetailResponse getIncidentDetail(UUID tenantId, UUID id) {
+        IncidentResponse incident = getIncident(tenantId, id);
+        List<UUID> ticketIds = linkRepository.findByIncidentId(id).stream()
+            .filter(link -> link.getUnlinkedAt() == null)
+            .map(IncidentTicketLink::getTicketId)
+            .toList();
+        List<IncidentUpdateResponse> updates = updateRepository
+            .findByTenantIdAndIncidentIdOrderByUpdateNumberAsc(tenantId, id).stream()
+            .map(this::toUpdateResponse)
+            .toList();
+        List<CustomerImpactDto> impacts = impactRepository.findByTenantIdAndIncidentId(tenantId, id).stream()
+            .map(impact -> new CustomerImpactDto(
+                impact.getId(), impact.getCustomerId(), impact.getIncidentId(), impact.getTicketId(),
+                impact.getImpactLevel(), impact.isNotified(), impact.getCreatedAt()
+            ))
+            .toList();
+        return new IncidentDetailResponse(incident, ticketIds, updates, impacts);
+    }
+
+    @Transactional(readOnly = true)
     public List<IncidentProposalResponse> listProposals(UUID tenantId) {
         List<IncidentCluster> clusters = clusterRepository.findByTenantIdAndStatus(tenantId, ClusterStatus.PROPOSED);
         List<IncidentProposalResponse> result = new ArrayList<>();

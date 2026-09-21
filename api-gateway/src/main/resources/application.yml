@@ -67,7 +67,7 @@ spring:
         - id: ticket-conversation-route
           uri: lb://ticket-service
           predicates:
-            - Path=/api/v1/conversations/**, /api/v1/deliveries/**, /api/v1/customer/channel-identities/**, /api/v1/customer/channel-preferences, /api/v1/customer/communication-consent, /webhooks/v1/email/**
+            - Path=/api/v1/conversations/**, /api/v1/deliveries/**, /api/v1/customer/channel-identities/**, /api/v1/customer/channel-preferences, /api/v1/customer/communication-consent, /api/v1/customer/dev-mailbox/**, /webhooks/v1/email/**
 
         - id: analysis-evidence-route
           uri: lb://ai-analysis-service

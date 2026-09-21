@@ -469,11 +469,228 @@ Perform these only after the development stack was built once.
 
 Changes to `common-contracts` or `common-security` intentionally trigger all watching backend services. Changes to Compose, Dockerfiles, ports, container environment variables, or frontend dependencies still require a rebuild.
 
-## 12. Honest UI boundary after Part 1
+## 12. Part 2 test-data preparation
+
+> **Purpose / feature:** Prepares safe fictional records and media for the five Part 2 journeys. Part 2 screens are state-driven, so a button may correctly be absent until its ticket, incident, action, evidence or resolution reaches the required state.
+
+1. Complete Sections 2 and 3, then keep the full Compose stack running.
+2. Complete Customer tests 5.1–5.3 at least three times with closely related subjects such as `Checkout returns payment gateway timeout`, `Payment confirmation stuck after checkout`, and `Duplicate authorization after gateway timeout`. Use fictional details only.
+3. Let asynchronous triage finish and record all three ticket numbers.
+4. Prepare harmless fixture text containing a timestamp, `ERR-PAY-502`, a fictional request ID and a fictional email. The current Evidence Lab form accepts pasted bytes through **Content / Fixture Text**; it does not yet contain a native binary file picker.
+5. Do not upload real customer data, secrets, payment details or personal recordings.
+6. Keep two browser sessions available: a normal window for staff and an incognito window for Alex.
+
+Expected: related tickets exist for incident clustering; safe fixture content exists for the UI evidence smoke test; no test relies on production data. Real PNG/PDF/MP4 adapter acceptance is not testable through the current UI and belongs to the automated/API corpus gate.
+
+## 13. Part 2 Feature 1 — Support Incident Radar
+
+> **Purpose / feature:** Detects when many separate tickets are symptoms of one larger outage. The Team Lead reviews the proposed cluster, controls its lifecycle and publishes customer-safe updates instead of agents treating every report independently.
+
+Login as `marcus.vance@resolveiq.local` and select **Incident Radar**.
+
+### 13.1 Detect and review a proposed incident
+
+1. Confirm the metrics and lists load without sample-data errors.
+   - With the current seeded data, the correct initial result is `0` Active Incidents, `0` Proposed Clusters, `0` Affected Customers and **All Systems Operational**.
+   - No red error banner may be present. `Invalid UUID string: active` is an API-contract failure, not a valid empty state.
+2. Click **Scan Anomaly Radar** once and wait for the scan result.
+3. If a proposed cluster appears, confirm its component, severity, ticket count and sample ticket IDs match the related test tickets.
+4. Confirm unrelated tickets are not included merely because they share common words.
+5. Capture the proposal ID/title for the test record.
+6. Use one disposable proposal to test **Dismiss**; refresh and confirm it no longer appears as pending.
+7. On the intended proposal, click **Declare Incident**.
+8. Confirm it moves from **Proposed Incident Clusters** to **Active Outages** and remains after refresh.
+
+Expected: scanning proposes rather than silently declares an outage; a human confirms the cluster; dismissal and declaration are persisted.
+
+If no proposal appears, record `LIMITATION` rather than manually claiming success. Detection requires enough related tickets inside its active time window and healthy semantic retrieval.
+
+### 13.2 Inspect membership and control lifecycle
+
+1. Select the declared incident.
+2. Confirm title, component, severity, summary, linked-ticket count and affected-customer count load from the backend.
+3. Copy one eligible ticket UUID from a selected ticket context and use the link-ticket control.
+4. Confirm the ticket appears once; repeating the link must not duplicate it.
+5. Unlink that manually added ticket and confirm impact counts are recalculated while the incident remains.
+6. Move the incident through **INVESTIGATING → IDENTIFIED → MONITORING**.
+7. Refresh after each transition and confirm the state persists.
+8. Do not select **RESOLVED** until the communication checks below are complete.
+
+Expected: membership is auditable, duplicate links are prevented and lifecycle changes survive reload.
+
+### 13.3 Draft, approve and publish a customer update
+
+1. In **Customer Communications**, draft an update with summary `Payment gateway mitigation in progress` and a customer-safe message that contains no internal IDs.
+2. Confirm it is saved as `DRAFT` and is not presented as published.
+3. For a HIGH/CRITICAL incident, confirm the author cannot self-approve; login as a different authorized lead/admin to approve it.
+4. Click **Approve**, then **Publish** only after reviewing the exact customer-facing content.
+5. Confirm the update becomes `PUBLISHED` with a publication time.
+6. In Alex's session, open **My Tickets** and confirm the active-incident banner/update is visible only when Alex owns a linked ticket.
+7. Return as Team Lead, transition the incident to **RESOLVED**, refresh and confirm it leaves the active list.
+
+Expected: high-impact communication follows draft/approval/publication stages and only affected customers see it.
+
+## 14. Part 2 Feature 2 — Policy-Controlled Resolution Actions
+
+> **Purpose / feature:** Lets support propose sensitive operations such as a duplicate-charge refund or account unlock while policy, approval, recent authentication, idempotency and a durable worker prevent unsafe or repeated effects. Local actions use a simulator; no real money or identity provider is contacted.
+
+Login as Sarah, open **My Queue**, select an owned ticket, and locate **Resolution Actions** in the right evidence column.
+
+### 14.1 Propose and reject an action
+
+1. Click the duplicate-refund proposal control.
+2. Enter fictional values: account `acct-ui-001`, payment reference `pay-ui-002`, original reference `pay-ui-001`, currency `USD`, amount `4000`, and a clear rationale.
+3. Click **Propose Action**.
+4. Confirm the card displays normalized values, a canonical digest, risk level and `PROPOSED` or `AWAITING_APPROVAL` status.
+5. Refresh and confirm the proposal persists.
+6. Create a second disposable proposal, click **Reject**, and confirm it becomes `REJECTED` and cannot execute.
+
+Expected: the UI never directly performs a refund; it creates an immutable, reviewable intent and rejection is terminal.
+
+### 14.2 Approve and execute safely
+
+1. Review the exact target, amount, currency and duplicate reference before approval.
+2. Click **Approve** on the intended proposal. If recent authentication is required, sign out/in and retry; do not bypass the check.
+3. Confirm status becomes `APPROVED`.
+4. Click **Execute Action** once.
+5. Confirm the response says the operation is queued or processing; refresh until it reaches `SUCCEEDED`/`RECONCILED`, or an explicit retry/manual-review state.
+6. Click **Execute Action** again if the control remains available and confirm no second business effect is created.
+7. Repeat with **Propose Account Unlock** using a fictional seeded user UUID and confirm the same review/approval/queued-execution behavior.
+
+Expected: execution is asynchronous and idempotent. A timeout must not be displayed as success; it must reconcile or move to an honest failure/manual-review state.
+
+### 14.3 Negative policy checks
+
+1. Propose an invalid or over-policy amount and confirm approval/execution is denied with a clear reason.
+2. Leave the session idle beyond the recent-authentication window, then attempt approval and confirm it fails until re-login.
+3. Login as Customer or Auditor and confirm proposal, approval and execution controls are absent.
+
+Expected: hiding controls is supplemented by backend denial; no denied attempt changes provider or business state.
+
+## 15. Part 2 Feature 3 — Omnichannel continuity and intelligent handoff
+
+> **Purpose / feature:** Keeps portal messages, verified email identity, internal notes and escalation context in one conversation. Customers should not repeat their story when a specialist takes over, and staff-only notes must never leak to them.
+
+### 15.1 Verify a customer email identity
+
+1. Login as Alex, open the Part 2 test ticket in **My Tickets**, and locate **Omnichannel Continuity**.
+2. Click **Verify Email**, enter Alex's fictional seeded email, and click **Send Code**.
+3. In the verification-code step, click **Load test code** inside **Local development mailbox**. Confirm the six-digit code is filled into the input.
+   - This control is compiled into the frontend only in Vite development mode.
+   - Its backend endpoint is registered only for the `docker` and `local` Spring profiles.
+   - It requires the authenticated `CUSTOMER` who requested the still-active challenge; staff and other customers are denied.
+   - Production verification responses never include the plaintext challenge.
+4. Click **Confirm & Link**.
+5. Confirm the card shows **Email Verified** and remains verified after refresh.
+6. Try a wrong/expired code in a separate attempt and confirm it is rejected.
+
+Expected: email is not trusted merely because a user typed it; verification creates a persisted channel identity.
+
+### 15.2 Portal/email timeline and internal-note isolation
+
+1. As Alex, send a new portal reply from the omnichannel card and confirm it appears with channel `PORTAL`.
+2. Login as Sarah, select the same ticket and confirm the portal reply is in the unified timeline.
+3. Select **Note**, enter `Internal check: validate fictional gateway request ID`, and click **Save Internal Note**.
+4. Confirm it is visibly labelled **INTERNAL NOTE (Staff Only)**.
+5. Return to Alex and refresh; confirm the internal note is absent.
+6. As Sarah, select **Email**, send a harmless response, and confirm the timeline reports the honest delivery status. `ACCEPTED`/queued is not the same as `DELIVERED`.
+
+Expected: all public channels share one ordered conversation while internal content remains staff-only.
+
+### 15.3 Request and claim a human handoff
+
+1. As Alex, click **Talk to a Person**.
+2. Enter `The automated guidance did not resolve the duplicate authorization` and click **Enter Queue**.
+3. Confirm handoff state becomes `QUEUED` and the summary contains the issue, verified context and actual attempted steps.
+4. As Sarah, open the same ticket and click **Claim Handoff**.
+5. Confirm the state changes only after assignment succeeds and persists after refresh.
+6. Verify Sarah can see the prior portal/email context without asking Alex to repeat it.
+
+Expected: the UI never claims a specialist joined before assignment succeeds, and the handoff summary is derived from persisted conversation activity.
+
+## 16. Part 2 Feature 4 — Multimodal Evidence Lab
+
+> **Purpose / feature:** Converts customer-provided screenshots, logs, PDFs and screen recordings into sanitized, timestamped observations for investigation. Original evidence remains protected and every privileged view requires a reason and audit record.
+
+Login as Sarah, select an owned ticket, and locate **Multimodal Evidence Lab**.
+
+### 16.1 Upload and analyze evidence
+
+1. In **Attach Diagnostic Evidence**, enter `payment-error.log`, select **Log / Trace**, and paste the prepared harmless fixture text into **Content / Fixture Text**.
+2. Check **Allow AI to extract error codes and sanitize diagnostic evidence**, then click **Upload & Analyze**.
+3. Confirm the job progresses through explicit scanning/processing states rather than instantly showing fabricated output.
+4. Refresh until the job reaches its terminal state.
+5. Confirm extracted observations include relevant error text and locations where supported.
+6. Confirm the sanitized view removes the fictional email/secret pattern while retaining diagnostic content such as `ERR-PAY-502`.
+7. Repeat once with consent unchecked and confirm analysis does not proceed as though consent existed; then grant consent and confirm the state is updated.
+8. Record binary image/PDF/MP4 extraction as `LIMITATION` for UI-only testing. Typing text while selecting those media types does not create a valid binary file and is not proof that Tesseract, pdftotext or FFmpeg works.
+
+Expected: real adapters process supported media, failures remain failures, and raw content is not stored/displayed as an unprotected substitute for evidence processing.
+
+### 16.2 Audited original access and deletion
+
+1. Select processed evidence and click **Request Original (Audited)** without a reason; confirm validation rejects it.
+2. Enter `Investigating OCR mismatch for ticket acceptance test` and request again.
+3. Confirm authorized access displays the original and a success notice says the security audit was logged.
+4. Login as a role without `EVIDENCE_VIEW_ORIGINAL` and confirm original access is absent or denied.
+5. Use **Delete Evidence** on disposable evidence, confirm deletion, refresh, and verify it cannot be reopened through the UI.
+
+Expected: original access is least-privilege and reason-audited; deletion removes user access and initiates the persisted deletion lifecycle.
+
+## 17. Part 2 Feature 5 — Verified resolution and knowledge flywheel
+
+> **Purpose / feature:** Measures whether the customer says a solution worked and promotes repeated, sanitized solutions into governed knowledge only after quality checks. This closes the loop between support outcomes and future retrieval.
+
+### 17.1 Customer resolution confirmation and reopen
+
+1. As Sarah, resolve/send the intended solution for the test ticket so the customer receives a resolution confirmation prompt.
+2. As Alex, open the ticket in **My Tickets**.
+3. Choose **Yes** and optionally enter a fictional reason.
+4. Confirm the outcome becomes confirmed/resolved and the resolution history shows its attempt and score.
+5. On a separate resolved ticket choose **Partly** or **No** and explain what remains unresolved.
+6. Confirm the ticket returns to an active/in-progress state rather than being counted as a successful resolution.
+7. On an eligible resolved ticket click **Reopen Ticket**, enter a reason, and confirm a new resolution attempt/history entry is retained.
+
+Expected: customer outcome—not an agent click alone—determines verified success; partial/negative outcomes and reopen events reduce quality claims and preserve history.
+
+### 17.2 Create, sanitize, evaluate and release knowledge
+
+1. Login as Elena and select **Release Flywheel**.
+2. Confirm metrics load from persisted resolution outcomes or explicitly show empty/unavailable.
+3. Click **Propose Candidate** and enter a fictional title, category, solution content containing a deliberate fictional email, a score at least 80 and a distinct-customer count of at least 5.
+4. Click **Save Candidate** and confirm it enters **Knowledge Candidates Quality Queue**.
+5. Click **Sanitize PII & Secrets** and confirm the deliberate email is removed from sanitized content.
+6. Click **Run Holdout Evaluation**.
+7. Continue only if the UI reports a real passing evaluation. If prerequisite evidence is absent or evaluation is simulated/unavailable, record `LIMITATION`; do not claim the feature passed.
+8. Click **Approve & Release** and confirm the candidate becomes `RELEASED`.
+9. As Alex, search the Help Center using unique candidate wording and confirm the released knowledge is retrievable.
+10. Return as Elena, click **Rollback Release**, enter a reason and **Confirm Rollback**.
+11. Search again as Alex and confirm the rolled-back content is no longer active while audit/history remains.
+
+Expected: only eligible, sanitized, evaluated and human-approved knowledge becomes searchable; rollback removes it from active retrieval without erasing governance history.
+
+## 18. Integrated Part 1 + Part 2 showcase journey
+
+> **Purpose / feature:** Proves the application works as one support system rather than a collection of pages. Use this as the final recruiter/demo flow after individual tests pass.
+
+1. Customer creates a ticket with an attachment and searches self-service knowledge first.
+2. Asynchronous AI triage classifies, retrieves evidence, routes and prepares a grounded draft.
+3. Agent inspects citations/evidence, sends a human-approved reply and records AI feedback.
+4. Multiple similar tickets cause Incident Radar to propose a cluster; Team Lead declares it and publishes an approved update.
+5. Agent proposes a simulated resolution action; policy and human approval queue exactly one durable execution.
+6. Customer verifies email, continues the same conversation across portal/email and requests a specialist handoff.
+7. Agent processes multimodal evidence and uses sanitized observations while original access remains audited.
+8. Customer confirms whether the resolution worked or reopens the ticket.
+9. Knowledge Manager sanitizes and evaluates a qualified repeated solution, releases it, verifies retrieval and demonstrates rollback.
+10. Administrator checks operations/AI governance; Auditor confirms immutable evidence with no mutation controls.
+
+Pass only if identifiers and state changes persist across refresh and persona changes. A rendered card, seeded label or success toast without backend readback is not sufficient.
+
+## 19. Honest UI and acceptance boundary
 
 > **Purpose / feature:** Defines what the current product intentionally does not offer in the UI. Reviewing this boundary prevents placeholders, API-only operations and future roadmap items from being presented as completed features.
 
-The Part 1 role workflows, queues, attachments, lifecycle, routing, governance and audit views are API-backed. These items remain outside the current UI and must not be claimed:
+The Part 1 role workflows and the current Part 2 screens are wired to APIs, but UI walkthroughs alone cannot certify concurrency, crash recovery, cross-tenant denial, real semantic/media quality or delivery guarantees. These items must not be claimed from a manual UI pass:
 
 - password reset/recovery;
 - notification-center behavior behind the bell icon;
@@ -482,10 +699,14 @@ The Part 1 role workflows, queues, attachments, lifecycle, routing, governance a
 - a manual vector repair button (the authenticated reindex endpoint and lifecycle seed command provide operational repair);
 - synthetic creation of failed workflows for the replay screen;
 - recording the final portfolio demonstration video.
+- real refunds, real account-provider unlocks or production email delivery;
+- exactly-once behavior under crashes or multiple replicas;
+- complete malware, OCR, PDF, audio/video or vector-quality acceptance without the automated Part 2 gates and real corpus;
+- Part 2 completion while `verification/part2/final_p2_certificate.json` is `NOT_ACCEPTED`.
 
 
 
-## 13. Final manual test record
+## 20. Final manual test record
 
 > **Purpose / feature:** Provides traceability from each tested feature to a pass, failure or defect and its evidence. Completing this table turns an informal walkthrough into a reproducible acceptance record.
 
@@ -519,11 +740,24 @@ Copy this table into an issue or test report and fill it during execution.
 | ISOLATION-01 | Customer ticket lists remain isolated         | Two customers     |        |                    |
 | DEV-01       | Frontend HMR                                  | Developer         |        |                    |
 | DEV-02       | Backend automatic build/restart               | Developer         |        |                    |
+| INC-01       | Detect and review incident proposal           | Team Lead         |        |                    |
+| INC-02       | Incident membership and lifecycle             | Team Lead         |        |                    |
+| INC-03       | Two-person update approval and publication    | Team Lead/Admin   |        |                    |
+| ACT-01       | Propose and reject simulated action            | Agent             |        |                    |
+| ACT-02       | Approve, queue, reconcile and deduplicate      | Agent/Admin       |        |                    |
+| OMNI-01      | Verify customer email identity                | Customer          |        |                    |
+| OMNI-02      | Unified timeline and internal-note isolation  | Customer/Agent    |        |                    |
+| OMNI-03      | Request and claim human handoff               | Customer/Agent    |        |                    |
+| EVID-01      | Analyze supported multimodal evidence         | Agent             |        |                    |
+| EVID-02      | Audited original access and deletion          | Agent/Auditor     |        |                    |
+| RES-01       | Confirm, reject and reopen resolution          | Customer          |        |                    |
+| FLY-01       | Sanitize, evaluate, release and rollback      | Knowledge Manager |        |                    |
+| FULL-01      | Integrated Part 1 + Part 2 journey            | All roles         |        |                    |
 
 
 
 
-## 14. Defect-report template
+## 21. Defect-report template
 
 > **Purpose / feature:** Standardizes the evidence needed to reproduce and fix a failed UI journey. Recording persona, identifiers, expected/actual behavior and logs allows an engineer to diagnose the correct service quickly.
 

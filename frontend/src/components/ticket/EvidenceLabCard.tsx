@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   FileText,
   Image as ImageIcon,
@@ -18,7 +19,8 @@ import {
   Lock,
   Clock,
   ChevronRight,
-  Info
+  Info,
+  X
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -48,6 +50,7 @@ export const EvidenceLabCard: React.FC<Props> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   // Upload Form State
   const [uploadFileName, setUploadFileName] = useState('');
@@ -87,6 +90,20 @@ export const EvidenceLabCard: React.FC<Props> = ({
   useEffect(() => {
     loadEvidence();
   }, [ticketId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   // When selectedJob changes, load artifacts & observations
   useEffect(() => {
@@ -228,34 +245,87 @@ export const EvidenceLabCard: React.FC<Props> = ({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl text-slate-100">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-400">
-            <Shield className="w-5 h-5" />
+    <>
+      <section className="rounded-card border border-border-subtle bg-surface p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
+            <Shield className="h-4 w-4" />
           </div>
-          <div>
-            <h3 className="font-bold text-base text-slate-100 flex items-center gap-2">
-              Multimodal Evidence Lab
-              <span className="text-xs font-normal px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full border border-slate-700">
-                Air-Gapped Redaction
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold text-DEFAULT">Evidence Lab</h3>
+              <span className="rounded-full border border-border-subtle bg-surface-muted px-2 py-0.5 text-[10px] font-medium text-muted">
+                {evidenceJobs.length} {evidenceJobs.length === 1 ? 'artifact' : 'artifacts'}
               </span>
-            </h3>
-            <p className="text-xs text-slate-400">
-              Safe diagnostic extraction for OCR screenshots, logs, PDFs, and video recordings.
+            </div>
+            <p className="mt-1 text-xs leading-5 text-muted">
+              Inspect sanitized screenshots, logs, documents, and recordings in a focused workspace.
             </p>
           </div>
         </div>
-        <button
-          onClick={loadEvidence}
-          disabled={isLoading}
-          className="p-1.5 rounded-lg border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
-          title="Refresh Evidence"
+
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-border-subtle pt-3">
+          <div className="min-w-0 text-[11px] text-muted">
+            {isLoading
+              ? 'Checking evidence…'
+              : evidenceJobs[0]
+              ? <span className="truncate">Latest: <span className="font-medium text-DEFAULT">{evidenceJobs[0].fileName}</span> · {evidenceJobs[0].pipelineStatus}</span>
+              : 'No diagnostic evidence attached'}
+          </div>
+          <button onClick={() => setIsOpen(true)} className="btn-secondary shrink-0 px-3 py-1.5 text-xs">
+            Open Evidence Lab
+          </button>
+        </div>
+      </section>
+
+      {isOpen && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="evidence-lab-title"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) setIsOpen(false);
+          }}
         >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
-        </button>
-      </div>
+          <div className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-4 text-slate-100 shadow-2xl sm:p-6">
+            {/* Header */}
+            <div className="mb-5 flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-2 text-indigo-400">
+                  <Shield className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 id="evidence-lab-title" className="text-base font-bold text-slate-100">Multimodal Evidence Lab</h3>
+                    <span className="rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] font-normal text-slate-400">
+                      Air-gapped redaction
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">
+                    Upload safe fixtures, inspect sanitized derivatives, and request audited original access.
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  onClick={loadEvidence}
+                  disabled={isLoading}
+                  className="rounded-lg border border-slate-700 p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+                  title="Refresh evidence"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
+                </button>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-lg border border-slate-700 p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+                  title="Close Evidence Lab"
+                  aria-label="Close Evidence Lab"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
 
       {/* Notifications */}
       {errorMessage && (
@@ -601,8 +671,12 @@ export const EvidenceLabCard: React.FC<Props> = ({
               <p className="text-xs">Select an evidence artifact from the left list to inspect.</p>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+    </>
   );
 };

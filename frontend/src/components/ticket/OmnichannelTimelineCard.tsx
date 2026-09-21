@@ -56,6 +56,8 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
   const [verifyEmail, setVerifyEmail] = useState('');
   const [verifyCode, setVerifyCode] = useState('');
   const [challengeStep, setChallengeStep] = useState<'REQUEST' | 'VERIFY'>('REQUEST');
+  const [isLoadingLocalCode, setIsLoadingLocalCode] = useState(false);
+  const showLocalMailbox = import.meta.env.DEV;
 
   const loadTimeline = useCallback(async () => {
     setIsLoading(true);
@@ -175,6 +177,20 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
       setErrorMessage(err instanceof Error ? err.message : 'Verification failed');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLoadLocalCode = async () => {
+    setIsLoadingLocalCode(true);
+    setErrorMessage(null);
+    try {
+      const challenge = await api.getDevelopmentMailboxChallenge(verifyEmail.trim());
+      setVerifyCode(challenge.verificationCode);
+      setSuccessMessage(`Local mailbox code loaded for ${challenge.email}`);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to read local mailbox');
+    } finally {
+      setIsLoadingLocalCode(false);
     }
   };
 
@@ -443,6 +459,22 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
                     required
                   />
                 </div>
+                {showLocalMailbox && (
+                  <div className="rounded border border-amber-500/30 bg-amber-500/10 p-2 text-[10px] text-amber-700">
+                    <div className="flex items-center justify-between gap-2">
+                      <span>Local development mailbox</span>
+                      <button
+                        type="button"
+                        onClick={handleLoadLocalCode}
+                        disabled={isLoadingLocalCode}
+                        className="btn-secondary py-0.5 px-2 text-[10px]"
+                      >
+                        {isLoadingLocalCode ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Load test code'}
+                      </button>
+                    </div>
+                    <p className="mt-1 text-muted">Loads your own pending code without writing the secret to application logs.</p>
+                  </div>
+                )}
                 <div className="flex justify-end gap-2 pt-1">
                   <button type="button" onClick={() => setChallengeStep('REQUEST')} className="btn-ghost py-1 px-2.5 text-xs">Back</button>
                   <button type="submit" disabled={isLoading} className="btn-primary py-1 px-3 text-xs">

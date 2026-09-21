@@ -39,14 +39,17 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_LOG_DIRS: '/var/lib/kafka/data'
+      KAFKA_HEAP_OPTS: '-Xms256m -Xmx512m'
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
     volumes:
       - kafka-data-v2:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:29092"]
+      interval: 30s
+      start_interval: 15s
+      timeout: 20s
+      retries: 10
+      start_period: 180s
 
   redpanda-console:
     image: docker.redpanda.com/redpandadata/console:v2.5.2
@@ -73,7 +76,7 @@ services:
       - minio-data:/data
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
-      interval: 10s
+      interval: 3s
       timeout: 5s
       retries: 10
 
@@ -82,12 +85,11 @@ services:
   # ============================================================================
 
   discovery-service:
+    image: resolveiq-backend-dev
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.backend
       target: dev
-      args:
-        SERVICE_NAME: discovery-service
     container_name: resolveiq-discovery
     profiles: ["app"]
     ports:
@@ -95,6 +97,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       DEV_SERVICE_NAME: discovery-service
+      DEV_LAZY_INITIALIZATION: "false"
     volumes:
       - .:/workspace
       - /workspace/discovery-service/target
@@ -102,18 +105,14 @@ services:
       - /workspace/common-security/target
       - maven-cache:/root/.m2
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health | grep -q UP"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health | grep -q '^{\"status\":\"UP\"'"]
+      interval: 3s
       timeout: 5s
       retries: 12
+      start_period: 120s
 
   api-gateway:
-    build:
-      context: .
-      dockerfile: infra/docker/Dockerfile.backend
-      target: dev
-      args:
-        SERVICE_NAME: api-gateway
+    image: resolveiq-backend-dev
     container_name: resolveiq-gateway
     profiles: ["app"]
     ports:
@@ -132,19 +131,17 @@ services:
     depends_on:
       discovery-service:
         condition: service_healthy
+      auth-service:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '^{\"status\":\"UP\"'"]
+      interval: 3s
       timeout: 5s
       retries: 12
+      start_period: 120s
 
   auth-service:
-    build:
-      context: .
-      dockerfile: infra/docker/Dockerfile.backend
-      target: dev
-      args:
-        SERVICE_NAME: auth-service
+    image: resolveiq-backend-dev
     container_name: resolveiq-auth
     profiles: ["app"]
     environment:
@@ -152,6 +149,8 @@ services:
       DEV_SERVICE_NAME: auth-service
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: auth-service
+      EUREKA_INSTANCE_INSTANCE_ID: auth-service:8081
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
     volumes:
       - .:/workspace
@@ -165,18 +164,14 @@ services:
       discovery-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q UP"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q '^{\"status\":\"UP\"'"]
+      interval: 3s
       timeout: 5s
       retries: 12
+      start_period: 120s
 
   ticket-service:
-    build:
-      context: .
-      dockerfile: infra/docker/Dockerfile.backend
-      target: dev
-      args:
-        SERVICE_NAME: ticket-service
+    image: resolveiq-backend-dev
     container_name: resolveiq-ticket
     profiles: ["app"]
     environment:
@@ -185,8 +180,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: ticket-service
+      EUREKA_INSTANCE_INSTANCE_ID: ticket-service:8082
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
       RESOLVEIQ_MINIO_ENDPOINT: http://minio:9000
+      RESOLVEIQ_RAG_BASE_URL: http://rag-service:8086
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-resolveiq_minio_dev_access}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-resolveiq_minio_dev_secret_key_12345}
       RESOLVEIQ_ATTACHMENTS_SCANNER: deterministic
@@ -205,19 +203,18 @@ services:
         condition: service_healthy
       discovery-service:
         condition: service_healthy
+      # Prioritize the login path before starting the CPU-heavy background JVMs.
+      api-gateway:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health | grep -q UP"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health | grep -q '^{\"status\":\"UP\"'"]
+      interval: 3s
       timeout: 5s
       retries: 12
+      start_period: 120s
 
   ai-orchestration-service:
-    build:
-      context: .
-      dockerfile: infra/docker/Dockerfile.backend
-      target: dev
-      args:
-        SERVICE_NAME: ai-orchestration-service
+    image: resolveiq-backend-dev
     container_name: resolveiq-orchestration
     profiles: ["app"]
     environment:
@@ -241,27 +238,23 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      ai-analysis-service:
-        condition: service_healthy
       routing-service:
-        condition: service_healthy
+        condition: service_started
+      ai-analysis-service:
+        condition: service_started
       rag-service:
-        condition: service_healthy
+        condition: service_started
       discovery-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health | grep -q UP"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health | grep -q '^{\"status\":\"UP\"'"]
+      interval: 3s
       timeout: 5s
       retries: 12
+      start_period: 120s
 
   ai-analysis-service:
-    build:
-      context: .
-      dockerfile: infra/docker/Dockerfile.backend
-      target: dev
-      args:
-        SERVICE_NAME: ai-analysis-service
+    image: resolveiq-backend-dev
     container_name: resolveiq-analysis
     profiles: ["app"]
     environment:
@@ -283,22 +276,18 @@ services:
       postgres:
         condition: service_healthy
       minio:
-        condition: service_started
-      discovery-service:
+        condition: service_healthy
+      api-gateway:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health | grep -q UP"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health | grep -q '^{\"status\":\"UP\"'"]
+      interval: 3s
       timeout: 5s
       retries: 12
+      start_period: 120s
 
   routing-service:
-    build:
-      context: .
-      dockerfile: infra/docker/Dockerfile.backend
-      target: dev
-      args:
-        SERVICE_NAME: routing-service
+    image: resolveiq-backend-dev
     container_name: resolveiq-routing
     profiles: ["app"]
     environment:
@@ -318,19 +307,17 @@ services:
         condition: service_healthy
       discovery-service:
         condition: service_healthy
+      api-gateway:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8085/actuator/health | grep -q UP"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8085/actuator/health | grep -q '^{\"status\":\"UP\"'"]
+      interval: 3s
       timeout: 5s
       retries: 12
+      start_period: 120s
 
   rag-service:
-    build:
-      context: .
-      dockerfile: infra/docker/Dockerfile.backend
-      target: dev
-      args:
-        SERVICE_NAME: rag-service
+    image: resolveiq-backend-dev
     container_name: resolveiq-rag
     profiles: ["app"]
     environment:
@@ -350,11 +337,14 @@ services:
         condition: service_healthy
       discovery-service:
         condition: service_healthy
+      api-gateway:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8086/actuator/health | grep -q UP"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8086/actuator/health | grep -q '^{\"status\":\"UP\"'"]
+      interval: 3s
       timeout: 5s
       retries: 12
+      start_period: 120s
 
   frontend:
     build:

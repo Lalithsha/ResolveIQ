@@ -101,6 +101,53 @@ class IncidentServiceTest {
     }
 
     @Test
+    @DisplayName("Incident detail returns only active links plus persisted updates and impacts")
+    void testIncidentDetail() {
+        UUID tenantId = UUID.randomUUID();
+        UUID incidentId = UUID.randomUUID();
+        UUID ticketId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        UUID actorId = UUID.randomUUID();
+
+        SupportIncident incident = new SupportIncident(
+            incidentId, tenantId, "INC-DETAIL", "Payment incident", IncidentStatus.INVESTIGATING,
+            IncidentSeverity.MEDIUM, Instant.now(), actorId, "Gateway errors", "radar-v1", 0.91
+        );
+        IncidentTicketLink activeLink = new IncidentTicketLink(
+            UUID.randomUUID(), incidentId, ticketId, LinkSource.AUTOMATIC, 0.93, actorId
+        );
+        IncidentTicketLink removedLink = new IncidentTicketLink(
+            UUID.randomUUID(), incidentId, UUID.randomUUID(), LinkSource.MANUAL, 0.85, actorId
+        );
+        removedLink.unlink(actorId, "False positive");
+        IncidentUpdate update = new IncidentUpdate(
+            UUID.randomUUID(), tenantId, incidentId, 1, IncidentUpdateStatus.DRAFT,
+            "Investigating", "We are investigating.", AudienceType.ALL_AFFECTED, 1, actorId
+        );
+        CustomerImpact impact = new CustomerImpact(
+            UUID.randomUUID(), tenantId, incidentId, customerId, ticketId, "DIRECT"
+        );
+
+        when(incidentRepository.findByTenantIdAndId(tenantId, incidentId)).thenReturn(Optional.of(incident));
+        when(linkRepository.countByIncidentIdAndUnlinkedAtIsNull(incidentId)).thenReturn(1L);
+        when(componentRepository.findByTenantIdAndIncidentId(tenantId, incidentId)).thenReturn(List.of());
+        when(signalAdapter.fetchSignalsForWindow(eq(tenantId), anyString(), any(), any())).thenReturn(List.of());
+        when(linkRepository.findByIncidentId(incidentId)).thenReturn(List.of(activeLink, removedLink));
+        when(updateRepository.findByTenantIdAndIncidentIdOrderByUpdateNumberAsc(tenantId, incidentId)).thenReturn(List.of(update));
+        when(impactRepository.findByTenantIdAndIncidentId(tenantId, incidentId)).thenReturn(List.of(impact));
+        when(impactRepository.countByTenantIdAndIncidentId(tenantId, incidentId)).thenReturn(1L);
+
+        IncidentDetailResponse detail = incidentService.getIncidentDetail(tenantId, incidentId);
+
+        assertThat(detail.ticketIds()).containsExactly(ticketId);
+        assertThat(detail.updates()).hasSize(1);
+        assertThat(detail.impacts()).singleElement().satisfies(value -> {
+            assertThat(value.customerId()).isEqualTo(customerId);
+            assertThat(value.linkedTicketId()).isEqualTo(ticketId);
+        });
+    }
+
+    @Test
     @DisplayName("High-severity updates must enforce two-person rule preventing author from approving own update")
     void testTwoPersonRuleForHighSeverityIncident() {
         UUID tenantId = UUID.randomUUID();

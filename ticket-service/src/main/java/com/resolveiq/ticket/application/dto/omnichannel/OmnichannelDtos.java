@@ -18,6 +18,12 @@ public class OmnichannelDtos {
         String message
     ) {}
 
+    public record DevelopmentMailboxChallengeResponse(
+        String email,
+        String verificationCode,
+        Instant expiresAt
+    ) {}
+
     public record EmailVerifyRequest(
         String email,
         String token

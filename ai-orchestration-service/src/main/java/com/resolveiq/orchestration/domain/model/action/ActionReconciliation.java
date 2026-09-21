@@ -1,6 +1,8 @@
 package com.resolveiq.orchestration.domain.model.action;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -23,9 +25,11 @@ public class ActionReconciliation {
     @Column(nullable = false, length = 50)
     private String status; // RECONCILED, MISMATCH_MANUAL_REVIEW
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "expected_state", nullable = false, columnDefinition = "jsonb")
     private String expectedState;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "observed_state", nullable = false, columnDefinition = "jsonb")
     private String observedState;
 

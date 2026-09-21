@@ -249,7 +249,7 @@ public class ResolutionActionService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = ActionProposalExpiredException.class)
     public ActionProposalResponse approveAction(UUID tenantId, UUID proposalId, ApproveActionRequest request, TrustedPrincipal principal) {
         if (principal == null || principal.userId() == null || principal.tenantId() == null || !tenantId.equals(principal.tenantId())) {
             throw new org.springframework.security.access.AccessDeniedException("Authenticated tenant actor is required");
@@ -260,7 +260,7 @@ public class ResolutionActionService {
         if (proposal.isExpired()) {
             proposal.setStatus(ActionStatus.EXPIRED);
             proposalRepository.save(proposal);
-            throw new IllegalStateException("Action proposal has expired and cannot be approved");
+            throw new ActionProposalExpiredException("Action proposal has expired and cannot be approved");
         }
 
         if (proposal.getStatus() != ActionStatus.PROPOSED && proposal.getStatus() != ActionStatus.AWAITING_APPROVAL) {
@@ -376,7 +376,7 @@ public class ResolutionActionService {
         return mapToProposalResponse(proposal);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = ActionProposalExpiredException.class)
     public ActionExecutionResponse executeAction(UUID tenantId, UUID proposalId, ExecuteActionRequest request, TrustedPrincipal principal) {
         if (principal == null || principal.userId() == null || principal.tenantId() == null || !tenantId.equals(principal.tenantId())) {
             throw new org.springframework.security.access.AccessDeniedException("Authenticated tenant actor is required");
@@ -389,8 +389,12 @@ public class ResolutionActionService {
         ResolutionActionProposal proposal = proposalRepository.findByIdAndTenantId(proposalId, tenantId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Action proposal not found: " + proposalId));
 
-        // Two-person rule enforcement: Proposer cannot execute their own high-risk proposal
-        if (principal != null && proposal.getProposerId() != null && proposal.getProposerId().equals(principal.userId())) {
+        // Two-person rule enforcement applies only to high-risk proposals. Low-risk
+        // actions may be proposed, approved, and executed by the authorized agent.
+        boolean requiresSeparateExecutor = proposal.getRiskLevel() == RiskLevel.HIGH
+                || proposal.getRiskLevel() == RiskLevel.CRITICAL;
+        if (requiresSeparateExecutor && proposal.getProposerId() != null
+                && proposal.getProposerId().equals(principal.userId())) {
             throw new org.springframework.security.access.AccessDeniedException("Two-person rule violation: Proposer cannot execute own high-risk proposal");
         }
 
@@ -438,7 +442,7 @@ public class ResolutionActionService {
         if (proposal.isExpired()) {
             proposal.setStatus(ActionStatus.EXPIRED);
             proposalRepository.save(proposal);
-            throw new IllegalStateException("Action proposal has expired");
+            throw new ActionProposalExpiredException("Action proposal has expired");
         }
 
         if (proposal.getStatus() != ActionStatus.APPROVED) {
@@ -662,12 +666,20 @@ public class ResolutionActionService {
                 ))
                 .collect(Collectors.toList());
 
+        ActionStatus responseStatus = proposal.getStatus();
+        if (proposal.isExpired() && (
+                responseStatus == ActionStatus.PROPOSED ||
+                responseStatus == ActionStatus.AWAITING_APPROVAL ||
+                responseStatus == ActionStatus.APPROVED)) {
+            responseStatus = ActionStatus.EXPIRED;
+        }
+
         return new ActionProposalResponse(
                 proposal.getId(),
                 proposal.getTenantId(),
                 proposal.getTicketId(),
                 proposal.getActionType(),
-                proposal.getStatus(),
+                responseStatus,
                 proposal.getRiskLevel(),
                 inputMap,
                 proposal.getInputHash(),

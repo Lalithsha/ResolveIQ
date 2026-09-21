@@ -1,6 +1,8 @@
 package com.resolveiq.orchestration.domain.model.action;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -29,6 +31,7 @@ public class ResolutionActionProposal {
     @Column(name = "risk_level", nullable = false, length = 20)
     private RiskLevel riskLevel = RiskLevel.LOW;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "input_payload", nullable = false, columnDefinition = "jsonb")
     private String inputPayload;
 
