@@ -326,6 +326,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/resolveiq
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       RESOLVEIQ_JWT_SECRET: ${RESOLVEIQ_JWT_SECRET:-fictional_jwt_hmac_secret_key_minimum_256_bits_for_local_development_only_12345}
+      RESOLVEIQ_AI_EMBEDDING_PROVIDER: ${RESOLVEIQ_AI_EMBEDDING_PROVIDER:-deterministic}
+      RESOLVEIQ_AI_EMBEDDING_MODEL: ${RESOLVEIQ_AI_EMBEDDING_MODEL:-resolveiq-deterministic-embedding-v1}
+      RESOLVEIQ_AI_EMBEDDING_DIMENSION: ${RESOLVEIQ_AI_EMBEDDING_DIMENSION:-1536}
+      RESOLVEIQ_AI_BASE_URL: ${RESOLVEIQ_AI_BASE_URL:-https://api.openai.com/v1}
+      RESOLVEIQ_AI_API_KEY: ${RESOLVEIQ_AI_API_KEY:-}
     volumes:
       - .:/workspace
       - /workspace/rag-service/target

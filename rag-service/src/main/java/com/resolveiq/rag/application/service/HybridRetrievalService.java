@@ -60,6 +60,12 @@ public class HybridRetrievalService {
         Set<String> sourceTypes
     ) {
         long startTime = System.currentTimeMillis();
+        String selectedStrategy = strategy == null || strategy.isBlank() ? "HYBRID_RRF" : strategy.toUpperCase(Locale.ROOT);
+        if (!Set.of("HYBRID_RRF", "FTS_ONLY", "VECTOR_ONLY").contains(selectedStrategy)) {
+            throw new IllegalArgumentException("Unsupported retrieval strategy: " + strategy);
+        }
+        boolean useLexical = !"VECTOR_ONLY".equals(selectedStrategy);
+        boolean useVector = !"FTS_ONLY".equals(selectedStrategy);
         int limit = Math.max(1, Math.min(topK > 0 ? topK : 5, 20));
         String rewrittenQuery = queryRewriteService.rewrite(queryText);
         String normalizedCategory = normalizeFilter(category);
@@ -70,14 +76,17 @@ public class HybridRetrievalService {
         boolean includeResolvedCases = normalizedSources.isEmpty() || normalizedSources.contains("RESOLVED_CASE");
 
         // 1. Generate query embedding ONCE
-        float[] queryEmbedding = embeddingPort.embed(rewrittenQuery);
-        if (queryEmbedding == null || queryEmbedding.length != embeddingPort.getDimension()) {
-            throw new IllegalStateException("Query embedding dimension does not match configured provider");
+        String embeddingStr = null;
+        if (useVector) {
+            float[] queryEmbedding = embeddingPort.embed(rewrittenQuery);
+            if (queryEmbedding == null || queryEmbedding.length != embeddingPort.getDimension()) {
+                throw new IllegalStateException("Query embedding dimension does not match configured provider");
+            }
+            for (float value : queryEmbedding) {
+                if (!Float.isFinite(value)) throw new IllegalStateException("Query embedding contains non-finite values");
+            }
+            embeddingStr = formatVector(queryEmbedding);
         }
-        for (float value : queryEmbedding) {
-            if (!Float.isFinite(value)) throw new IllegalStateException("Query embedding contains non-finite values");
-        }
-        String embeddingStr = formatVector(queryEmbedding);
 
         // 2. Fetch candidates using Lexical & Vector SQL queries
         List<KnowledgeChunk> kbLexical = new ArrayList<>();
@@ -86,21 +95,29 @@ public class HybridRetrievalService {
         List<ResolvedCaseChunk> rcVector = new ArrayList<>();
 
         if (includeKnowledge) {
-            kbLexical = knowledgeChunkRepository.searchLexical(
-                tenantId, rewrittenQuery, normalizedCategory, normalizedProduct, normalizedLanguage, 50);
-            if (kbLexical.isEmpty()) {
-                kbLexical = knowledgeChunkRepository.searchLexicalRelaxed(
+            if (useLexical) {
+                kbLexical = knowledgeChunkRepository.searchLexical(
                     tenantId, rewrittenQuery, normalizedCategory, normalizedProduct, normalizedLanguage, 50);
+                if (kbLexical.isEmpty()) {
+                    kbLexical = knowledgeChunkRepository.searchLexicalRelaxed(
+                        tenantId, rewrittenQuery, normalizedCategory, normalizedProduct, normalizedLanguage, 50);
+                }
             }
-            kbVector = knowledgeChunkRepository.searchVector(
-                tenantId, embeddingStr, normalizedCategory, normalizedProduct, normalizedLanguage, 50);
+            if (useVector) {
+                kbVector = knowledgeChunkRepository.searchVector(
+                    tenantId, embeddingStr, normalizedCategory, normalizedProduct, normalizedLanguage, 50);
+            }
         }
         if (includeResolvedCases) {
-            rcLexical = resolvedCaseChunkRepository.searchLexical(tenantId, rewrittenQuery, normalizedCategory, 30);
-            if (rcLexical.isEmpty()) {
-                rcLexical = resolvedCaseChunkRepository.searchLexicalRelaxed(tenantId, rewrittenQuery, normalizedCategory, 30);
+            if (useLexical) {
+                rcLexical = resolvedCaseChunkRepository.searchLexical(tenantId, rewrittenQuery, normalizedCategory, 30);
+                if (rcLexical.isEmpty()) {
+                    rcLexical = resolvedCaseChunkRepository.searchLexicalRelaxed(tenantId, rewrittenQuery, normalizedCategory, 30);
+                }
             }
-            rcVector = resolvedCaseChunkRepository.searchVector(tenantId, embeddingStr, normalizedCategory, 30);
+            if (useVector) {
+                rcVector = resolvedCaseChunkRepository.searchVector(tenantId, embeddingStr, normalizedCategory, 30);
+            }
         }
 
         // 3. Reciprocal Rank Fusion (RRF k=60)
@@ -151,7 +168,7 @@ public class HybridRetrievalService {
             ticketId != null ? ticketId : UUID.randomUUID(),
             tenantId,
             rewrittenQuery,
-            strategy != null ? strategy : "HYBRID_RRF",
+            selectedStrategy,
             limit,
             durationMs
         );
@@ -194,7 +211,7 @@ public class HybridRetrievalService {
         return new RetrievalResultDto(
             run.getId(),
             rewrittenQuery,
-            strategy != null ? strategy : "HYBRID_RRF",
+            selectedStrategy,
             durationMs,
             citations
         );

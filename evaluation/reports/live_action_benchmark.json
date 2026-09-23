@@ -1,0 +1,15 @@
+{
+  "generatedAtUtc": "2026-09-22T15:09:53.142608Z",
+  "providerMode": "simulated-payment-and-identity-adapters",
+  "successfulExecutionScenarios": 100,
+  "reconciledScenarios": 100,
+  "reconciliationRate": 1.00,
+  "duplicateRetryScenarios": 100,
+  "duplicateRetriesWithoutRepeatedEffect": 100,
+  "duplicateEffectPreventionRate": 1.00,
+  "invalidActionScenarios": 100,
+  "invalidActionsDeniedBeforeApproval": 100,
+  "invalidActionDenialRate": 1.00,
+  "durationMs": 754,
+  "limitations": "Fault-simulation benchmark with mocked persistence repositories; not production traffic or a human approval-time study."
+}

@@ -29,6 +29,28 @@ import java.util.UUID;
 @ExtendWith(MockitoExtension.class)
 class HybridRetrievalServiceTest {
 
+    @Test
+    void keywordOnlyDoesNotCallEmbeddingProviderOrVectorQueries() {
+        var provider = mock(com.resolveiq.rag.application.port.EmbeddingPort.class);
+        var service = new HybridRetrievalService(knowledgeChunkRepository, resolvedCaseChunkRepository,
+            documentRepository, resolvedCaseRepository, retrievalRunRepository, citationRecordRepository,
+            provider, new QueryRewriteService());
+        var result = service.searchHybrid(UUID.randomUUID(), null, "payment", "FTS_ONLY", 5);
+        assertThat(result.strategy()).isEqualTo("FTS_ONLY");
+        verifyNoInteractions(provider);
+        verify(knowledgeChunkRepository, never()).searchVector(any(), any(), any(), any(), any(), anyInt());
+        verify(resolvedCaseChunkRepository, never()).searchVector(any(), any(), any(), anyInt());
+    }
+
+    @Test
+    void vectorOnlyDoesNotCallLexicalQueries() {
+        retrievalService.searchHybrid(UUID.randomUUID(), null, "payment", "VECTOR_ONLY", 5);
+        verify(knowledgeChunkRepository, never()).searchLexical(any(), any(), any(), any(), any(), anyInt());
+        verify(knowledgeChunkRepository, never()).searchLexicalRelaxed(any(), any(), any(), any(), any(), anyInt());
+        verify(resolvedCaseChunkRepository, never()).searchLexical(any(), any(), any(), anyInt());
+        verify(resolvedCaseChunkRepository, never()).searchLexicalRelaxed(any(), any(), any(), anyInt());
+    }
+
     @Mock
     private KnowledgeChunkRepository knowledgeChunkRepository;
     @Mock
