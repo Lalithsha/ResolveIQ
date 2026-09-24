@@ -224,7 +224,7 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
               onClick={() => setShowVerifyModal(true)}
               className="btn-secondary py-1 px-2 text-[10px] flex items-center gap-1"
             >
-              {verifiedEmail ? <UserCheck className="h-3 w-3 text-emerald-500" /> : <UserX className="h-3 w-3 text-amber-500" />}
+              {verifiedEmail ? <UserCheck className="h-3 w-3 text-success" /> : <UserX className="h-3 w-3 text-warning" />}
               {verifiedEmail ? 'Email Verified' : 'Verify Email'}
             </button>
           )}
@@ -238,7 +238,7 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
         </div>
       )}
       {successMessage && (
-        <div className="rounded bg-emerald-500/10 border border-emerald-500/20 p-2 text-[11px] text-emerald-600 flex items-center justify-between">
+        <div className="rounded bg-success/10 border border-success/20 p-2 text-[11px] text-success flex items-center justify-between">
           <span>{successMessage}</span>
           <button onClick={() => setSuccessMessage(null)} className="font-bold ml-2">×</button>
         </div>
@@ -246,8 +246,8 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
 
       {/* Handoff Status Bar */}
       {timeline?.handoffState && timeline.handoffState !== 'NONE' && (
-        <div className="rounded-card border border-amber-500/30 bg-amber-500/10 p-3 text-xs space-y-1.5">
-          <div className="flex items-center justify-between font-semibold text-amber-700">
+        <div className="rounded-card border border-warning/20 bg-warning/10 p-3 text-xs space-y-1.5">
+          <div className="flex items-center justify-between font-semibold text-warning">
             <span className="flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5" />
               Human Specialist Handoff: <span className="uppercase">{timeline.handoffState}</span>
@@ -263,11 +263,11 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
             )}
           </div>
           {timeline.latestHandoff && (
-            <div className="text-[11px] text-muted space-y-1 pt-1 border-t border-amber-500/20">
+            <div className="text-[11px] text-muted space-y-1 pt-1 border-t border-warning/20">
               <div><strong className="text-DEFAULT">Reason:</strong> {timeline.latestHandoff.issueSummary}</div>
               <div><strong className="text-DEFAULT">Verified Context:</strong> {timeline.latestHandoff.verifiedFacts}</div>
               <div><strong className="text-DEFAULT">Attempted:</strong> {timeline.latestHandoff.attemptedSteps}</div>
-              <div><strong className="text-DEFAULT">Sentiment:</strong> <span className="font-semibold text-amber-600">{timeline.latestHandoff.sentiment}</span></div>
+              <div><strong className="text-DEFAULT">Sentiment:</strong> <span className="font-semibold text-warning">{timeline.latestHandoff.sentiment}</span></div>
             </div>
           )}
         </div>
@@ -302,7 +302,7 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
                 key={msg.messageId}
                 className={`p-2.5 rounded-card border text-xs space-y-1 ${
                   isInternal
-                    ? 'bg-amber-500/10 border-amber-500/30'
+                    ? 'bg-warning/10 border-warning/20'
                     : isCustomerSender
                     ? 'bg-surface border-border'
                     : 'bg-primary/5 border-primary/20'
@@ -311,7 +311,7 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
                 <div className="flex items-center justify-between text-[10px] text-muted">
                   <div className="flex items-center gap-1.5 font-semibold text-DEFAULT">
                     {isInternal ? (
-                      <span className="flex items-center gap-1 text-amber-600">
+                      <span className="flex items-center gap-1 text-warning">
                         <Lock className="h-3 w-3" /> INTERNAL NOTE (Staff Only)
                       </span>
                     ) : (
@@ -322,7 +322,7 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
                       {msg.channel}
                     </span>
                     {msg.deliveryStatus && msg.deliveryStatus !== 'DELIVERED' && (
-                      <span className="text-[9px] text-amber-600">({msg.deliveryStatus})</span>
+                      <span className="text-[9px] text-warning">({msg.deliveryStatus})</span>
                     )}
                   </div>
                   <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -362,7 +362,7 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
                   />
                   <span>Email</span>
                 </label>
-                <label className="flex items-center gap-1 cursor-pointer text-amber-600 font-semibold">
+                <label className="flex items-center gap-1 cursor-pointer text-warning font-semibold">
                   <input
                     type="radio"
                     name="replyChannel"
@@ -386,7 +386,7 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
             onChange={(e) => setMessageContent(e.target.value)}
             className={`w-full rounded border px-3 py-2 text-xs focus:outline-none focus:ring-1 ${
               isInternalNote
-                ? 'border-amber-500/40 bg-amber-500/5 focus:ring-amber-500'
+                ? 'border-warning/30 bg-warning/5 focus:ring-warning'
                 : 'border-border bg-surface focus:ring-primary'
             }`}
             required
@@ -400,7 +400,7 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
               type="submit"
               disabled={isSending || !messageContent.trim()}
               className={`py-1 px-3 text-xs flex items-center gap-1.5 rounded font-semibold text-white ${
-                isInternalNote ? 'bg-amber-600 hover:bg-amber-700' : 'btn-primary'
+                isInternalNote ? 'bg-warning hover:bg-warning/80' : 'btn-primary'
               }`}
             >
               {isSending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
@@ -413,7 +413,7 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
       {/* Customer Email Verification Challenge Modal */}
       {showVerifyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-card border border-border bg-surface p-4 space-y-3 shadow-xl">
+          <div className="w-full max-w-sm rounded-card border border-border bg-surface p-4 space-y-3 shadow-none">
             <div className="flex items-center justify-between border-b border-border pb-2">
               <span className="text-xs font-bold text-DEFAULT">Link & Verify Email Address</span>
               <button onClick={() => setShowVerifyModal(false)} className="text-muted hover:text-DEFAULT font-bold">×</button>
@@ -460,7 +460,7 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
                   />
                 </div>
                 {showLocalMailbox && (
-                  <div className="rounded border border-amber-500/30 bg-amber-500/10 p-2 text-[10px] text-amber-700">
+                  <div className="rounded border border-warning/20 bg-warning/10 p-2 text-[10px] text-warning">
                     <div className="flex items-center justify-between gap-2">
                       <span>Local development mailbox</span>
                       <button
@@ -490,7 +490,7 @@ export const OmnichannelTimelineCard: React.FC<Props> = ({
       {/* Customer Handoff Request Modal */}
       {showHandoffModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-card border border-border bg-surface p-4 space-y-3 shadow-xl">
+          <div className="w-full max-w-sm rounded-card border border-border bg-surface p-4 space-y-3 shadow-none">
             <div className="flex items-center justify-between border-b border-border pb-2">
               <span className="text-xs font-bold text-DEFAULT">Request Human Specialist</span>
               <button onClick={() => setShowHandoffModal(false)} className="text-muted hover:text-DEFAULT font-bold">×</button>

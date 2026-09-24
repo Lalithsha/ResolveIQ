@@ -306,11 +306,11 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
       case 'CRITICAL':
         return <span className="inline-flex items-center gap-1 rounded bg-danger/15 px-2 py-0.5 text-xs font-semibold text-danger"><Flame className="h-3 w-3" />CRITICAL</span>;
       case 'HIGH':
-        return <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-500"><AlertTriangle className="h-3 w-3" />HIGH</span>;
+        return <span className="inline-flex items-center gap-1 rounded bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning"><AlertTriangle className="h-3 w-3" />HIGH</span>;
       case 'MEDIUM':
-        return <span className="inline-flex items-center gap-1 rounded bg-blue-500/15 px-2 py-0.5 text-xs font-semibold text-blue-500">MEDIUM</span>;
+        return <span className="inline-flex items-center gap-1 rounded bg-info/10 px-2 py-0.5 text-xs font-semibold text-info">MEDIUM</span>;
       default:
-        return <span className="inline-flex items-center gap-1 rounded bg-slate-500/15 px-2 py-0.5 text-xs font-semibold text-muted">LOW</span>;
+        return <span className="inline-flex items-center gap-1 rounded bg-surface-muted px-2 py-0.5 text-xs font-semibold text-muted">LOW</span>;
     }
   };
 
@@ -319,11 +319,11 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
       case 'INVESTIGATING':
         return <span className="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2.5 py-0.5 text-xs font-semibold text-danger border border-danger/20">Investigating</span>;
       case 'IDENTIFIED':
-        return <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-500 border border-amber-500/20">Identified</span>;
+        return <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-semibold text-warning border border-warning/20">Identified</span>;
       case 'MONITORING':
-        return <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold text-blue-500 border border-blue-500/20">Monitoring</span>;
+        return <span className="inline-flex items-center gap-1 rounded-full bg-info/10 px-2.5 py-0.5 text-xs font-semibold text-info border border-info/20">Monitoring</span>;
       case 'RESOLVED':
-        return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-500 border border-emerald-500/20">Resolved</span>;
+        return <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-semibold text-success border border-success/20">Resolved</span>;
       default:
         return <span className="inline-flex items-center gap-1 rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-semibold text-muted">{status}</span>;
     }
@@ -346,7 +346,7 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
         <div>
           <div className="flex items-center gap-2">
             <span className="eyebrow">Operations & Resilience</span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-500">
+            <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-semibold text-success">
               <Radio className="h-3 w-3 animate-pulse" /> Live Radar
             </span>
           </div>
@@ -392,12 +392,12 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
         </div>
       )}
       {successMessage && (
-        <div role="status" className="flex items-center justify-between rounded-card border border-emerald-500/20 bg-emerald-500/10 p-3.5 text-xs text-emerald-600">
+        <div role="status" className="flex items-center justify-between rounded-card border border-success/20 bg-success/10 p-3.5 text-xs text-success">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 flex-none" />
             <span>{successMessage}</span>
           </div>
-          <button onClick={() => setSuccessMessage(null)} className="text-emerald-600 hover:underline">Dismiss</button>
+          <button onClick={() => setSuccessMessage(null)} className="text-success hover:underline">Dismiss</button>
         </div>
       )}
 
@@ -415,7 +415,7 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
         <div className="rounded-card border border-border-subtle bg-surface p-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted">Proposed Clusters</span>
-            <Layers className="h-4 w-4 text-amber-500" />
+            <Layers className="h-4 w-4 text-warning" />
           </div>
           <p className="mt-2 text-2xl font-bold text-DEFAULT">{proposals.length}</p>
           <p className="mt-1 text-[11px] text-muted">Pending Team Lead review</p>
@@ -433,7 +433,7 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
         <div className="rounded-card border border-border-subtle bg-surface p-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted">Detection Algorithm</span>
-            <Activity className="h-4 w-4 text-emerald-500" />
+            <Activity className="h-4 w-4 text-success" />
           </div>
           <p className="mt-2 text-sm font-bold text-DEFAULT">Sliding Window (15m)</p>
           <p className="mt-1 text-[11px] text-muted">RAG Cosine + Volume Spike</p>
@@ -446,7 +446,7 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold text-DEFAULT">Proposed Incident Clusters</h2>
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-600">
+              <span className="rounded-full bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">
                 {proposals.length} awaiting confirmation
               </span>
             </div>
@@ -455,7 +455,7 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
             {proposals.map((prop) => (
               <div
                 key={prop.id}
-                className="rounded-card border border-amber-500/30 bg-amber-500/5 p-4 space-y-3"
+                className="rounded-card border border-warning/20 bg-warning/5 p-4 space-y-3"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -478,7 +478,7 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
                     ? prop.sampleTicketIds.slice(0, 3).join(', ')
                     : 'Correlated in active window'}
                 </div>
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-amber-500/20">
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-warning/20">
                   <button
                     onClick={() => handleDismissProposal(prop.id)}
                     disabled={actionLoading === `dismiss-${prop.id}`}
@@ -631,10 +631,10 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
                               <span className="font-semibold text-DEFAULT">{update.updateType}</span>
                               <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                                 update.status === 'PUBLISHED'
-                                  ? 'bg-emerald-500/10 text-emerald-600'
+                                  ? 'bg-success/10 text-success'
                                   : update.status === 'APPROVED'
-                                  ? 'bg-blue-500/10 text-blue-600'
-                                  : 'bg-amber-500/10 text-amber-600'
+                                  ? 'bg-info/10 text-info'
+                                  : 'bg-warning/10 text-warning'
                               }`}>
                                 {update.status}
                               </span>
@@ -661,7 +661,7 @@ export const IncidentRadar: React.FC<IncidentRadarProps> = ({ role: _role = 'TEA
                               {update.status === 'DRAFT' && (
                                 <>
                                   {isHighCritical && isAuthor && (
-                                    <span className="text-amber-500 font-medium">
+                                    <span className="text-warning font-medium">
                                       Two-person rule: A different lead must approve
                                     </span>
                                   )}

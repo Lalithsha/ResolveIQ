@@ -233,7 +233,7 @@ export const ResolutionActionsCard: React.FC<Props> = ({ ticketId, readOnly = fa
         </div>
       )}
       {successMessage && (
-        <div className="rounded bg-emerald-500/10 border border-emerald-500/20 p-2 text-[11px] text-emerald-600 flex items-center justify-between">
+        <div className="rounded bg-success/10 border border-success/20 p-2 text-[11px] text-success flex items-center justify-between">
           <span>{successMessage}</span>
           <button onClick={() => setSuccessMessage(null)} className="font-bold ml-2">×</button>
         </div>
@@ -241,7 +241,7 @@ export const ResolutionActionsCard: React.FC<Props> = ({ ticketId, readOnly = fa
 
       {/* Propose Refund Modal */}
       {showModal === 'REFUND' && (
-        <form onSubmit={handleProposeRefund} className="rounded-card border border-primary/30 bg-surface p-3 space-y-2.5 text-xs shadow-md">
+        <form onSubmit={handleProposeRefund} className="rounded-card border border-primary/30 bg-surface p-3 space-y-2.5 text-xs shadow-none">
           <div className="flex items-center justify-between font-semibold text-DEFAULT">
             <span className="flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5 text-primary" /> Propose Duplicate Refund</span>
             <button type="button" onClick={() => setShowModal(null)} className="text-muted hover:text-DEFAULT">×</button>
@@ -328,7 +328,7 @@ export const ResolutionActionsCard: React.FC<Props> = ({ ticketId, readOnly = fa
 
       {/* Propose Unlock Modal */}
       {showModal === 'UNLOCK' && (
-        <form onSubmit={handleProposeUnlock} className="rounded-card border border-primary/30 bg-surface p-3 space-y-2.5 text-xs shadow-md">
+        <form onSubmit={handleProposeUnlock} className="rounded-card border border-primary/30 bg-surface p-3 space-y-2.5 text-xs shadow-none">
           <div className="flex items-center justify-between font-semibold text-DEFAULT">
             <span className="flex items-center gap-1.5"><KeyRound className="h-3.5 w-3.5 text-primary" /> Propose Account Unlock</span>
             <button type="button" onClick={() => setShowModal(null)} className="text-muted hover:text-DEFAULT">×</button>
@@ -397,8 +397,8 @@ export const ResolutionActionsCard: React.FC<Props> = ({ ticketId, readOnly = fa
                       </span>
                       <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
                         prop.riskLevel === 'HIGH' || prop.riskLevel === 'CRITICAL'
-                          ? 'bg-amber-500/15 text-amber-600'
-                          : 'bg-blue-500/15 text-blue-600'
+                          ? 'bg-warning/10 text-warning'
+                          : 'bg-info/10 text-info'
                       }`}>
                         {prop.riskLevel}
                       </span>
@@ -409,12 +409,12 @@ export const ResolutionActionsCard: React.FC<Props> = ({ ticketId, readOnly = fa
                   </div>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                     isCompleted
-                      ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30'
+                      ? 'bg-success/10 text-success border border-success/20'
                       : isApproved
-                      ? 'bg-blue-500/15 text-blue-600 border border-blue-500/30'
+                      ? 'bg-info/10 text-info border border-info/20'
                       : prop.status === 'REJECTED' || prop.status === 'POLICY_DENIED'
                       ? 'bg-danger/15 text-danger border border-danger/30'
-                      : 'bg-amber-500/15 text-amber-600 border border-amber-500/30'
+                      : 'bg-warning/10 text-warning border border-warning/20'
                   }`}>
                     {prop.status}
                   </span>
