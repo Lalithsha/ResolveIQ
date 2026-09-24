@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, onSele
         key={item.id}
         onClick={() => onSelectTab(item.id)}
         aria-current={isActive ? 'page' : undefined}
-        className={`group relative flex items-center gap-3 rounded-btn text-sm transition-colors lg:w-full lg:px-3 lg:py-2.5 ${
+        className={`group relative flex items-center gap-3 rounded-btn text-sm transition-colors lg:w-full lg:px-3 lg:py-2 ${
           isActive
             ? 'bg-primary-soft text-primary'
             : 'text-muted hover:bg-surface-muted hover:text-DEFAULT'
@@ -101,14 +101,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, onSele
       >
         <Icon className="h-[17px] w-[17px] flex-none" strokeWidth={isActive ? 2.2 : 1.8} />
         <span className="font-medium lg:block">{item.label}</span>
-        {isActive && <span className="absolute left-0 hidden h-5 w-0.5 rounded-full bg-primary lg:block" />}
       </button>
     );
   });
 
   return (
     <>
-      <aside className="hidden w-64 flex-none flex-col justify-between border-r border-border-subtle bg-surface px-3 py-5 lg:flex">
+      <aside className="hidden w-60 flex-none flex-col justify-between border-r border-border-subtle bg-surface px-3 py-5 lg:flex">
         <div>
           <div className="px-3 pb-4">
             <span className="eyebrow mb-1">Workspace</span>
@@ -117,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, onSele
           <nav aria-label="Primary navigation" className="space-y-1">{navigation}</nav>
         </div>
 
-        <div className="mx-1 rounded-card border border-border-subtle bg-surface-muted p-3.5">
+        <div className="mx-1 rounded-card border border-border-subtle bg-surface-muted p-3">
           <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-DEFAULT">
             <LifeBuoy className="h-4 w-4 text-primary" />
             Need a hand?

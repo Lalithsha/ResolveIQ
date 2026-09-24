@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, ChevronDown, LogOut, Sparkles } from 'lucide-react';
+import { Bell, ChevronDown, LogOut } from 'lucide-react';
 import { Role } from '../../types';
 
 interface NavbarProps {
@@ -34,20 +34,15 @@ export const Navbar: React.FC<NavbarProps> = ({
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-40 h-16 border-b border-border-subtle bg-surface/95 backdrop-blur">
-      <div className="flex h-full items-center justify-between px-4 sm:px-6">
+    <header className="sticky top-0 z-40 h-15 border-b border-border-subtle bg-surface/95 backdrop-blur">
+      <div className="flex h-full items-center justify-between px-5 sm:px-8">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="grid h-9 w-9 flex-none place-items-center rounded-[11px] bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950">
-            <Sparkles className="h-[18px] w-[18px]" strokeWidth={2.2} />
-          </div>
+          <div className="grid h-8 w-8 flex-none place-items-center rounded-lg bg-primary text-sm font-semibold text-white">R</div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="truncate text-[15px] font-semibold tracking-[-0.02em] text-DEFAULT">ResolveIQ</span>
-              <span className="hidden rounded-full border border-border-subtle bg-surface-muted px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted sm:inline-flex">
-                Alpha
-              </span>
             </div>
-            <span className="hidden text-[11px] text-muted sm:block">Support intelligence workspace</span>
+            <span className="hidden text-[11px] text-muted sm:block">Support workspace</span>
           </div>
         </div>
 
