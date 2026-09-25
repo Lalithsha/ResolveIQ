@@ -1,12 +1,14 @@
 import React from 'react';
-import { Bell, ChevronDown, LogOut } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Moon, Sun } from 'lucide-react';
 import { Role } from '../../types';
 
 interface NavbarProps {
   currentRole: Role;
   availableRoles: Role[];
   userName: string;
+  theme: 'dark' | 'light';
   onRoleChange: (role: string) => void;
+  onThemeToggle: () => void;
   onLogout: () => Promise<void>;
 }
 
@@ -23,7 +25,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentRole,
   availableRoles,
   userName,
+  theme,
   onRoleChange,
+  onThemeToggle,
   onLogout,
 }) => {
   const initials = userName
@@ -34,10 +38,10 @@ export const Navbar: React.FC<NavbarProps> = ({
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-40 h-15 border-b border-border-subtle bg-surface/95 backdrop-blur">
+    <header className="sticky top-0 z-40 h-[72px] border-b border-border-subtle bg-surface/95 backdrop-blur">
       <div className="flex h-full items-center justify-between px-5 sm:px-8">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="grid h-8 w-8 flex-none place-items-center rounded-lg bg-primary text-sm font-semibold text-white">R</div>
+          <div className="grid h-10 w-10 flex-none place-items-center rounded-lg bg-primary text-sm font-semibold text-white">R</div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="truncate text-[15px] font-semibold tracking-[-0.02em] text-DEFAULT">ResolveIQ</span>
@@ -79,6 +83,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button aria-label="Notifications" className="icon-button relative">
             <Bell className="h-[17px] w-[17px]" />
             <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary ring-2 ring-surface" />
+          </button>
+
+          <button
+            type="button"
+            onClick={onThemeToggle}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="icon-button"
+          >
+            {theme === 'dark' ? <Sun className="h-[17px] w-[17px]" /> : <Moon className="h-[17px] w-[17px]" />}
           </button>
 
           <div className="ml-1 flex items-center gap-2 border-l border-border-subtle pl-3">

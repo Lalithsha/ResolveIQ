@@ -349,7 +349,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded bg-warning/10 px-2 py-0.5 text-[11px] font-semibold text-warning dark:text-warning">
+                  <span className="inline-flex items-center gap-1 rounded bg-warning/10 px-2 py-0.5 text-[11px] font-semibold text-warning">
                     <Radio className="h-3 w-3 animate-pulse" />
                     Ongoing Incident ({inc.severity})
                   </span>

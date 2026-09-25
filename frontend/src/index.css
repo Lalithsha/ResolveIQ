@@ -3,6 +3,27 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: dark;
+  --color-bg: 22 27 25;
+  --color-surface: 29 36 33;
+  --color-surface-muted: 37 45 41;
+  --color-text: 237 242 238;
+  --color-text-muted: 167 179 171;
+  --color-border: 63 75 67;
+  --color-border-subtle: 48 59 53;
+  --color-primary: 115 179 151;
+  --color-primary-hover: 140 198 172;
+  --color-primary-soft: 43 67 56;
+  --color-ai: 177 189 224;
+  --color-ai-soft: 49 57 78;
+  --color-success: 116 193 146;
+  --color-warning: 219 171 99;
+  --color-danger: 231 132 136;
+  --color-info: 117 181 198;
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 0.16);
+}
+
+:root[data-theme='light'] {
   color-scheme: light;
   --color-bg: 250 250 248;
   --color-surface: 255 255 255;
