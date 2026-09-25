@@ -27,6 +27,15 @@ const ALLOWED_TABS: Record<Role, string[]> = {
 export const App: React.FC = () => {
   const { user, activeRole, setActiveRole, isAuthenticated, isLoading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('create');
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const savedTheme = window.localStorage.getItem('resolveiq-theme');
+    return savedTheme === 'light' ? 'light' : 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('resolveiq-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     if (!ALLOWED_TABS[activeRole].includes(activeTab)) setActiveTab(DEFAULT_TAB[activeRole]);
@@ -72,7 +81,15 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <Navbar currentRole={activeRole} availableRoles={user.roles} userName={user.fullName} onRoleChange={handleRoleChange} onLogout={logout} />
+      <Navbar
+        currentRole={activeRole}
+        availableRoles={user.roles}
+        userName={user.fullName}
+        theme={theme}
+        onRoleChange={handleRoleChange}
+        onThemeToggle={() => setTheme(currentTheme => currentTheme === 'dark' ? 'light' : 'dark')}
+        onLogout={logout}
+      />
       <div className="flex min-h-0 flex-1">
         <Sidebar currentRole={activeRole} activeTab={activeTab} onSelectTab={setActiveTab} />
         <main className="min-w-0 flex-1 overflow-x-hidden pb-[68px] lg:pb-0">

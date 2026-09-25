@@ -345,11 +345,11 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
             <div
               key={inc.incidentId}
               role="alert"
-              className="rounded-card border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-DEFAULT space-y-1.5 shadow-sm"
+              className="rounded-card border border-warning/20 bg-warning/10 p-4 text-xs text-DEFAULT space-y-1.5 shadow-sm"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded bg-amber-500/20 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                  <span className="inline-flex items-center gap-1 rounded bg-warning/10 px-2 py-0.5 text-[11px] font-semibold text-warning">
                     <Radio className="h-3 w-3 animate-pulse" />
                     Ongoing Incident ({inc.severity})
                   </span>

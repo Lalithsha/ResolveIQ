@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Check, LockKeyhole, ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
+import { ArrowRight, LockKeyhole, ShieldCheck, UserCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AuthPage: React.FC = () => {
@@ -48,48 +48,28 @@ export const AuthPage: React.FC = () => {
   };
 
   return (
-    <main className="grid min-h-screen bg-background lg:grid-cols-[1.05fr_0.95fr]">
-      <section className="relative hidden overflow-hidden bg-slate-950 p-10 text-white lg:flex lg:flex-col lg:justify-between xl:p-14">
-        <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_0%,rgba(91,130,246,.38),transparent_34%),radial-gradient(circle_at_95%_80%,rgba(129,96,201,.28),transparent_30%)]" />
-        <div className="absolute inset-0 opacity-[0.07] [background-image:linear-gradient(rgba(255,255,255,.7)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.7)_1px,transparent_1px)] [background-size:44px_44px]" />
+    <main className="grid min-h-screen bg-background lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="hidden border-r border-border-subtle bg-surface-muted p-10 lg:flex lg:flex-col lg:justify-between xl:p-14">
 
         <div className="relative flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-[12px] bg-white text-slate-950">
-            <Sparkles className="h-5 w-5" />
-          </div>
+          <div className="grid h-10 w-10 place-items-center rounded-[12px] bg-primary text-base font-semibold text-white">R</div>
           <div>
-            <p className="text-[15px] font-semibold tracking-[-0.02em]">ResolveIQ</p>
-            <p className="text-[11px] text-white/50">Support intelligence, grounded in evidence</p>
+            <p className="text-[15px] font-semibold tracking-[-0.02em] text-DEFAULT">ResolveIQ</p>
+            <p className="text-[11px] text-muted">Support workspace</p>
           </div>
         </div>
 
         <div className="relative max-w-xl">
-          <span className="mb-5 inline-flex rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-[11px] font-medium text-white/70">
-            Human judgment stays in control
-          </span>
-          <h1 className="max-w-lg text-[2.65rem] font-semibold leading-[1.08] tracking-[-0.045em] xl:text-5xl">
-            Resolve support work with clarity and confidence.
+          <span className="eyebrow mb-5">Support, made clear</span>
+          <h1 className="max-w-lg text-[2.5rem] font-semibold leading-[1.1] tracking-[-0.045em] text-DEFAULT xl:text-5xl">
+            A calmer way to resolve customer requests.
           </h1>
-          <p className="mt-6 max-w-lg text-[15px] leading-7 text-white/58">
-            Triage incoming requests, find approved knowledge, and review every AI-assisted response with its evidence attached.
+          <p className="mt-6 max-w-lg text-[15px] leading-7 text-muted">
+            Keep requests, trusted knowledge, and the context to respond in one focused workspace.
           </p>
-
-          <div className="mt-10 grid max-w-lg grid-cols-3 gap-3">
-            {[
-              ['Auditable', 'Every action traced'],
-              ['Grounded', 'Approved sources only'],
-              ['Controlled', 'Human approval required'],
-            ].map(([title, description]) => (
-              <div key={title} className="rounded-[14px] border border-white/10 bg-white/[0.045] p-3.5 backdrop-blur-sm">
-                <Check className="mb-3 h-4 w-4 text-blue-300" />
-                <p className="text-xs font-semibold">{title}</p>
-                <p className="mt-1 text-[10px] leading-4 text-white/45">{description}</p>
-              </div>
-            ))}
-          </div>
         </div>
 
-        <div className="relative flex items-center gap-2 text-[11px] text-white/45">
+        <div className="flex items-center gap-2 text-[11px] text-muted">
           <ShieldCheck className="h-4 w-4" />
           Tenant-isolated · Encrypted in transit · Role-based access
         </div>
@@ -98,9 +78,7 @@ export const AuthPage: React.FC = () => {
       <section className="flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
         <div className="w-full max-w-[430px]">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="grid h-9 w-9 place-items-center rounded-[11px] bg-slate-950 text-white dark:bg-white dark:text-slate-950">
-              <Sparkles className="h-[18px] w-[18px]" />
-            </div>
+            <div className="grid h-9 w-9 place-items-center rounded-[11px] bg-primary text-sm font-semibold text-white">R</div>
             <span className="font-semibold tracking-[-0.02em] text-DEFAULT">ResolveIQ</span>
           </div>
 

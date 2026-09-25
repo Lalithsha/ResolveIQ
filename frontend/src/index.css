@@ -3,47 +3,45 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
-  --color-bg: 247 248 250;
-  --color-surface: 255 255 255;
-  --color-surface-muted: 243 245 247;
-  --color-text: 24 31 45;
-  --color-text-muted: 96 107 125;
-  --color-border: 216 221 228;
-  --color-border-subtle: 232 235 239;
-  --color-primary: 45 91 204;
-  --color-primary-hover: 34 72 168;
-  --color-primary-soft: 234 240 255;
-  --color-ai: 105 78 173;
-  --color-ai-soft: 242 238 252;
-  --color-success: 28 132 92;
-  --color-warning: 177 98 24;
-  --color-danger: 190 55 66;
-  --color-info: 30 112 155;
-  --shadow-panel: 0 1px 2px rgb(15 23 42 / 0.035), 0 8px 24px rgb(15 23 42 / 0.035);
+  color-scheme: dark;
+  --color-bg: 22 27 25;
+  --color-surface: 29 36 33;
+  --color-surface-muted: 37 45 41;
+  --color-text: 237 242 238;
+  --color-text-muted: 167 179 171;
+  --color-border: 63 75 67;
+  --color-border-subtle: 48 59 53;
+  --color-primary: 115 179 151;
+  --color-primary-hover: 140 198 172;
+  --color-primary-soft: 43 67 56;
+  --color-ai: 177 189 224;
+  --color-ai-soft: 49 57 78;
+  --color-success: 116 193 146;
+  --color-warning: 219 171 99;
+  --color-danger: 231 132 136;
+  --color-info: 117 181 198;
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 0.16);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --color-bg: 13 17 23;
-    --color-surface: 20 26 34;
-    --color-surface-muted: 28 35 45;
-    --color-text: 241 244 248;
-    --color-text-muted: 154 164 178;
-    --color-border: 57 67 81;
-    --color-border-subtle: 42 50 62;
-    --color-primary: 118 153 255;
-    --color-primary-hover: 148 175 255;
-    --color-primary-soft: 31 47 82;
-    --color-ai: 181 154 238;
-    --color-ai-soft: 56 43 82;
-    --color-success: 76 190 139;
-    --color-warning: 235 166 80;
-    --color-danger: 241 112 122;
-    --color-info: 91 177 218;
-    --shadow-panel: 0 1px 2px rgb(0 0 0 / 0.15), 0 12px 28px rgb(0 0 0 / 0.12);
-  }
+:root[data-theme='light'] {
+  color-scheme: light;
+  --color-bg: 250 250 248;
+  --color-surface: 255 255 255;
+  --color-surface-muted: 246 247 244;
+  --color-text: 39 47 43;
+  --color-text-muted: 109 119 113;
+  --color-border: 220 224 218;
+  --color-border-subtle: 233 236 231;
+  --color-primary: 57 105 89;
+  --color-primary-hover: 44 84 71;
+  --color-primary-soft: 234 242 236;
+  --color-ai: 92 106 142;
+  --color-ai-soft: 239 242 248;
+  --color-success: 53 126 90;
+  --color-warning: 160 111 50;
+  --color-danger: 177 75 79;
+  --color-info: 66 123 137;
+  --shadow-panel: 0 1px 2px rgb(38 48 42 / 0.025);
 }
 
 *,
@@ -108,7 +106,7 @@ body {
 
 @layer components {
   .app-page {
-    @apply mx-auto w-full max-w-7xl space-y-6 px-4 py-5 sm:px-6 sm:py-7 lg:px-8;
+    @apply mx-auto w-full max-w-7xl space-y-7 px-5 py-6 sm:px-8 sm:py-8 lg:px-10;
   }
 
   .page-header {
@@ -116,7 +114,7 @@ body {
   }
 
   .page-title {
-    @apply text-[1.55rem] font-semibold tracking-[-0.025em] text-DEFAULT sm:text-[1.75rem];
+    @apply text-[1.5rem] font-semibold tracking-[-0.03em] text-DEFAULT sm:text-[1.7rem];
   }
 
   .page-description {
@@ -124,7 +122,7 @@ body {
   }
 
   .eyebrow {
-    @apply mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-primary;
+    @apply mb-2 block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted;
   }
 
   .panel {
@@ -149,11 +147,11 @@ body {
   }
 
   .form-control {
-    @apply w-full rounded-input border border-border bg-surface px-3.5 text-sm text-DEFAULT transition-[border-color,box-shadow] duration-150 placeholder:text-muted/70 hover:border-border focus:border-primary focus:ring-4 focus:ring-primary/10;
+    @apply w-full rounded-input border border-border bg-surface px-3.5 text-sm text-DEFAULT transition-[border-color,box-shadow] duration-150 placeholder:text-muted/70 hover:border-primary/60 focus:border-primary focus:ring-4 focus:ring-primary/10;
   }
 
   .btn-primary {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-btn bg-primary px-4 text-sm font-semibold text-white shadow-sm transition-[background-color,transform,box-shadow] hover:bg-primary-hover active:translate-y-px disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-btn bg-primary px-4 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-primary-hover active:translate-y-px disabled:pointer-events-none disabled:opacity-50;
   }
 
   .btn-secondary {
