@@ -6,6 +6,22 @@ ResolveIQ is a production-oriented, event-driven customer support portfolio plat
 
 It assists support agents by performing structured classification, hybrid retrieval (combining full-text keyword search and vector embeddings) across approved knowledge articles and privacy-sanitized resolved cases, predicting SLA breach risk, generating citation-backed draft responses, and enforcing a **strict Human-in-the-Loop governance boundary** with **zero customer-visible auto-sends**.
 
+## Product videos
+
+### Product intro · 20 seconds
+
+A light-mode introduction to citation-backed drafts and human approval. Workflow panels are illustrative.
+
+[▶ Watch product intro](brag-intro-light-2026-10-05-081809/resolveiq-intro.mp4)
+
+### Full product demo · 4 minutes 30 seconds
+
+A light-mode walkthrough across all six roles, from ticket submission and controlled refunds to incident communications, customer confirmation, knowledge release, governance and audit.
+
+[▶ Watch full product demo](brag-output-2026-10-05-074045/resolveiq-product-demo.mp4)
+
+Recorded in the local demo environment with deterministic AI, simulated payments and fictional customer outcomes. Knowledge evaluation results describe the local evaluator.
+
 ---
 
 ## 1. High-Level Architecture
