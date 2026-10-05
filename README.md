@@ -12,13 +12,17 @@ It assists support agents by performing structured classification, hybrid retrie
 
 A light-mode introduction to citation-backed drafts and human approval. Workflow panels are illustrative.
 
-[▶ Watch product intro](brag-intro-light-2026-10-05-081809/resolveiq-intro.mp4)
+https://github.com/user-attachments/assets/ee8e1ab5-e552-437f-9a97-4a5ff6711c16
+
+Playback link: [▶ Watch product intro](https://github.com/user-attachments/assets/ee8e1ab5-e552-437f-9a97-4a5ff6711c16)
 
 ### Full product demo · 4 minutes 30 seconds
 
 A light-mode walkthrough across all six roles, from ticket submission and controlled refunds to incident communications, customer confirmation, knowledge release, governance and audit.
 
-[▶ Watch full product demo](brag-output-2026-10-05-074045/resolveiq-product-demo.mp4)
+https://github.com/user-attachments/assets/f01804c3-f185-4e0d-8a52-a2be47bb1095
+
+Playback link: [▶ Watch full product demo](https://github.com/user-attachments/assets/f01804c3-f185-4e0d-8a52-a2be47bb1095)
 
 Recorded in the local demo environment with deterministic AI, simulated payments and fictional customer outcomes. Knowledge evaluation results describe the local evaluator.
 
