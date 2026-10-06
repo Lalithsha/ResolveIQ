@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ResolveIQ \u2014 support architecture",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "viewBox": [
+      1100,
+      560
+    ]
+  },
+  "components": [
+    {
+      "id": "workspaces",
+      "type": "frontend",
+      "label": "Role workspaces",
+      "sublabel": "React \u00b7 six personas",
+      "pos": [
+        390,
+        20
+      ],
+      "size": [
+        260,
+        76
+      ]
+    },
+    {
+      "id": "gateway",
+      "type": "backend",
+      "label": "API gateway",
+      "sublabel": "Routes authenticated requests",
+      "pos": [
+        390,
+        140
+      ],
+      "size": [
+        260,
+        76
+      ]
+    },
+    {
+      "id": "identity",
+      "type": "security",
+      "label": "Authentication",
+      "sublabel": "JWT \u00b7 tenant and role scope",
+      "pos": [
+        760,
+        140
+      ],
+      "size": [
+        280,
+        76
+      ]
+    },
+    {
+      "id": "support",
+      "type": "backend",
+      "label": "Tickets + routing",
+      "sublabel": "Conversations \u00b7 queues \u00b7 SLA",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        280,
+        88
+      ]
+    },
+    {
+      "id": "ai",
+      "type": "backend",
+      "label": "AI orchestration + analysis",
+      "sublabel": "Triage \u00b7 evidence \u00b7 action policy",
+      "pos": [
+        390,
+        300
+      ],
+      "size": [
+        320,
+        88
+      ]
+    },
+    {
+      "id": "knowledge",
+      "type": "backend",
+      "label": "Knowledge + retrieval",
+      "sublabel": "Citations \u00b7 review \u00b7 release",
+      "pos": [
+        780,
+        300
+      ],
+      "size": [
+        280,
+        88
+      ]
+    },
+    {
+      "id": "events",
+      "type": "messagebus",
+      "label": "Kafka",
+      "sublabel": "Outbox events \u00b7 triage results",
+      "pos": [
+        40,
+        450
+      ],
+      "size": [
+        280,
+        88
+      ]
+    },
+    {
+      "id": "data",
+      "type": "database",
+      "label": "PostgreSQL / pgvector",
+      "sublabel": "Service-owned data \u00b7 hybrid search",
+      "pos": [
+        390,
+        450
+      ],
+      "size": [
+        320,
+        88
+      ]
+    },
+    {
+      "id": "files",
+      "type": "cloud",
+      "label": "MinIO",
+      "sublabel": "Ticket attachment storage",
+      "pos": [
+        780,
+        450
+      ],
+      "size": [
+        280,
+        88
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "browser-api",
+      "from": "workspaces",
+      "to": "gateway",
+      "label": "HTTPS",
+      "variant": "emphasis",
+      "labelDy": 24
+    },
+    {
+      "id": "scope",
+      "from": "gateway",
+      "to": "identity",
+      "label": "Auth APIs",
+      "variant": "security"
+    },
+    {
+      "id": "support-api",
+      "from": "gateway",
+      "to": "support",
+      "label": "Ticket / routing APIs"
+    },
+    {
+      "id": "ai-api",
+      "from": "gateway",
+      "to": "ai",
+      "label": "Workflow APIs",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "knowledge-api",
+      "from": "gateway",
+      "to": "knowledge",
+      "label": "Knowledge APIs"
+    },
+    {
+      "id": "outbox",
+      "from": "support",
+      "to": "events",
+      "label": "Transactional outbox",
+      "variant": "dashed",
+      "labelDy": 24
+    },
+    {
+      "id": "retrieval-data",
+      "from": "knowledge",
+      "to": "data",
+      "label": "Hybrid retrieval"
+    }
+  ]
+}
