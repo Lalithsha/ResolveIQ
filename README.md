@@ -131,26 +131,11 @@ These scenarios use simulated payment/identity adapters and mocked persistence. 
 
 The frontend is organized around six personas. Backend services own their business data and communicate through authenticated APIs and Kafka events.
 
-```mermaid
-flowchart LR
-    UI[React role workspaces] --> GW[API gateway]
-    GW --> AUTH[Authentication and tenant scope]
-    GW --> T[Ticket lifecycle and conversations]
-    GW --> O[AI workflow and controlled actions]
-    GW --> R[Routing and SLA queues]
-    GW --> K[Knowledge lifecycle and retrieval]
-    O --> A[AI analysis and evidence processing]
-    O --> R
-    O --> K
-    T -->|Transactional outbox| E[(Kafka)]
-    E --> O
-    O -->|Triage result| E
-    E --> T
-    K --> V[(PostgreSQL / pgvector)]
-    T --> S[(MinIO attachments)]
-```
+[![ResolveIQ architecture showing role workspaces, authenticated APIs, grouped support services, Kafka, PostgreSQL/pgvector and MinIO, with human approval, reliable processing and scoped access safeguards](docs/assets/readme/architecture.png)](docs/assets/readme/architecture.svg)
 
-The diagram highlights the main workflow; discovery, other service-owned PostgreSQL schemas and observability are omitted for readability. [Detailed architecture](docs/part1/ARCHITECTURE_AND_DEMO_EVIDENCE.md)
+Read from top to bottom: **people use role workspaces → the gateway routes scoped requests → services manage support, AI workflows and knowledge → infrastructure stores data and carries events**.
+
+Related services are grouped to keep the overview readable. Arrows show selected request and retrieval paths; internal service calls, the full Kafka return path, MinIO attachment access, discovery and observability are omitted. Authentication checks also run in the owning services. Click the image for the full-size vector, or explore the [detailed architecture](docs/part1/ARCHITECTURE_AND_DEMO_EVIDENCE.md).
 
 | Engineering decision | Implementation and purpose |
 | --- | --- |

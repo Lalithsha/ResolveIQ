@@ -13,3 +13,5 @@ The five PNGs are unmodified 1920×1080 browser captures from the October 5, 202
 | `knowledge-release.png` | Prepared six-customer cohort sanitized, evaluated and released by a Knowledge Manager |
 
 UI confidence, incident counts and evaluation values in these screenshots describe the local configured demo. They are not measured production accuracy, adoption or business-impact figures. The full demonstration is available through the stable GitHub attachment URL in the root README.
+
+`architecture.png` is a diagram, not a product screenshot. Its companion `architecture.svg` provides a full-size vector. Both derive from the validated [architecture source and review](../../diagrams/README.md); larger labels and a safeguard summary make the static image readable in the README.
